@@ -1,0 +1,9 @@
+[submodule "deps/GenRFS"]
+	path = deps/GenRFS
+	url = git@github.com:CNCLgithub/GenRFS.git
+[submodule "deps/detectron2"]
+	path = deps/detectron2
+	url = git@github.com:CNCLgithub/detectron2.git
+[submodule "deps/Gen_Compose"]
+	path = deps/Gen_Compose
+	url = https://github.com/CNCLgithub/Gen_Compose

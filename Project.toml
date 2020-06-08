@@ -1,0 +1,23 @@
+name = "MOT"
+uuid = "c5ec084a-5195-4a26-8e03-86140efe213d"
+authors = ["eivinasbutkus, belledon"]
+version = "0.1.0"
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
+Gen = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
+GenRFS = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
+Gen_Compose = "c1ef4dca-b0a6-4a35-b24b-46cbf3979a16"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+ImageIO = "82e4d734-157c-48bb-816b-45c225c6df19"
+ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+StatProfilerHTML = "a8a75453-ed82-57c9-9e16-4cd1196ecbf5"
