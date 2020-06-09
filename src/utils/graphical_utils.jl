@@ -8,16 +8,6 @@ export add_images,
 
 using Images
 
-# translates coordinate from euclidean to image space
-function translate_area_to_img(x, y, params)
-    y *= -1
-    x *= params.img_width/params.area_width
-    x = round(Int, x+params.img_width/2) 
-    y *= params.img_height/params.area_height
-    y = round(Int, y+params.img_height/2) 
-    
-    return x, y
-end
 
 # 2d gaussian function
 function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
@@ -70,20 +60,6 @@ function draw_gaussian_mask(object, img_so_far, params)
     return mask
 end
 
-function draw_mask(object, img_so_far, params)
-    x, y = translate_area_to_img(object[1], object[2], params)
-    
-    mask = BitArray{2}(undef, params.img_height, params.img_width)
-    mask .= false
-    radius = params.dot_radius * params.img_width / params.area_width
-    draw_circle!(mask, [x,y], radius, true)
-    
-    # getting rid of the intersection
-    #mask = subtract_images(mask, img_so_far)
-    mask[img_so_far] .= false
-
-    return mask
-end
 
 # add images and clamp to normal range
 function add_images(img1, img2)

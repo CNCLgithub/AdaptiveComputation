@@ -1,4 +1,7 @@
-export load_from_file
+export load_from_file,
+        read_json
+
+using JSON
 
 # loading data from exp_0 dataset
 function load_from_file(filename, trial)
@@ -36,4 +39,19 @@ function load_from_file(filename, trial)
     end
 	
 	return new_obs, avg_vel, new_dots, init_dots, inertia, spring, sigma_w, sigma_x, sigma_v
+end
+
+
+"""
+    read_json(path)
+
+    opens the file at path, parses as JSON and returns a dictionary
+"""
+function read_json(path)
+    open(path, "r") do f
+        global data
+        data = JSON.parse(f)
+    end
+
+    return data
 end

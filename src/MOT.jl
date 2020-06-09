@@ -20,6 +20,7 @@ include("generative_processes/generative_processes.jl")
 include("generative_models/generative_models.jl")
 include("distributions/distributions.jl")
 include("procedures/procedures.jl")
+include("graphics/graphics.jl")
 
 # extra
 include("plotting/plotting.jl")
