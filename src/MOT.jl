@@ -15,6 +15,7 @@ end
 
 # fundamentals
 include("utils/utils.jl")
+include("dynamics_models/dynamics_models.jl")
 include("generative_processes/generative_processes.jl")
 include("generative_models/generative_models.jl")
 include("distributions/distributions.jl")
