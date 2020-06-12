@@ -165,24 +165,7 @@ end
 
 ##### UPDATE STATE #####
 @gen function tracker_update_kernel(tracker::Dot, dynamics_model::DynamicsModel)
-    @trace(update_individual!(dynamics_model, tracker), :vel)
-    return tracker
-    
-    """
-    mu_vx = params.inertia * tracker.vx - params.spring * tracker.x
-	vx = @trace(normal(mu_vx, params.sigma_w), :vx)
-
-	mu_vy = params.inertia * tracker.vy - params.spring * tracker.y
-	vy = @trace(normal(mu_vy, params.sigma_w), :vy)
-
-	x = tracker.x + vx
-	y = tracker.y + vy
-    z = tracker.z
-
-    new_tracker = Dot([x,y,z], [vx,vy])
-
-	return new_tracker
-    """
+    @trace(update_individual(tracker, dynamics_model), :dynamics)
 end
 trackers_update_map = Gen.Map(tracker_update_kernel)
 ##################################

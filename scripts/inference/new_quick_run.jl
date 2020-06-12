@@ -8,7 +8,7 @@ using FileIO
 
 
 function main()
-    dataset = "datasets/exp_0.h5"
+    # dataset = "datasets/exp_0.h5"
     trial = 0
     T = 20
 
@@ -28,7 +28,7 @@ function main()
                        "dynamics_params" => dynamics_params,
                        "graphics_params" => graphics_params,
                        "inference_params" => inference_params)
-    
+
     # generating positions
     init_positions, positions = brownian_generative_process(T, full_params)
     

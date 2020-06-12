@@ -31,7 +31,7 @@ function brownian_generative_process(T::Int, params::Dict)
     
 
     for t=1:T
-        update!(dynamics_model, dots)
+        dots = update(dots, dynamics_model)
         for i=1:num_dots
             positions[t,i,:] = dots[i].pos
         end
