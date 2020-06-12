@@ -1,11 +1,11 @@
 export rejuvenate_state!,
-    retrieve_td_confusability,
-    early_stopping_td_confusability
+    retrieve_confusability,
+    early_stopping_confusability
 
 """
 for now returns false, no early stopping
 """
-function early_stopping_td_confusability(new_conf, prev_conf)
+function early_stopping_confusability(new_conf, prev_conf)
     return false
 end
 
@@ -14,7 +14,7 @@ end
 
 Returns tracker designation confusability per unique optics element.
 """
-function retrieve_td_confusability(state::Gen.ParticleFilterState, unweighted::Bool = true)
+function retrieve_confusability(state::Gen.ParticleFilterState, unweighted::Bool = true)
     num_particles = length(state.traces)
 
     if unweighted
@@ -27,7 +27,7 @@ function retrieve_td_confusability(state::Gen.ParticleFilterState, unweighted::B
     #confusability = zeros(length(first(samples)[:states => t => :optics]))
 
     # let's do confusability in terms of trackers!!!
-    confusability = fill(-Inf, params.num_trackers)
+    confusability = fill(-Inf, params["inference_params"]["num_trackers"])
 
     for i=1:num_particles
         #optics = samples[i][:states => t => :optics]
@@ -140,7 +140,7 @@ Perturbs velocity based on confusability of assignments to observations.
 
     # maybe unfair advantage to our new model
     # (was constant at 2.5 before)
-    @trace(broadcasted_normal(prev_v, params.sigma_w), :new_v)
+    @trace(broadcasted_normal(prev_v, params["dynamics_params"]["sigma_w"]), :new_v)
 
     return tracker, prev_v
 end
@@ -155,7 +155,7 @@ function state_perturb_involution_old(trace, fwd_choices::ChoiceMap, fwd_ret,
     
     # recording attended tracker in involution
     # (not to count twice)
-    push!(params.attended_trackers[t], tracker)
+    push!(params["attended_trackers"][t], tracker)
 
     # constraints for update step
     constraints = choicemap()

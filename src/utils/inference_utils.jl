@@ -32,8 +32,8 @@ function extract_tracker_positions(trace::Gen.Trace)
 
     tracker_positions = Array{Float64}(undef, length(trackers), 2)
     for i=1:length(trackers)
-        tracker_positions[i,1] = trackers[i].x
-        tracker_positions[i,2] = trackers[i].y
+        tracker_positions[i,1] = trackers[i].pos[1]
+        tracker_positions[i,2] = trackers[i].pos[2]
     end
 
     tracker_positions = reshape(tracker_positions, (1,1,size(tracker_positions)...))

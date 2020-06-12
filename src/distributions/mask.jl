@@ -8,11 +8,11 @@ struct Mask <: Gen.Distribution{Array} end
 const mask = Mask()
 
 function Gen.random(::Mask, ps::Matrix{Float64})
-    image = Gen.bernoulli.(ps)
+    image = BitArray(Gen.bernoulli.(ps))
 	return image
 end
 
-function Gen.logpdf(::Union{Mask, Nothing}, image::BitArray{2}, ps::Matrix{Float64})
+function Gen.logpdf(::Mask, image::BitArray{2}, ps::Matrix{Float64})
     bernoullis = fill(bernoulli, size(ps))
     lpdfs = Gen.logpdf.(bernoullis, image, ps)
     return sum(lpdfs)

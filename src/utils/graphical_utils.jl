@@ -1,40 +1,11 @@
 export add_images,
        subtract_images,
        translate_area_to_img,
-       draw_circle!,
-       draw_gaussian_circle,
-       draw_mask,
-       draw_gaussian_mask
+       draw_circle!
 
 using Images
 
 
-# 2d gaussian function
-function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
-    return A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
-end
-
-# drawing a gaussian circle 
-using Distributions
-function draw_gaussian_circle(img, center, radius)
-    # standard deviation based on the volume of the Gaussian
-    spread_1 = 1.0 # parameter for how spread out the mask is
-    spread_2 = 5.0
-    A = 0.4999999999
-    std_1 = sqrt(spread_1 * radius)
-    std_2 = sqrt(spread_2 * radius)
-
-    #A = 0.5/spread^2
-    
-    for i=1:size(img,1)
-        for j=1:size(img,2)
-            img[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1) 
-            img[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], A, std_2, std_2) 
-        end
-    end
-    
-    return img
-end
 
 # drawing a circle 
 function draw_circle!(img, center, radius, value)
@@ -75,3 +46,54 @@ function subtract_images(img1, img2)
     return img
 end
 
+# draws a full image from masks of one timestep
+function get_full_img(masks)
+    img_height, img_width = size(first(masks))
+    img = BitArray{2}(undef, img_height, img_width)
+    img .= false
+
+    for mask in collect(masks)
+        img = img .|= mask
+    end
+
+    return img
+end
+
+# get a full sequency of masks added together on images
+function get_full_imgs(masks)
+    T = size(masks, 1)
+    full_imgs = []
+    for t=1:T
+        img = get_full_img(masks[t,:])
+        push!(full_imgs, img)
+    end
+    return full_imgs
+end
+
+
+function visualize(xy, full_imgs, params, folder="visuals")
+    mkpath(folder)
+
+    T = length(full_imgs)
+    num_particles = params["inference_params"]["num_particles"]
+
+    for t=1:T
+        img = full_imgs[t]
+
+        for p=1:num_particles
+            for i=1:size(xy,3)
+                x = xy[t,p,i,1]
+                y = xy[t,p,i,2]
+                x, y = translate_area_to_img(x, y, params["graphics_params"])
+
+                draw_circle!(img, [x,y], 5.0, false)
+                draw_circle!(img, [x,y], 3.0, true)
+                draw_circle!(img, [x,y], 1.0, false)
+            end
+        end
+        
+        fn = "$(lpad(t, 3, "0")).png"
+        save(joinpath(folder, fn), img)
+    end
+
+end

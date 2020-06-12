@@ -19,8 +19,8 @@ include("dynamics_models/dynamics_models.jl")
 include("generative_processes/generative_processes.jl")
 include("generative_models/generative_models.jl")
 include("distributions/distributions.jl")
-include("procedures/procedures.jl")
 include("graphics/graphics.jl")
+include("procedures/procedures.jl")
 
 # extra
 include("plotting/plotting.jl")

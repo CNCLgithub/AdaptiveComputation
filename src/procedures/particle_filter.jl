@@ -35,7 +35,7 @@ function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
    
     # the only free parameter in this function besides max_sweeps
     rtrace.stats = proc.pop_stats(state)
-    sweeps = round(Int, proc.max_sweeps * params.rejuv_smoothness^logsumexp(rtrace.stats))
+    sweeps = round(Int, proc.max_sweeps * params["inference_params"]["rejuv_smoothness"]^logsumexp(rtrace.stats))
 
 
     println("td confusability: $(rtrace.stats)")
