@@ -7,6 +7,8 @@ export ExampleExperiment
     k::Int = 20
 end
 
+name(::ExampleExperiment) = "example"
+
 
 function run_inference(q::ExampleExperiment) # masks, init_positions, params)
 

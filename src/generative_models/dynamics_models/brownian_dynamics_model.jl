@@ -4,14 +4,13 @@ export BrownianDynamicsModel
     inertia::Float64 = 0.8
     spring::Float64 = 0.002
     sigma_w::Float64 = 1.5
-    sigma_v::Float64 = 5.0
 end
 
 function load(Type{BrownianDynamicsModel}, path::String)
     BrownianDynamicsModel(;read_json(path)...)
 end
 
-@gen (static) function step(model::BrownianDynamicsModel, dot::Dot)
+@gen function step(model::BrownianDynamicsModel, dot::Dot)
     _x,_y,z = dot.pos
     _vx,_vy = dot.vel
 
@@ -27,8 +26,8 @@ end
 
 _step = Map(step)
 
-@gen (static) function update(model::BrownianDynamicsModel, cg::CausalGraph)
-    dots = cg.data
+@gen function update(model::BrownianDynamicsModel, cg::CausalGraph)
+    dots = cg.elements
     graph = cg.graph
     new_dots = @trace(_step(fill(model, length(dots)), dots), :brownian)
     cg = CausalGraph(new_dots, graph)

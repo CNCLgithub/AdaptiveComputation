@@ -18,7 +18,7 @@ using Gen_Compose
 end
 
 function load(Type{PopParticleFilter}, path; kwargs...)
-    PopParticleFilter(;read_json(path), kwargs...)
+    PopParticleFilter(;read_json(path)..., kwargs...)
 end
 
 mutable struct RejuvTrace

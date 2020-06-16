@@ -129,6 +129,7 @@ end
     # initial velocity is zero
     return Dot([x,y,z], [0,0])
 end
+
 init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(params::GMMaskParams)
@@ -175,7 +176,7 @@ chain = Gen.Unfold(kernel)
 @gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
-    init_state = @trace(sample_init_state(params.δpos), :init_state)
+    init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(chain(T, init_state, motion, params), :states)
 
     result = (init_state, states)
