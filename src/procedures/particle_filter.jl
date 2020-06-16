@@ -1,21 +1,23 @@
 export PopParticleFilter,
-        rejuvenate!
+    rejuvenate!,
+    PopPFArgs
 
 using Statistics
 using Gen_Compose
 
-struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
-    particles::U where U<:Int
-    ess::Float64
-    proposal::Union{Gen.GenerativeFunction, Nothing}
-    prop_args::Tuple
-    rejuvenation::Union{Function, Nothing}
-    pop_stats::Union{Function, Nothing}
-    stop_rejuv::Union{Function, Nothing}
-    max_sweeps::Int
-    max_fails::Int
-	verbose::Bool
+@with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
+    particles::Int = 1
+    ess::Real = 0.5
+    proposal::Union{Gen.GenerativeFunction, Nothing} = nothing
+    prop_args::Tuple = Tuple()
+    rejuvenation::Union{Function, Nothing} = nothing
+    pop_stats::Union{Function, Nothing} = nothing
+    stop_rejuv::Union{Function, Nothing} = nothing
+    max_sweeps::Int = 1
+    max_fails::Int = 1
+    verbose::Bool = false
 end
+
 
 mutable struct RejuvTrace
     attempts::Int
@@ -29,7 +31,7 @@ function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
     t, params = get_args(first(state.traces))
 
     rtrace = RejuvTrace(0, 0, nothing)
-	if isnothing(proc.rejuvenation)
+    if isnothing(proc.rejuvenation)
         return rtrace
     end
    

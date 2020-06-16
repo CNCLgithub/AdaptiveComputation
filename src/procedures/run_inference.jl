@@ -14,12 +14,12 @@ function run_inference(masks, init_positions, params)
     
     # initial observations based on init_positions
     # model knows where trackers start off
-    init_obs = Gen.choicemap()
-    for i=1:params["inference_params"]["num_trackers"]
+    constraints = Gen.choicemap()
+    for i=1:params["query_params"].num_trackers
         addr = :init_state => :init_trackers => i => :x
-        init_obs[addr] = init_positions[i,1]
+        constraints[addr] = init_positions[i,1]
         addr = :init_state => :init_trackers => i => :y
-        init_obs[addr] = init_positions[i,2]
+        constraints[addr] = init_positions[i,2]
     end
     
     # compiling further observations for the model
@@ -34,21 +34,12 @@ function run_inference(masks, init_positions, params)
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm_masks_static,
                                         (0, params),
-                                        init_obs,
+                                        constraints,
                                         args,
                                         observations)
     
-    procedure = PopParticleFilter(params["inference_params"]["num_particles"],
-                                  params["inference_params"]["num_particles"]/2, # ESS is in terms of effective particle count, not fraction
-                                  nothing,
-                                  tuple(),
-                                  rejuvenate_state!, # rejuvenation
-                                  retrieve_confusability, # population statistic
-                                  early_stopping_confusability, # stopping criteria
-                                  params["inference_params"]["max_rejuv"],
-                                  params["inference_params"]["early_stopping_steps"], # early stopping criteria
-                                  true)
-    
+    procedure = PopParticleFilter(params["inference_params"])
+
     println("running inference...")
     results = sequential_monte_carlo(procedure, query,
                                      buffer_size = T,

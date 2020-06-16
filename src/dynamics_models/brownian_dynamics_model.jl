@@ -1,13 +1,12 @@
-export BrownianDynamicsModel,
-       update
-        
-struct BrownianDynamicsModel <: DynamicsModel
-    inertia::Float64
-    spring::Float64
-    sigma_w::Float64
+export BrownianDynamicsModel
+
+@with_kw struct BrownianDynamicsModel <: AbstractDynamicsModel
+    inertia::Float64 = 1.0
+    spring::Float64 = 1.0
+    sigma_w::Float64 = 1.0
 end
 
-@gen function update_individual(dot::Dot, model::BrownianDynamicsModel)
+@gen function step(model::BrownianDynamicsModel, dot::Dot)
     _x,_y,z = dot.pos
     _vx,_vy = dot.vel
 
@@ -20,9 +19,12 @@ end
     Dot([x,y,z], [vx,vy])
 end
 
-_update_map = Map(update_individual)
+_step = Map(step)
 
-@gen function update(dots::Vector{Dot}, model::BrownianDynamicsModel)
-    _update_map(dots, fill(model, length(dots)))
+@gen (static) function update(model::BrownianDynamicsModel, cg::CausalGraph)
+    dots = cg.data
+    graph = cg.graph
+    new_dots = @trace(_step(fill(model, length(dots)), dots), :brownian)
+    cg = CausalGraph(new_dots, graph)
+    return cg
 end
-

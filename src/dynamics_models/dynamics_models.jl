@@ -1,8 +1,10 @@
-abstract type DynamicsModel end
+export AbstractDynamicsModel
 
-function update!(::DynamicsModel, objects::Vector{Object})
-    error("not implemented")
-end
+abstract type AbstractDynamicsModel end
+
+# function update(::AbstractDynamicsModel)
+#     error("not implemented")
+# end
 
 include("brownian_dynamics_model.jl")
 
