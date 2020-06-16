@@ -6,6 +6,11 @@ struct FullState
     graph::CausalGraph{Vector{Dot}, SimpleGraph}
     pmbrfs_params::Union{PMBRFSParams, Nothing}
 end
+
+function load(Type{GMMaskParams}, path::String)
+    GMMaskParams(;read_json(path)...)
+end
+
 @with_kw struct GMMaskParams
     n_trackers::Int = 1
     λdistractor::Real = 0.0
@@ -16,7 +21,6 @@ end
     area_height::Int = 800
     area_width::Int = 800
 end
-
 
 function get_masks_rvs_args(trackers, params::GMMaskParams)
     # sorted according to depth
@@ -140,9 +144,9 @@ end
 
 
 @gen (static) function kernel(t::Int,
-                     prev_state::FullState,
-                     dynamics_model::AbstractDynamicsModel,
-                     params::GMMaskParams)
+                              prev_state::FullState,
+                              dynamics_model::AbstractDynamicsModel,
+                              params::GMMaskParams)
 
     prev_graph = prev_state.graph
 

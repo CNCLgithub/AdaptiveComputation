@@ -74,13 +74,12 @@ end
 function visualize(xy, full_imgs, params, folder="visuals")
     mkpath(folder)
 
-    T = length(full_imgs)
-    num_particles = params["inference_params"]["num_particles"]
+    k, n, _, _ = size(xy)
 
-    for t=1:T
+    for t=1:k
         img = full_imgs[t]
 
-        for p=1:num_particles
+        for p=1:n
             for i=1:size(xy,3)
                 x = xy[t,p,i,1]
                 y = xy[t,p,i,2]

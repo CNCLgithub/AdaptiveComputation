@@ -28,7 +28,7 @@ end
 function extract_tracker_positions(trace::Gen.Trace)
     (init_state, states) = Gen.get_retval(trace)
 
-    trackers = states[end].trackers
+    trackers = states[end].graph.elements
 
     tracker_positions = Array{Float64}(undef, length(trackers), 2)
     for i=1:length(trackers)

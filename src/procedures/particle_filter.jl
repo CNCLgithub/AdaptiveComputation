@@ -1,6 +1,5 @@
 export PopParticleFilter,
-    rejuvenate!,
-    PopPFArgs
+    rejuvenate!
 
 using Statistics
 using Gen_Compose
@@ -18,6 +17,9 @@ using Gen_Compose
     verbose::Bool = false
 end
 
+function load(Type{PopParticleFilter}, path; kwargs...)
+    PopParticleFilter(;read_json(path), kwargs...)
+end
 
 mutable struct RejuvTrace
     attempts::Int

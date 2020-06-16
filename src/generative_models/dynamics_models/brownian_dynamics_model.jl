@@ -1,12 +1,17 @@
 export BrownianDynamicsModel
 
 @with_kw struct BrownianDynamicsModel <: AbstractDynamicsModel
-    inertia::Float64 = 1.0
-    spring::Float64 = 1.0
-    sigma_w::Float64 = 1.0
+    inertia::Float64 = 0.8
+    spring::Float64 = 0.002
+    sigma_w::Float64 = 1.5
+    sigma_v::Float64 = 5.0
 end
 
-@gen function step(model::BrownianDynamicsModel, dot::Dot)
+function load(Type{BrownianDynamicsModel}, path::String)
+    BrownianDynamicsModel(;read_json(path)...)
+end
+
+@gen (static) function step(model::BrownianDynamicsModel, dot::Dot)
     _x,_y,z = dot.pos
     _vx,_vy = dot.vel
 
@@ -16,7 +21,8 @@ end
                                model.sigma_w), :vy)
     x = _x + _vx
     y = _y + _vy
-    Dot([x,y,z], [vx,vy])
+    d = Dot([x,y,z], [vx,vy])
+    return d
 end
 
 _step = Map(step)
