@@ -7,19 +7,19 @@ struct FullState
     pmbrfs_params::Union{PMBRFSParams, Nothing}
 end
 
-function load(Type{GMMaskParams}, path::String)
-    GMMaskParams(;read_json(path)...)
-end
-
 @with_kw struct GMMaskParams
     n_trackers::Int = 1
-    λdistractor::Real = 0.0
-    δpos::Real = 400.0
+    distractor_rate::Real = 0.0
+    init_pos_spread::Real = 400.0
     dot_radius::Real = 20.0
     img_height::Int = 200
     img_width::Int = 200
     area_height::Int = 800
     area_width::Int = 800
+end
+
+function load(::Type{GMMaskParams}, path::String)
+    GMMaskParams(;read_json(path)...)
 end
 
 function get_masks_rvs_args(trackers, params::GMMaskParams)
@@ -121,9 +121,9 @@ end
 
 
 ##### INIT STATE ######
-@gen function sample_init_tracker(ẟpos::Real)
-    x = @trace(uniform(-ẟpos, ẟpos), :x)
-    y = @trace(uniform(-ẟpos, ẟpos), :y)
+@gen function sample_init_tracker(init_pos_spread::Real)
+    x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
+    y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
     # initial velocity is zero
@@ -133,7 +133,7 @@ end
 init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(params::GMMaskParams)
-    trackers_params = fill(params.ẟpos, params.n_trackers)
+    trackers_params = fill(params.init_pos_spread, params.n_trackers)
     trackers = @trace(init_trackers_map(trackers_params), :trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
@@ -144,7 +144,8 @@ end
 ##################################
 
 
-@gen (static) function kernel(t::Int,
+#@gen (static) function kernel(t::Int,
+@gen function kernel(t::Int,
                               prev_state::FullState,
                               dynamics_model::AbstractDynamicsModel,
                               params::GMMaskParams)
@@ -173,7 +174,8 @@ end
 
 chain = Gen.Unfold(kernel)
 
-@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+#@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
     init_state = @trace(sample_init_state(params), :init_state)

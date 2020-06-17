@@ -1,14 +1,13 @@
 export ExampleExperiment
 
 @with_kw struct ExampleExperiment <: AbstractExperiment
-    proc::String = "some/path.json"
-    gm::String = "some/other_path.json"
-    motion::String = "more/paths.json"
+    proc::String = "src/experiments/example/proc.json"
+    gm::String = "src/experiments/example/gm.json"
+    motion::String = "src/experiments/example/motion.json"
     k::Int = 20
 end
 
-name(::ExampleExperiment) = "example"
-
+get_name(::ExampleExperiment) = "example"
 
 function run_inference(q::ExampleExperiment) # masks, init_positions, params)
 

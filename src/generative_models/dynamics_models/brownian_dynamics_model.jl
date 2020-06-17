@@ -6,7 +6,7 @@ export BrownianDynamicsModel
     sigma_w::Float64 = 1.5
 end
 
-function load(Type{BrownianDynamicsModel}, path::String)
+function load(::Type{BrownianDynamicsModel}, path::String)
     BrownianDynamicsModel(;read_json(path)...)
 end
 

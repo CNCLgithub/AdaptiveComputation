@@ -52,6 +52,12 @@ function read_json(path)
         global data
         data = JSON.parse(f)
     end
+    
+    # converting strings to symbols
+    sym_data = Dict()
+    for (k, v) in data
+        sym_data[Symbol(k)] = v
+    end
 
-    return data
+    return sym_data
 end

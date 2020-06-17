@@ -2,7 +2,8 @@ using MOT
 
 function main()
     exp = ExampleExperiment()
-    out = "/experiments/$(name(exp))/$trial_idx"
+    trial_idx = 0
+    out = "/experiments/$(get_name(exp))/$trial_idx"
     run_inference(exp)
 end
 

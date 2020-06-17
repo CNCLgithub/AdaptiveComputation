@@ -17,7 +17,7 @@ using Gen_Compose
     verbose::Bool = false
 end
 
-function load(Type{PopParticleFilter}, path; kwargs...)
+function load(::Type{PopParticleFilter}, path; kwargs...)
     PopParticleFilter(;read_json(path)..., kwargs...)
 end
 

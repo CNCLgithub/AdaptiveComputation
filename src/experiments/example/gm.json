@@ -1,4 +1,8 @@
 {
+    "n_trackers": 2,
+    "distractor_rate": 2.0,
+    "init_pos_spread": 100.0,
+
     "img_width": 200,
     "img_height": 200,
 

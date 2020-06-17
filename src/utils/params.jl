@@ -23,4 +23,4 @@ export Params,
     attended_trackers::Vector{Vector{Int}} = [] # fake param to store attention info
 end
 
-const = default_params = Params()
+const default_params = Params()
