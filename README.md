@@ -1,4 +1,4 @@
-# mot-gm
+# mot
 Multiple object tracking generative model in Julia
 
 ## Setup and running
