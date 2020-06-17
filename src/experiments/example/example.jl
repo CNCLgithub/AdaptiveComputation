@@ -1,9 +1,9 @@
 export ExampleExperiment
 
 @with_kw struct ExampleExperiment <: AbstractExperiment
-    proc::String = "src/experiments/example/proc.json"
-    gm::String = "src/experiments/example/gm.json"
-    motion::String = "src/experiments/example/motion.json"
+    proc::String = "$(@__DIR__)/proc.json"
+    gm::String = "$(@__DIR__)/gm.json"
+    motion::String = "$(@__DIR__)/motion.json"
     k::Int = 20
 end
 
@@ -34,9 +34,9 @@ function run_inference(q::ExampleExperiment) # masks, init_positions, params)
     end
     
     # compiling further observations for the model
-    args = [(t, gm_params) for t in 1:k]
+    args = [(t, gm_params) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
-    for t = 1:k
+    for t = 1:q.k
         cm = Gen.choicemap()
         cm[:states => t => :masks] = masks[t,:]
         observations[t] = cm
@@ -59,15 +59,15 @@ function run_inference(q::ExampleExperiment) # masks, init_positions, params)
                                      buffer_size = q.k,
                                      path = nothing)
 
-    extracted = extract_chain(results)
-    tracker_positions = extracted["unweighted"][:tracker_positions]
+    # extracted = extract_chain(results)
+    # tracker_positions = extracted["unweighted"][:tracker_positions]
 
-    # getting the images
-    full_imgs = get_full_imgs(masks)
+    # # getting the images
+    # full_imgs = get_full_imgs(masks)
 
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under full_imgs/
-    visualize(tracker_positions, full_imgs, gm_params)
+    # # this is visualizing what the observations look like (and inferred state too)
+    # # you can find images under full_imgs/
+    # visualize(tracker_positions, full_imgs, gm_params)
     return results
 end
 

@@ -3,7 +3,7 @@ export gm_masks_static
 using LinearAlgebra
 
 struct FullState
-    graph::CausalGraph{Vector{Dot}, SimpleGraph}
+    graph::CausalGraph{Dot, SimpleGraph}
     pmbrfs_params::Union{PMBRFSParams, Nothing}
 end
 
@@ -37,8 +37,7 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
 
     for i=1:size(trackers, 1)
         mask = draw_gaussian_dot(trackers[i,1:2], params.dot_radius,
-                                 params.img_height, params.img_width,
-                                 params.area_height, params.area_width)
+                                 params.img_height, params.img_width)
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 
@@ -121,7 +120,7 @@ end
 
 
 ##### INIT STATE ######
-@gen function sample_init_tracker(init_pos_spread::Real)
+@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
     x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
     y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
     # z (depth) drawn at beginning
@@ -135,6 +134,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
 @gen function sample_init_state(params::GMMaskParams)
     trackers_params = fill(params.init_pos_spread, params.n_trackers)
     trackers = @trace(init_trackers_map(trackers_params), :trackers)
+    trackers = collect(Dot, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
     return FullState(graph, nothing)
@@ -146,14 +146,14 @@ end
 
 #@gen (static) function kernel(t::Int,
 @gen function kernel(t::Int,
-                              prev_state::FullState,
-                              dynamics_model::AbstractDynamicsModel,
-                              params::GMMaskParams)
+                     prev_state::FullState,
+                     dynamics_model::BrownianDynamicsModel,
+                     params::GMMaskParams)
 
     prev_graph = prev_state.graph
 
-    new_graph = @trace(update(dynamics_model, prev_graph), :dynamics)
-    # new_graph = @trace(dynamics_model(prev_graph), :dynamics)
+    new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
+    println(typeof(new_graph))
     new_trackers = new_graph.elements
 
     # get masks params returns parameters for the poisson multi bernoulli

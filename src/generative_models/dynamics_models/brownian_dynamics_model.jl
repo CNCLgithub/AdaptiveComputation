@@ -10,7 +10,7 @@ function load(::Type{BrownianDynamicsModel}, path::String)
     BrownianDynamicsModel(;read_json(path)...)
 end
 
-@gen function step(model::BrownianDynamicsModel, dot::Dot)
+@gen function brownian_step(model::BrownianDynamicsModel, dot::Dot)
     _x,_y,z = dot.pos
     _vx,_vy = dot.vel
 
@@ -24,12 +24,12 @@ end
     return d
 end
 
-_step = Map(step)
+_brownian_step = Map(brownian_step)
 
-@gen function update(model::BrownianDynamicsModel, cg::CausalGraph)
+@gen function brownian_update(model::BrownianDynamicsModel, cg::CausalGraph)
     dots = cg.elements
-    graph = cg.graph
-    new_dots = @trace(_step(fill(model, length(dots)), dots), :brownian)
-    cg = CausalGraph(new_dots, graph)
+    new_dots = @trace(_brownian_step(fill(model, length(dots)), dots), :brownian)
+    new_dots = collect(Dot, new_dots)
+    cg = update(cg, new_dots)
     return cg
 end

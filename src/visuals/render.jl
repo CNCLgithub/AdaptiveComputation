@@ -1,7 +1,7 @@
 export overlay
 
 using Luxor
-using Printf
+# using Printf
 
 # creating directory if it doesn't exist
 if !ispath("render") mkdir("render") end

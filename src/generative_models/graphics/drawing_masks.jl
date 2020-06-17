@@ -39,7 +39,7 @@ function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
 end
 
 # drawing a gaussian dot
-function draw_gaussian_dot(center::Vector{Real}, r::Real, h::Int, w::Int)
+function draw_gaussian_dot(center::Vector{Float64}, r::Real, h::Int, w::Int)
 
     # standard deviation based on the volume of the Gaussian
     spread_1 = 1.0 # parameter for how spread out the mask is

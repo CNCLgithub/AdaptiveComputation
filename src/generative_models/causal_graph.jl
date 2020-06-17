@@ -4,12 +4,16 @@ using LightGraphs
 
 abstract type AbstractCausalGraph end
 
-struct CausalGraph{T, AbstractGraph} <: AbstractCausalGraph
-    elements::Vector{T}
-    graph::AbstractGraph
+struct CausalGraph{T, G<:AbstractGraph} <: AbstractCausalGraph
+    elements::AbstractArray{T}
+    graph::G
+end
 
-    function CausalGraph(elements::Vector{T}, g::Type{AbstractGraph}) where {T}
-        graph = g(length(elements))
-        new{T, g}(elements, graph)
-    end
+function CausalGraph(elements::AbstractArray{T}, g::Type{G}) where {T, G <:AbstractGraph}
+    graph = g(length(elements))
+    CausalGraph{T, g}(elements, graph)
+end
+
+function update(cg::CausalGraph{T, G}, els::AbstractArray{T}) where {T,G}
+    CausalGraph{T, G}(els, cg.graph)
 end
