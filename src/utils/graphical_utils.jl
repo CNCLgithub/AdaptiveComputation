@@ -48,6 +48,7 @@ end
 
 # draws a full image from masks of one timestep
 function get_full_img(masks)
+    println(size(first(masks)))
     img_height, img_width = size(first(masks))
     img = BitArray{2}(undef, img_height, img_width)
     img .= false
@@ -64,7 +65,7 @@ function get_full_imgs(masks)
     T = size(masks, 1)
     full_imgs = []
     for t=1:T
-        img = get_full_img(masks[t,:])
+        img = get_full_img(masks[t])
         push!(full_imgs, img)
     end
     return full_imgs

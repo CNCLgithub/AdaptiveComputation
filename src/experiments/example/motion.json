@@ -1,5 +1,5 @@
 {
   "inertia": 0.95,
   "spring": 0.0005,
-  "sigma_w": 0.5
+  "sigma_w": 0.8
 }

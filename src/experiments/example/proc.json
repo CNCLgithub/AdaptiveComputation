@@ -1,7 +1,7 @@
 {
-    "n_particles": 10,
-    "max_rejuv": 0,
-    "early_stopping_steps": 3,
+    "particles": 10,
+    "max_sweeps": 0,
+    "max_fails": 3,
     "rejuv_smoothness": 1.005
 }
 

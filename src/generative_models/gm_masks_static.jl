@@ -28,16 +28,24 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
     
     # sorting trackers according to depth for rendering purposes
     depth_perm = sortperm(trackers[:, 3])
-    trackers = trackers[depth_perm, :] 
+    trackers = trackers[depth_perm, :]
 
     rvs_args = Vector{Tuple}(undef, length(trackers))
     
     # initially empty image
     img_so_far = zeros(params.img_height, params.img_width)
 
+    r = params.dot_radius/params.area_height*params.img_height
+
     for i=1:size(trackers, 1)
-        mask = draw_gaussian_dot(trackers[i,1:2], params.dot_radius,
+        x, y = translate_area_to_img(trackers[i,1], trackers[i,2],
+                                       params.img_height, params.img_width,
+                                       params.area_height, params.area_width,
+                                       whole_number=false)
+        
+        mask = draw_gaussian_dot([x,y], r,
                                  params.img_height, params.img_width)
+        
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 
@@ -143,9 +151,7 @@ end
 
 ##################################
 
-
-#@gen (static) function kernel(t::Int,
-@gen function kernel(t::Int,
+@gen (static) function kernel(t::Int,
                      prev_state::FullState,
                      dynamics_model::BrownianDynamicsModel,
                      params::GMMaskParams)
@@ -153,7 +159,7 @@ end
     prev_graph = prev_state.graph
 
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
-    println(typeof(new_graph))
+    #println(typeof(new_graph))
     new_trackers = new_graph.elements
 
     # get masks params returns parameters for the poisson multi bernoulli
@@ -174,8 +180,7 @@ end
 
 chain = Gen.Unfold(kernel)
 
-#@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
-@gen function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
     init_state = @trace(sample_init_state(params), :init_state)

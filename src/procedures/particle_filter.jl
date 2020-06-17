@@ -6,10 +6,11 @@ using Gen_Compose
 
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
-    ess::Real = 0.5
+    ess::Real = particles/2.0
     proposal::Union{Gen.GenerativeFunction, Nothing} = nothing
-    prop_args::Tuple = Tuple()
+    prop_args::Tuple = ()
     rejuvenation::Union{Function, Nothing} = nothing
+    rejuv_smoothness::Float64 = 1.005 # where to put particular attention procedures args???
     pop_stats::Union{Function, Nothing} = nothing
     stop_rejuv::Union{Function, Nothing} = nothing
     max_sweeps::Int = 1
@@ -30,7 +31,7 @@ end
 function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
                                  state::Gen.ParticleFilterState)
     
-    t, params = get_args(first(state.traces))
+    t, gm = get_args(first(state.traces))
 
     rtrace = RejuvTrace(0, 0, nothing)
     if isnothing(proc.rejuvenation)
@@ -39,7 +40,7 @@ function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
    
     # the only free parameter in this function besides max_sweeps
     rtrace.stats = proc.pop_stats(state)
-    sweeps = round(Int, proc.max_sweeps * params["inference_params"]["rejuv_smoothness"]^logsumexp(rtrace.stats))
+    sweeps = round(Int, proc.max_sweeps * proc.rejuv_smoothness^logsumexp(rtrace.stats))
 
 
     println("td confusability: $(rtrace.stats)")
@@ -110,7 +111,7 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
 
 
     # just getting the MAP TD and A
-    t, params = Gen.get_args(first(state.traces))
+    t, gm = Gen.get_args(first(state.traces))
     println("timestep: $t")
     
     order = sortperm(state.log_weights, rev=true)

@@ -23,11 +23,11 @@ function retrieve_confusability(state::Gen.ParticleFilterState, unweighted::Bool
         samples = state.traces
     end
 
-    t, params = Gen.get_args(first(samples))
+    t, motion, gm = Gen.get_args(first(samples))
     #confusability = zeros(length(first(samples)[:states => t => :optics]))
 
     # let's do confusability in terms of trackers!!!
-    confusability = fill(-Inf, params["inference_params"]["num_trackers"])
+    confusability = fill(-Inf, gm.n_trackers)
 
     for i=1:num_particles
         #optics = samples[i][:states => t => :optics]

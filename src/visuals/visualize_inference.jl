@@ -6,6 +6,9 @@ function visualize(xy, full_imgs, params, folder="inference_render")
     # just some non file magic kind of thing
 
     k, n, _, _ = size(xy)
+
+    h, w, ah, aw = params.img_height, params.img_width, params.area_height, params.area_width
+
     for t=1:k
         img = full_imgs[t]
 
@@ -13,7 +16,7 @@ function visualize(xy, full_imgs, params, folder="inference_render")
             for i=1:size(xy,3)
                 x = xy[t,p,i,1]
                 y = xy[t,p,i,2]
-                x, y = translate_area_to_img(x, y, params)
+                x, y = translate_area_to_img(x, y, h, w, ah, aw)
 
                 draw_circle!(img, [x,y], 5.0, false)
                 draw_circle!(img, [x,y], 3.0, true)

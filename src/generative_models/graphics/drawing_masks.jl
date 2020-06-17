@@ -4,13 +4,20 @@ export get_masks,
 
 # translates coordinate from euclidean to image space
 function translate_area_to_img(x, y, img_height, img_width,
-                               area_height, area_width)
+                               area_height, area_width;
+                               whole_number=true)
     x *= img_width/area_width
-    x = round(Int, x+img_width/2)
+    x += img_width/2
+    if whole_number
+        x = round(Int, x)
+    end
 
     # inverting y
     y *= -1 * img_height/area_height
-    y = round(Int, y+img_height/2)
+    y += img_height/2
+    if whole_number
+        y = round(Int, y)
+    end
     
     return x, y
 end
@@ -40,7 +47,7 @@ end
 
 # drawing a gaussian dot
 function draw_gaussian_dot(center::Vector{Float64}, r::Real, h::Int, w::Int)
-
+    
     # standard deviation based on the volume of the Gaussian
     spread_1 = 1.0 # parameter for how spread out the mask is
     spread_2 = 5.0
@@ -49,12 +56,13 @@ function draw_gaussian_dot(center::Vector{Float64}, r::Real, h::Int, w::Int)
     std_2 = sqrt(spread_2 * r)
 
     img = zeros(h, w)
-    for i=1:size(img,1)
-        for j=1:size(img,2)
+    for i=1:h
+        for j=1:w
             img[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1)
             img[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], A, std_2, std_2)
         end
     end
+
     return img
 end
 
@@ -66,10 +74,10 @@ end
     returns an array of masks
 """
 function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
-    T, num_dots = size(positions)
-    masks = Array{BitArray{2}}(undef, T, num_dots)
+    k, num_dots = size(positions)
+    masks = Vector{Vector{BitArray{2}}}(undef, k)
     
-    for t=1:T
+    for t=1:k
         pos = positions[t,:,:]
 
         # sorting according to depth
@@ -79,12 +87,14 @@ function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
         # initially empty image
         img_so_far = BitArray{2}(undef, h, w)
         img_so_far .= false
-
+        
+        masks_t = []
         for i=1:num_dots
             mask = draw_masked_dot(pos[i,:], img_so_far, r, h, w, ah, aw)
-            masks[t,i] = mask
+            push!(masks_t, mask)
             img_so_far = mask .| img_so_far
         end
+        masks[t] = masks_t
     end
 
     return masks
