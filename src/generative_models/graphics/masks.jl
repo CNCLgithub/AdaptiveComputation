@@ -1,6 +1,7 @@
 export get_masks,
-        draw_masked_dot,
-        draw_gaussian_dot
+        draw_dot_mask,
+        draw_gaussian_dot_mask,
+        translate_area_to_img
 
 # translates coordinate from euclidean to image space
 function translate_area_to_img(x, y, img_height, img_width,
@@ -23,9 +24,8 @@ function translate_area_to_img(x, y, img_height, img_width,
 end
 
 
-# draws a dot and subtracts image so far
-function draw_masked_dot(pos, img_so_far, r, h, w, ah, aw)
-    img_height, img_width = size(img_so_far)
+# draws a dot
+function draw_dot_mask(pos, r, h, w, ah, aw)
     x, y = translate_area_to_img(pos[1], pos[2], h, w, ah, aw)
     
     mask = BitArray{2}(undef, h, w)
@@ -34,23 +34,22 @@ function draw_masked_dot(pos, img_so_far, r, h, w, ah, aw)
     radius = r * w / aw
     draw_circle!(mask, [x,y], radius, true)
     
-    # getting rid of the intersection
-    mask[img_so_far] .= false
-
     return mask
 end
+
 
 # 2d gaussian function
 function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
     return A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
 
+
 # drawing a gaussian dot
-function draw_gaussian_dot(center::Vector{Float64}, r::Real, h::Int, w::Int)
+function draw_gaussian_dot_mask(center::Vector{Float64}, r::Real, h::Int, w::Int)
     
     # standard deviation based on the volume of the Gaussian
-    spread_1 = 1.0 # parameter for how spread out the mask is
-    spread_2 = 5.0
+    spread_1 = 0.5 # parameter for how spread out the mask is
+    spread_2 = 2.5
     A = 0.4999999999
     std_1 = sqrt(spread_1 * r)
     std_2 = sqrt(spread_2 * r)
@@ -90,9 +89,10 @@ function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
         
         masks_t = []
         for i=1:num_dots
-            mask = draw_masked_dot(pos[i,:], img_so_far, r, h, w, ah, aw)
+            mask = draw_dot_mask(pos[i,:], r, h, w, ah, aw)
+            mask[img_so_far] .= false
             push!(masks_t, mask)
-            img_so_far = mask .| img_so_far
+            img_so_far .|= mask
         end
         masks[t] = masks_t
     end

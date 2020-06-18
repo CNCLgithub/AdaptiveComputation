@@ -9,34 +9,13 @@ end
 
 get_name(::ExampleExperiment) = "example"
 
-function run_inference(q::ExampleExperiment) # masks, init_positions, params)
+function run_inference(q::ExampleExperiment)
 
     gm_params = load(GMMaskParams, q.gm)
     motion = load(BrownianDynamicsModel, q.motion)
 
     # generating positions
     init_positions, masks = dgp(q.k, gm_params, motion)
-    
-    # ######### testing with masks from the generative model
-    # trace, _ = Gen.generate(gm_masks_static, (q.k, motion, gm_params))
-
-    # masks = Vector{Vector{BitArray{2}}}(undef, q.k)
-    # for t=1:q.k
-        # println(size(trace[:states => t => :masks]))
-        # masks[t] = trace[:states => t => :masks]
-        # """
-        # for i=1:gm_params.n_trackers
-            # masks[t,i] = masks_t
-        # end
-        # """
-    # end
-
-    # init_positions = Array{Float64}(undef, gm_params.n_trackers, 3)
-    # init_state, _ = Gen.get_retval(trace)
-    # for i=1:gm_params.n_trackers
-        # init_positions[i,:] = init_state.graph.elements[i].pos
-    # end
-    # ###########
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
@@ -58,7 +37,6 @@ function run_inference(q::ExampleExperiment) # masks, init_positions, params)
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
-        #cm[:states => t => :masks] = masks[t,:]
         cm[:states => t => :masks] = masks[t]
         observations[t] = cm
     end
@@ -87,8 +65,9 @@ function run_inference(q::ExampleExperiment) # masks, init_positions, params)
     full_imgs = get_full_imgs(masks)
 
     # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under full_imgs/
+    # you can find images under inference_render
     visualize(tracker_positions, full_imgs, gm_params)
+
     return results
 end
 

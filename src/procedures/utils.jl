@@ -43,15 +43,11 @@ end
 function extract_assignments(trace::Gen.Trace)
     t, params = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
-
-    #optics = trace[:states => t => :optics]
-    #tds, As, td_weights = get_td_A(pmbrfs, optics, ret[2][end].ppp_params, ret[2][end].mbrfs_params)
      
     saved_td = ret[2][t].pmbrfs_params.saved_td
     tds, As, td_weights = saved_td.td, saved_td.A, saved_td.ll
 
     A = tds[1][invperm(As[1])] # this is to get the old sense of assignment, i.e. mapping from trackers to observations
-
     A = reshape(A, (1,1,size(A)...))
 
     return A

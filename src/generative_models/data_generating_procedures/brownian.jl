@@ -8,7 +8,7 @@ function dgp(k::Int, params::GMMaskParams,
     # new params with all dots
     # having state for data generation
     gm = deepcopy(params)
-    gm = @set gm.n_trackers += gm.distractor_rate
+    gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
     gm = @set gm.distractor_rate = 0.0
 
     init_state, states = gm_masks_static(k, motion, gm)

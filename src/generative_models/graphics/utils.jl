@@ -5,33 +5,6 @@ export add_images,
 
 using Images
 
-
-
-# drawing a circle 
-function draw_circle!(img, center, radius, value)
-    for i=1:size(img,1)
-        for j=1:size(img,2)
-            if dist(center, [i,j]) < radius
-                img[j,i] = value
-            end
-        end
-    end
-end
-
-
-function draw_gaussian_mask(object, img_so_far, params)
-    x, y = translate_area_to_img(object[1], object[2], params)
-    mask = zeros(params.img_height, params.img_width)
-
-    radius = params.dot_radius * params.img_width / params.area_width
-
-    mask = draw_gaussian_circle(mask, [x,y], radius/2)
-    
-    #println(sort(mask[:],rev=true)[1:5])
-    return mask
-end
-
-
 # add images and clamp to normal range
 function add_images(img1, img2)
     img = map(clamp01nan, img1+img2)
@@ -48,7 +21,6 @@ end
 
 # draws a full image from masks of one timestep
 function get_full_img(masks)
-    println(size(first(masks)))
     img_height, img_width = size(first(masks))
     img = BitArray{2}(undef, img_height, img_width)
     img .= false

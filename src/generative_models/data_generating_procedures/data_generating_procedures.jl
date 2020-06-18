@@ -5,3 +5,4 @@ function dpg()
 end
 
 include("brownian.jl")
+include("brownian_gm.jl")

@@ -43,7 +43,7 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
                                        params.area_height, params.area_width,
                                        whole_number=false)
         
-        mask = draw_gaussian_dot([x,y], r,
+        mask = draw_gaussian_dot_mask([x,y], r,
                                  params.img_height, params.img_width)
         
         mask = subtract_images(mask, img_so_far)
