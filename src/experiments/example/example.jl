@@ -1,10 +1,14 @@
 export ExampleExperiment
 
+using Random
+Random.seed!(0)
+
 @with_kw struct ExampleExperiment <: AbstractExperiment
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
-    k::Int = 50
+    attention::String = "$(@__DIR__)/attention.json"
+    k::Int = 120
 end
 
 get_name(::ExampleExperiment) = "example"
@@ -48,11 +52,14 @@ function run_inference(q::ExampleExperiment)
                                         args,
                                         observations)
 
-    proc = load(PopParticleFilter, q.proc;
-                rejuvenation = rejuvenate_state!,
-                pop_stats = retrieve_confusability,
-                stop_rejuv = early_stopping_confusability)
+    
+    attention = load(TDEntropyAttentionModel, q.attention;
+                     perturb_function = perturb_state!)
 
+    proc = load(PopParticleFilter, q.proc;
+                rejuvenation = rejuvenate_attention!,
+                rejuv_args = (attention,))
+    
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
