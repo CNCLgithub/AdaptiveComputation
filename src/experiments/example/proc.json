@@ -1,7 +1,4 @@
 {
-    "particles": 10,
-    "max_sweeps": 0,
-    "max_fails": 3,
-    "rejuv_smoothness": 1.005
+    "particles": 10
 }
 

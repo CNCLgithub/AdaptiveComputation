@@ -1,4 +1,4 @@
 include("utils.jl")
-include("proposal.jl")
-include("rejuvenation_confusability.jl")
 include("particle_filter.jl")
+include("attention/attention.jl")
+include("proposal.jl")

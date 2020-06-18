@@ -10,12 +10,7 @@ using Gen_Compose
     proposal::Union{Gen.GenerativeFunction, Nothing} = nothing
     prop_args::Tuple = ()
     rejuvenation::Union{Function, Nothing} = nothing
-    rejuv_smoothness::Float64 = 1.005 # where to put particular attention procedures args???
-    pop_stats::Union{Function, Nothing} = nothing
-    stop_rejuv::Union{Function, Nothing} = nothing
-    max_sweeps::Int = 1
-    max_fails::Int = 1
-    verbose::Bool = false
+    rejuv_args::Tuple = ()
 end
 
 function load(::Type{PopParticleFilter}, path; kwargs...)
@@ -30,50 +25,7 @@ end
 
 function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
                                  state::Gen.ParticleFilterState)
-    
-    t, gm = get_args(first(state.traces))
-
-    rtrace = RejuvTrace(0, 0, nothing)
-    if isnothing(proc.rejuvenation)
-        return rtrace
-    end
-   
-    # the only free parameter in this function besides max_sweeps
-    rtrace.stats = proc.pop_stats(state)
-    sweeps = round(Int, proc.max_sweeps * proc.rejuv_smoothness^logsumexp(rtrace.stats))
-
-
-    println("td confusability: $(rtrace.stats)")
-    println("sweeps: $sweeps")
-    td_sum = logsumexp(rtrace.stats)
-    #println("td sum: $td_sum")
-
-    fails = 0
-    # main loop going through rejuvenation
-    #for sweep = 1:proc.max_sweeps
-    for sweep = 1:sweeps
-        #println("sweep $sweep")
-
-        # making a rejuvenation move (rejuvenating velocity)
-        rtrace.acceptance += proc.rejuvenation(state, rtrace.stats)
-        rtrace.attempts += 1
-    
-        # computing new population statistics
-        new_stats = proc.pop_stats(state)
-        
-        # early stopping
-        if proc.stop_rejuv(new_stats, rtrace.stats)
-            fails += 1
-            if fails == proc.max_fails break end
-        else
-            fails = 0
-        end
-
-        rtrace.stats = new_stats
-    end
-
-    rtrace.acceptance = rtrace.acceptance / rtrace.attempts
-    println("acceptance: $(rtrace.acceptance)")
+    rtrace = proc.rejuvenation(state, proc.rejuv_args...)
     return rtrace
 end
 
