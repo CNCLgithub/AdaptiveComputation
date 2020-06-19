@@ -8,18 +8,18 @@ Random.seed!(0)
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 120
+    k::Int = 10
 end
 
 get_name(::SensTDExperiment) = "sens_td"
 
-function run_inference(q::SensTDExperiment)
+function run_inference(q::SensTDExperiment, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
     motion = load(BrownianDynamicsModel, q.motion)
 
     # generating positions
-    init_positions, masks = dgp(q.k, gm_params, motion)
+    init_positions, init_vels, masks = dgp(q.k, gm_params, motion)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
@@ -34,6 +34,10 @@ function run_inference(q::SensTDExperiment)
         constraints[addr] = init_positions[i,1]
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_positions[i,2]
+        addr = :init_state => :trackers => i => :vx
+        constraints[addr] = init_vels[i,1]
+        addr = :init_state => :trackers => i => :vy
+        constraints[addr] = init_vels[i,2]
     end
     
     # compiling further observations for the model
@@ -73,7 +77,7 @@ function run_inference(q::SensTDExperiment)
 
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params)
+    visualize(tracker_positions, full_imgs, gm_params, path)
 
     return results
 end

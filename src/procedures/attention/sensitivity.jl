@@ -1,10 +1,10 @@
-using PhysicalConstants
+import PhysicalConstants.CODATA2018: k_B
 
 export PairwiseSensitivity
 
 @with_kw struct PairwiseSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
-    latents::Function = extract_tracker_positions
+    latents::Function = t -> extract_tracker_positions(t)[1, 1, :, :]
     sweeps::Int = 5
     eps::Float64 = 0.01
 end
@@ -18,24 +18,25 @@ function get_stats(att::PairwiseSensitivity, state::Gen.ParticleFilterState)
     num_particles = length(state.traces)
     # using weighted traces
     indices = index_pairs(num_particles)
-    n_pairs = length(indices)
-    n_latents = get_dims(att.objective, state.traces[1])
+    n_pairs = size(indices, 1)
+    n_latents = get_dims(att.latents, state.traces[1])
     gradients = zeros(n_pairs, n_latents)
     weights = zeros(n_pairs)
     for i = 1:n_pairs
-        weights[i] = exp(sum(state.log_weights[indices[i]]))
-        traces = state.traces[indices[i]]
-        entropies = map(entropy ∘ objective, traces)
-        latents = map(att.latents, traces)
+        idxs = indices[i, :]
+        weights[i] = sum(state.log_weights[idxs])
+        traces = state.traces[idxs]
+        entropies = map(entropy ∘ att.objective, traces)
+        a_l, b_l = map(att.latents, traces)
         ẟs = diff(entropies)
-        ẟh = norm.(diff(latents, dims = 1))
+        ẟh = max.(map(norm, eachrow(a_l - b_l)), 1E-10)
         gradients[i, :] = ẟs./ẟh
     end
-    abs.(gradients) .* weights ./ sum(weights)
+    gs = vec(sum(abs.(gradients) .* weights ./ logsumexp(weights), dims = 1))
 end
 
 function get_sweeps(att::PairwiseSensitivity, stats)
-    return att.sweeps
+    norm(stats) >= att.eps ? att.sweeps : 0
 end
 
 function early_stopping(att::PairwiseSensitivity, new_stats, prev_stats)
@@ -43,11 +44,15 @@ function early_stopping(att::PairwiseSensitivity, new_stats, prev_stats)
     false
 end
 
+function latent_weights(::PairwiseSensitivity, gradients)
+    softmax(gradients)
+end
+
 # Objectives
 
-function target_designation(tr::Gen.trace)
+function target_designation(tr::Gen.Trace)
     pmbrfs_stats = Gen.get_retval(tr)[2][end].pmbrfs_params.pmbrfs_stats
-    exp.(pmbrfs_stats.ll)
+    exp.(pmbrfs_stats.ll) .+ 1E-5
 end
 
 
@@ -57,7 +62,8 @@ end
 Computes the entropy of a discrete distribution
 """
 function entropy(ps::AbstractArray{Float64})
-    -k_B * sum(map(p -> p * log(p), ps))
+    # -k_B * sum(map(p -> p * log(p), ps))
+    -1 * sum(map(p -> p * log(p), ps))
 end
 
 function index_pairs(n::Int)
@@ -65,12 +71,12 @@ function index_pairs(n::Int)
         n -= 1
     end
     indices = shuffle(collect(1:n))
-    reshape(indices, n/2, 2)
+    reshape(indices, Int(n/2), 2)
 end
 
-function get_dims(objective::Function, trace::Gen.Trace)
-    results = objective(trace)
-    size(results, 1)
+function get_dims(latents::Function, trace::Gen.Trace)
+    results = latents(trace)
+    size(results, 2)
 end
 
 

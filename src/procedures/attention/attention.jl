@@ -1,8 +1,9 @@
 export AbstractAttentionModel,
-        get_stats,
-        get_sweeps,
-        early_stopping,
-        rejuvenate_attention!
+    get_stats,
+    get_sweeps,
+    early_stopping,
+    latent_weights,
+    rejuvenate_attention!
 
 abstract type AbstractAttentionModel end
 
@@ -18,6 +19,10 @@ function early_stopping(::AbstractAttentionModel, prev_stats, new_stats)
     error("not implemented")
 end
 
+function latent_weights(::AbstractAttentionModel, stats)
+    error("not implemented")
+end
+
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
 
     t, motion, gm = get_args(first(pf_state.traces))
@@ -27,7 +32,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     rtrace.stats = get_stats(attention, pf_state)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("td confusability: $(rtrace.stats)")
+    println("stats: $(rtrace.stats)")
     println("sweeps: $sweeps")
 
     fails = 0
@@ -36,7 +41,8 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
         #println("sweep $sweep")
 
         # making a rejuvenation move (rejuvenating velocity)
-        rtrace.acceptance += perturb_state!(pf_state, rtrace.stats)
+        weights = latent_weights(attention, rtrace.stats)
+        rtrace.acceptance += perturb_state!(pf_state, weights)
         rtrace.attempts += 1
 
         # computing new population statistics
@@ -56,8 +62,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 end
 
 
-include("td_entropy.jl")
 include("perturb_state.jl")
+
+include("td_entropy.jl")
 include("sensitivity.jl")
-
-

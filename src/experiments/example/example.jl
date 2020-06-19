@@ -13,7 +13,7 @@ end
 
 get_name(::ExampleExperiment) = "example"
 
-function run_inference(q::ExampleExperiment)
+function run_inference(q::ExampleExperiment, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
     motion = load(BrownianDynamicsModel, q.motion)

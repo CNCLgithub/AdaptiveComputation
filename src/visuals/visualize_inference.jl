@@ -1,7 +1,7 @@
 export visualize,
         get_full_imgs
 
-function visualize(xy, full_imgs, params, folder="inference_render")
+function visualize(xy, full_imgs, params, folder)
     k, n, _, _ = size(xy)
 
     h, w, ah, aw = params.img_height, params.img_width, params.area_height, params.area_width
@@ -28,7 +28,7 @@ function visualize(xy, full_imgs, params, folder="inference_render")
 
 end
 
-function get_full_imgs(T, choices, params, folder="masks")
+function get_full_imgs(T, choices, params, folder)
     full_imgs = []
     for t=1:T
         masks = choices[:states => t => :masks]

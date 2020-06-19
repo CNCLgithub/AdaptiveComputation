@@ -134,7 +134,9 @@ end
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
     # initial velocity is zero
-    return Dot([x,y,z], [0,0])
+    vx = @trace(normal(0, 0.1*init_pos_spread), :vx)
+    vy = @trace(normal(0, 0.1*init_pos_spread), :vy)
+    return Dot([x,y,z], [vx,vy])
 end
 
 init_trackers_map = Gen.Map(sample_init_tracker)

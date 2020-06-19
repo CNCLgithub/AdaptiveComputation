@@ -76,3 +76,4 @@ function early_stopping(::TDEntropyAttentionModel, new_stats, prev_stats)
     return false
 end
 
+latent_weights(::TDEntropyAttentionModel, stats) = stats
