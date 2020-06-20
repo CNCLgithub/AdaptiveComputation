@@ -1,10 +1,7 @@
 {
-  "inertia": 0.7,
-  "sigma_mag": 0.5,
-  "rim": 100.0,
-  "eps": 0.0001
+  "inertia": 0.3,
+  "spring": 0.001,
+  "sigma_x": 6.0,
+  "sigma_y": 0.0
 }
 
-  // "inertia": 0.7,
-  // "spring": 0.005,
-  // "sigma_w": 3.0

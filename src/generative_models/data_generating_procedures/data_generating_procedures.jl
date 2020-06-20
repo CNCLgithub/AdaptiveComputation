@@ -5,5 +5,6 @@ function dpg()
 end
 
 include("brownian.jl")
+include("sinusoidal.jl")
 include("radial.jl")
 include("brownian_gm.jl")

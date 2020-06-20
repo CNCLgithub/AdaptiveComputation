@@ -44,15 +44,19 @@ function early_stopping(att::PairwiseSensitivity, new_stats, prev_stats)
     false
 end
 
-function latent_weights(::PairwiseSensitivity, gradients)
-    softmax(gradients)
-end
-
 # Objectives
 
-function target_designation(tr::Gen.Trace)
-    pmbrfs_stats = Gen.get_retval(tr)[2][end].pmbrfs_params.pmbrfs_stats
-    exp.(pmbrfs_stats.ll) .+ 1E-5
+function target_designation(tr::Gen.Trace; w::Int = 3)
+    k = first(Gen.get_args(tr))
+    ret = Gen.get_retval(tr)[2]
+    ll = pmbrfs_stats = ret[end].pmbrfs_params.pmbrfs_stats.ll
+    lls = zeros(min(k, w), length(ll))
+    lls[end, :] = ll
+    for t = max(1, k-w):(size(lls, 1) -1)
+        lls[t, :] = ret[t].pmbrfs_params.pmbrfs_stats.ll
+    end
+    lls = mean(lls, dims = 1)
+    exp.(lls) .+ 1E-5
 end
 
 

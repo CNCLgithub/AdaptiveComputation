@@ -160,7 +160,7 @@ end
 
     prev_graph = prev_state.graph
 
-    new_graph = @trace(radial_update(dynamics_model, prev_graph), :dynamics)
+    new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     #println(typeof(new_graph))
     new_trackers = new_graph.elements
 
