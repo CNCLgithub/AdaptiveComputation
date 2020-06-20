@@ -16,7 +16,10 @@ get_name(::SensTDExperiment) = "sens_td"
 function run_inference(q::SensTDExperiment, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
-    motion = load(BrownianDynamicsModel, q.motion)
+    motion = load(RadialMotion, q.motion)
+    @gen function motion_f(cg)
+        @trace(radial_motion(motion, cg))
+    end
 
     # generating positions
     init_positions, init_vels, masks = dgp(q.k, gm_params, motion)
@@ -34,14 +37,14 @@ function run_inference(q::SensTDExperiment, path::String)
         constraints[addr] = init_positions[i,1]
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_positions[i,2]
-        addr = :init_state => :trackers => i => :vx
-        constraints[addr] = init_vels[i,1]
-        addr = :init_state => :trackers => i => :vy
-        constraints[addr] = init_vels[i,2]
+        # addr = :init_state => :trackers => i => :vx
+        # constraints[addr] = init_vels[i,1]
+        # addr = :init_state => :trackers => i => :vy
+        # constraints[addr] = i
     end
     
     # compiling further observations for the model
-    args = [(t, motion, gm_params) for t in 1:q.k]
+    args = [(t, motion_f, gm_params) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
@@ -51,7 +54,7 @@ function run_inference(q::SensTDExperiment, path::String)
     
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm_masks_static,
-                                        (0, motion, gm_params),
+                                        (0, motion_f, gm_params),
                                         constraints,
                                         args,
                                         observations)

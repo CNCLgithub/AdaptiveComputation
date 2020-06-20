@@ -155,12 +155,12 @@ end
 
 @gen (static) function kernel(t::Int,
                      prev_state::FullState,
-                     dynamics_model::BrownianDynamicsModel,
+                     dynamics_model::AbstractDynamicsModel,
                      params::GMMaskParams)
 
     prev_graph = prev_state.graph
 
-    new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
+    new_graph = @trace(radial_update(dynamics_model, prev_graph), :dynamics)
     #println(typeof(new_graph))
     new_trackers = new_graph.elements
 
