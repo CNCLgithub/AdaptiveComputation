@@ -44,25 +44,32 @@ function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
 end
 
 
-# drawing a gaussian dot
-function draw_gaussian_dot_mask(center::Vector{Float64}, r::Real, h::Int, w::Int)
+"""
+drawing a gaussian dot
+there are two gaussian functions stacked on one another
+    parameters for how spread out the mask is
+    spread_1: local steep gradient
+    spread_2: global gradient
+"""
+function draw_gaussian_dot_mask(center::Vector{Float64},
+                                r::Real, h::Int, w::Int,
+                                spread_1::Float64, spread_2::Float64)
     
-    # standard deviation based on the volume of the Gaussian
-    spread_1 = 0.5 # parameter for how spread out the mask is
-    spread_2 = 2.5
+    # amplitude of first gaussian
     A = 0.4999999999
+
     std_1 = sqrt(spread_1 * r)
     std_2 = sqrt(spread_2 * r)
 
-    img = zeros(h, w)
+    mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            img[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1)
-            img[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], A, std_2, std_2)
+            mask[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1)
+            mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], (1.0-A), std_2, std_2)
         end
     end
 
-    return img
+    return mask
 end
 
 

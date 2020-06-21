@@ -42,7 +42,6 @@ end
 function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
                                proc::PopParticleFilter,
                                query::StaticQuery)
-    #println("weights: $(Gen.get_log_weights(state))")
 
     # Resample before moving on...
     # TODO: Potentially bad for initial step
@@ -65,17 +64,16 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     # just getting the MAP TD and A
     t, gm = Gen.get_args(first(state.traces))
     println("timestep: $t")
-    
+
     order = sortperm(state.log_weights, rev=true)
     order = [order[1]]
     for i in order
         trace = state.traces[i]
         weight = state.log_weights[i]
+
         pmbrfs_stats = Gen.get_retval(trace)[2][t].pmbrfs_params.pmbrfs_stats
         td, A, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.assignments, pmbrfs_stats.ll
-        #optics = trace[:states => t => :optics]
-        masks = trace[:states => t => :masks]
-        #td, A, td_weights = get_td_A(pmbrfs, masks, ret.ppp_params, ret.mbrfs_params)
+
         println("particle weight $weight")
         for j=1:length(td)
             println("TD: $(td[j]) \t A: $(A[j]) \t td weight: $(td_weights[j])")
@@ -84,16 +82,9 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     end
 
     aux_contex = Gen_Compose.rejuvenate!(proc, state)
+    
     println()
 
     return aux_contex
 end
 
-# function Gen_Compose.report_aux!(results::Gen_Compose.InferenceResult,
-#                                  aux_state,
-#                                  query::Query,
-#                                  idx::Int)
-#     key = "aux_state/$idx"
-#     state_group = Gen_Compose.record_state(results, key, aux_state)
-#     return nothing
-# end
