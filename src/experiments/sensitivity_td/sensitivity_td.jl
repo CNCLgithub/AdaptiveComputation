@@ -37,10 +37,6 @@ function run_inference(q::SensTDExperiment, path::String)
         constraints[addr] = init_positions[i,1]
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_positions[i,2]
-        # addr = :init_state => :trackers => i => :vx
-        # constraints[addr] = init_vels[i,1]
-        # addr = :init_state => :trackers => i => :vy
-        # constraints[addr] = i
     end
     
     # compiling further observations for the model
@@ -80,7 +76,11 @@ function run_inference(q::SensTDExperiment, path::String)
 
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params, path)
+    viz_path = joinpath(path, "viz")
+    mkpath(viz_path)
+    visualize(tracker_positions, full_imgs, gm_params, viz_path)
+
+    aux_state = extracted["aux_state"]
 
     return results
 end
