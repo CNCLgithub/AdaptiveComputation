@@ -1,28 +1,24 @@
-export ExampleExperiment
+export Exp0
 
 
-@with_kw struct ExampleExperiment <: AbstractExperiment
+@with_kw struct Exp0 <: AbstractExperiment
+    trial::Int = 1
+    dataset_path::String = "datasets/exp_0.h5"
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 120
+    k::Int = 10
 end
 
-get_name(::ExampleExperiment) = "example"
+get_name(::Exp0) = "exp0"
 
-function run_inference(q::ExampleExperiment, path::String)
+function run_inference(q::Exp0)
 
     gm_params = load(GMMaskParams, q.gm)
-    motion = load(BrownianDynamicsModel, q.motion)
     
     # generating initial positions and masks (observations)
-    init_positions, masks = dgp(q.k, gm_params, motion)
-
-    # testing less inertia in dynamics for inference
-    #motion = @set motion.inertia = 0.99
-    #motion = @set motion.spring = 0.001
-    #motion = @set motion.sigma_w = 2.5
+    init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
@@ -55,7 +51,6 @@ function run_inference(q::ExampleExperiment, path::String)
                                         args,
                                         observations)
 
-    
     attention = load(TDEntropyAttentionModel, q.attention;
                      perturb_function = perturb_state!)
 
@@ -67,6 +62,7 @@ function run_inference(q::ExampleExperiment, path::String)
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
                                      path = nothing)
+    
 
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
@@ -76,7 +72,7 @@ function run_inference(q::ExampleExperiment, path::String)
 
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params)
+    #visualize(tracker_positions, full_imgs, gm_params)
 
     return results
 end
