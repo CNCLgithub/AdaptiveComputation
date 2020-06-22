@@ -42,13 +42,15 @@ end
 function plot_compute_weights(weights::Matrix{Float64}, path::String)
     k,n = size(weights)
     plots = []
+    ts = collect(1:k)
     for i = 1:n
-        plt = plot(x = ts, y = weights[:, i], Geom.line)
+        plt = plot(x = ts, y = weights[:, i], Geom.line,
+                   Theme(background_color = "white"))
         push!(plots, plt)
     end
     out = joinpath(path, "compute_weights.png")
     plots = vstack(plots...)
-    plots |> PNG(out, √200cm, 20cm; dpi=96)
+    plots |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
 end
 
 """

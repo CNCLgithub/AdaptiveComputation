@@ -6,7 +6,7 @@ function extract_chain(r::Gen_Compose.SequentialChain)
     extract_chain(r.buffer)
 end
 
-function extract_chain(buffer::Vector{T}) where T<:Dict{String, Any}
+function extract_chain(buffer::Array{T}) where T<:Dict
     extracts = T()
     k = length(buffer)
     fields = collect(keys(first(buffer)))
