@@ -5,7 +5,7 @@ export perturb_state!
 
 Perturbs velocity based on probs of assignments to observations.
 """
-@gen function state_perturb_proposal(trace, probs)
+@gen function state_perturb_proposal(trace, probs, attended_trackers)
     t, motion, gm = Gen.get_args(trace)
     choices = Gen.get_choices(trace)
 
@@ -32,11 +32,11 @@ function state_perturb_involution(trace, fwd_choices::ChoiceMap, fwd_ret,
     choices = Gen.get_choices(trace)
     t, motion, gm = Gen.get_args(trace)
     (tracker, prev_v) = fwd_ret
-    
+
     # recording attended tracker in involution
     # (not to count twice)
-    # TODO
-    # push!(gm["attended_trackers"][t], tracker)
+    attended_trackers = proposal_args[2]
+    attended_trackers[tracker] += 1
 
     # constraints for update step
     constraints = choicemap()
@@ -74,10 +74,13 @@ function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
     #timestep, motion, gm = Gen.get_args(first(state.traces))
     num_particles = length(state.traces)
     accepted = 0
-    args = (probs,)
+    attended_trackers = zeros(length(probs))
+
+    args = (probs, attended_trackers)
     for i=1:num_particles
         state.traces[i], a = state_move(state.traces[i], args)
         accepted += a
     end
-    return accepted / num_particles
+    
+    return accepted/num_particles, attended_trackers/num_particles
 end

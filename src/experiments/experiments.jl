@@ -13,4 +13,5 @@ function get_name(exp::AbstractExperiment)
 end
 
 include("example/example.jl")
-include("exp0/exp0.jl")
+include("exp0/generic/exp0_generic.jl")
+include("exp0/attention/exp0_attention.jl")

@@ -27,12 +27,13 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     
     t, motion, gm = get_args(first(pf_state.traces))
 
-    rtrace = RejuvTrace(0, 0, nothing)
+    rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
+
    
     rtrace.stats = get_stats(attention, pf_state)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("td confusability: $(rtrace.stats)")
+    println("td entropy: $(rtrace.stats)")
     println("sweeps: $sweeps")
 
     fails = 0
@@ -41,7 +42,9 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
         #println("sweep $sweep")
 
         # making a rejuvenation move (rejuvenating velocity)
-        rtrace.acceptance += perturb_state!(pf_state, rtrace.stats)
+        acceptance, attended_trackers = perturb_state!(pf_state, rtrace.stats)
+        rtrace.acceptance += acceptance
+        rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
     
         # computing new population statistics

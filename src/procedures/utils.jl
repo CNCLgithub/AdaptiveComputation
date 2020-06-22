@@ -44,8 +44,8 @@ function extract_assignments(trace::Gen.Trace)
     t, params = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
      
-    saved_td = ret[2][t].pmbrfs_params.saved_td
-    tds, As, td_weights = saved_td.td, saved_td.A, saved_td.ll
+    pmbrfs_stats = ret[2][t].pmbrfs_params.pmbrfs_stats
+    tds, As, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.assignments, pmbrfs_stats.ll
 
     A = tds[1][invperm(As[1])] # this is to get the old sense of assignment, i.e. mapping from trackers to observations
     A = reshape(A, (1,1,size(A)...))

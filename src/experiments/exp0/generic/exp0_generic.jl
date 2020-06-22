@@ -8,7 +8,7 @@ export Exp0
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 10
+    k::Int = 20
 end
 
 get_name(::Exp0) = "exp0"
@@ -22,6 +22,7 @@ function run_inference(q::Exp0)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
+                                :assignments => extract_assignments
                                ))
 
     
@@ -67,9 +68,17 @@ function run_inference(q::Exp0)
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
 
-    # getting the images
-    full_imgs = get_full_imgs(masks)
+    final_assignments = extracted["weighted"][:assignments][q.k,:,:]
+    final_log_scores = extracted["log_scores"][q.k,:]
+    
+    for i in sortperm(final_log_scores, rev=true)
+        println("particle $i   A $(final_assignments[i,:])    log_score $(final_log_scores[i])")
+    end
+    
 
+    # getting the images
+    #full_imgs = get_full_imgs(masks)
+    
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
     #visualize(tracker_positions, full_imgs, gm_params)

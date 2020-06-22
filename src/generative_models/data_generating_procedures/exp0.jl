@@ -10,7 +10,6 @@ function load_exp0_trial(trial, gm, dataset_path)
 	dataset = read(file, "dataset")
 	data = dataset["$(trial-1)"]
     
-   
     # getting initial positions
 	init_dots = data["init_dots"]
     init_positions = Array{Float64}(undef, gm.n_trackers, 3)
