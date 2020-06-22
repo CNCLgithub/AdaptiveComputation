@@ -81,6 +81,7 @@ function run_inference(q::SensTDExperiment, path::String)
     visualize(tracker_positions, full_imgs, gm_params, viz_path)
 
     aux_state = extracted["aux_state"]
-
+    attention_weights = [aux_state[t].stats for t = 1:q.k]
+    plot_compute_weights(attention_weights, path)
     return results
 end

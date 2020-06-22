@@ -3,25 +3,22 @@ export extract_tracker_positions,
         extract_chain
 
 function extract_chain(r::Gen_Compose.SequentialChain)
-    weighted = []
-    unweighted = []
-    log_scores = []
-    ml_est = []
-    states = []
-    for t = 1:length(r.buffer)
-        state = r.buffer[t]
-        push!(weighted, state["weighted"])
-        push!(unweighted, state["unweighted"])
-        push!(log_scores, state["log_scores"])
-        push!(ml_est, state["ml_est"])
+    extract_chain(r.buffer)
+end
+
+function extract_chain(buffer::Vector{T}) where T<:Dict{String, Any}
+    extracts = T()
+    k = length(buffer)
+    fields = collect(keys(first(buffer)))
+    for field in fields
+        results = [buffer[t][field] for t = 1:k]
+        if typeof(first(results)) <: Dict
+            results = merge(vcat, results...)
+        else
+            results = vcat(results...)
+        end
+        extracts[field] = results
     end
-    weighted = merge(vcat, weighted...)
-    unweighted = merge(vcat, unweighted...)
-    log_scores = vcat(log_scores...)
-    extracts = Dict("weighted" => weighted,
-                    "unweighted" => unweighted,
-                    "log_scores" => log_scores,
-                    "ml_est" => ml_est)
     return extracts
 end
 
