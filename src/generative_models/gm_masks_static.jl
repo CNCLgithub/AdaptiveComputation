@@ -166,7 +166,8 @@ end
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
 
-    return Dot([x,y,z], [vx,vy])
+    # initial velocity is zero
+    return Dot([x,y,z], [0,0])
 end
 
 init_trackers_map = Gen.Map(sample_init_tracker)
@@ -186,7 +187,7 @@ end
 
 @gen (static) function kernel(t::Int,
                      prev_state::FullState,
-                     dynamics_model::BrownianDynamicsModel,
+                     dynamics_model::AbstractDynamicsModel,
                      params::GMMaskParams)
 
     prev_graph = prev_state.graph

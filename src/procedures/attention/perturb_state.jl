@@ -16,13 +16,13 @@ Perturbs velocity based on probs of assignments to observations.
     # perturb velocity
     addr_vx = :states => t => :dynamics => :brownian => tracker => :vx
     addr_vy = :states => t => :dynamics => :brownian => tracker => :vy
-    prev_v = [choices[addr_vx], choices[addr_vy]]
+    prev_vx = choices[addr_vx]
+    prev_vy = choices[addr_vy]
 
-    # maybe unfair advantage to our new model
-    # (was constant at 2.5 before)
-    @trace(broadcasted_normal(prev_v, motion.sigma_w), :new_v)
+    @trace(normal(prev_vx, motion.sigma_x), :new_vx)
+    @trace(normal(prev_vy, motion.sigma_y), :new_vy)
 
-    return tracker, prev_v
+    return (tracker, [prev_vx, prev_vy])
 end
 
 
@@ -42,16 +42,15 @@ function state_perturb_involution(trace, fwd_choices::ChoiceMap, fwd_ret,
     constraints = choicemap()
 
     # decision over target state
-    vx, vy = fwd_choices[:new_v]
-    #constraints[:states => t => :trackers => tracker => :vx] = vx
-    #constraints[:states => t => :trackers => tracker => :vy] = vy
+    vx, vy = fwd_choices[:new_vx], fwd_choices[:new_vy]
     constraints[:states => t => :dynamics => :brownian => tracker => :vx] = vx
     constraints[:states => t => :dynamics => :brownian => tracker => :vy] = vy
 
     # backward stuffs
     bwd_choices = choicemap()
     bwd_choices[:tracker] = fwd_choices[:tracker]
-    bwd_choices[:new_v] = prev_v
+    bwd_choices[:new_vx] = prev_v[1]
+    bwd_choices[:new_vy] = prev_v[2]
 
     model_args = get_args(trace)
     (new_trace, weight, _, _) = Gen.update(trace, model_args, (NoChange(),), constraints)

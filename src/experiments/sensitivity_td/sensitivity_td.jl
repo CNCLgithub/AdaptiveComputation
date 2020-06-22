@@ -1,28 +1,28 @@
-export ExampleExperiment
+export SensTDExperiment
 
+using Random
+Random.seed!(0)
 
-@with_kw struct ExampleExperiment <: AbstractExperiment
+@with_kw struct SensTDExperiment <: AbstractExperiment
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 120
+    k::Int = 10
 end
 
-get_name(::ExampleExperiment) = "example"
+get_name(::SensTDExperiment) = "sens_td"
 
-function run_inference(q::ExampleExperiment, path::String)
+function run_inference(q::SensTDExperiment, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
     motion = load(BrownianDynamicsModel, q.motion)
-    
-    # generating initial positions and masks (observations)
-    init_positions, masks = dgp(q.k, gm_params, motion)
 
-    # testing less inertia in dynamics for inference
-    #motion = @set motion.inertia = 0.99
-    #motion = @set motion.spring = 0.001
-    #motion = @set motion.sigma_w = 2.5
+
+    # generating positions
+    init_positions, masks = dgp(q.k, gm_params, 3.0)
+
+    # init_positions, init_vels, masks = dgp(q.k, gm_params, motion)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
@@ -56,8 +56,8 @@ function run_inference(q::ExampleExperiment, path::String)
                                         observations)
 
     
-    attention = load(TDEntropyAttentionModel, q.attention;
-                     perturb_function = perturb_state!)
+    attention = load(PairwiseSensitivity, q.attention)
+
 
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
@@ -76,9 +76,11 @@ function run_inference(q::ExampleExperiment, path::String)
 
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params)
+    viz_path = joinpath(path, "viz")
+    mkpath(viz_path)
+    visualize(tracker_positions, full_imgs, gm_params, viz_path)
+
+    aux_state = extracted["aux_state"]
 
     return results
 end
-
-

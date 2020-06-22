@@ -4,7 +4,7 @@ export AbstractExperiment,
 
 abstract type AbstractExperiment end
 
-function run_inference(exp::AbstractExperiment)
+function run_inference(exp::AbstractExperiment, path::String)
     error("Not implemented")
 end
 
@@ -14,3 +14,4 @@ end
 
 include("example/example.jl")
 include("exp0/exp0.jl")
+include("sensitivity_td/sensitivity_td.jl")
