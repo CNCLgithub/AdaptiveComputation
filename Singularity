@@ -5,7 +5,7 @@ from: nvidia/cuda:10.1-cudnn7-devel
 %environment
  export PATH=$PATH:/blender/blender
  export PATH=$PATH:/miniconda/bin
- export PATH=$PATH:/julia-1.3.1/bin
+ export PATH=$PATH:/julia-1.4.2/bin
 
 %runscript
   exec bash "$@"

@@ -1,9 +1,0 @@
-{
-    "num_particles": 10,
-    "num_trackers": 2,
-    "num_distractor_rate": 2,
-    "max_rejuv": 0,
-    "early_stopping_steps": 3,
-    "rejuv_smoothness": 1.005
-}
-
