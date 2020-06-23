@@ -56,7 +56,8 @@ function run_inference(q::SensTDExperiment, path::String)
                                         observations)
 
     
-    attention = load(PairwiseSensitivity, q.attention)
+    # attention = load(PairwiseSensitivity, q.attention)
+    attention = load(MapSensitivity, q.attention)
 
 
     proc = load(PopParticleFilter, q.proc;

@@ -1,6 +1,57 @@
 import PhysicalConstants.CODATA2018: k_B
 
-export PairwiseSensitivity
+export PairwiseSensitivity, MapSensitivity
+
+function jitter(tr::Gen.Trace, tracker::Int)
+    args = Gen.get_args(tr)
+    t = first(args)
+    diffs = Tuple(fill(NoChange(), length(args)))
+    addr = :states => t => :dynamics => :brownian => tracker
+    first(regenerate(tr, args, diffs, Gen.select(addr)))
+end
+
+@with_kw struct MapSensitivity <: AbstractAttentionModel
+    objective::Function = target_designation
+    latents::Function = t -> extract_tracker_positions(t)[1, 1, :, :]
+    jitter::Function = jitter
+    samples::Int = 1
+    sweeps::Int = 5
+    eps::Float64 = 0.01
+end
+
+function load(::Type{MapSensitivity}, path; kwargs...)
+    MapSensitivity(;read_json(path)..., kwargs...)
+end
+
+function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
+    seeds = Gen.sample_unweighted_traces(state, att.samples)
+    latents = map(att.latents, seeds)
+    entropies = map(entropy ∘ att.objective, seeds)
+    n_latents = size(first(latents), 2)
+    gradients = zeros(att.samples, n_latents)
+    for i = 1:att.samples
+        seed = seeds[i]
+        seed_latents = att.latents(seed)
+        jittered = map(idx -> att.jitter(seed, idx), 1:n_latents)
+        new_latents = map(att.latents, jittered)
+        ẟs = entropies[i] .- map(entropy ∘ att.objective, jittered)
+        println(latents .- new_latents)
+        println(latents)
+        println(new_latents)
+        ẟh = max.(map(norm, eachrow(latents .- new_latents)), 1E-10)
+        gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
+    end
+    gs = vec(mean(abs.(gradients), dims = 1))
+end
+
+function get_sweeps(att::MapSensitivity, stats)
+    norm(stats) >= att.eps ? att.sweeps : 0
+end
+
+function early_stopping(att::MapSensitivity, new_stats, prev_stats)
+    # norm(new_stats) <= att.eps
+    false
+end
 
 @with_kw struct PairwiseSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
@@ -68,6 +119,14 @@ Computes the entropy of a discrete distribution
 function entropy(ps::AbstractArray{Float64})
     # -k_B * sum(map(p -> p * log(p), ps))
     -1 * sum(map(p -> p * log(p), ps))
+end
+
+function kl(p::T, q) where T<:Vector{Tuple}
+    pairs = merge(p, q)
+    for (td_p, ll_p) in p
+        for (td_q, ll_q) in q
+        end
+    end
 end
 
 function index_pairs(n::Int)
