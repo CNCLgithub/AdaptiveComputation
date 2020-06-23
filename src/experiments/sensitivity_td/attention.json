@@ -1,4 +1,5 @@
 {
+    "samples": 1,
     "sweeps": 5,
     "eps": 0.01
 }
