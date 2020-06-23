@@ -39,13 +39,12 @@ function main()
         attention = true
         compute_type = "attention"
     end
-
     
-    attention_str = attention ? "attention" : "no_attention_$(compute_type)"
-    folder = "exp0_results/$(attention_str)/$(trial)"
+    exp_path = attention ? "attention" : "no_attention_$(compute_type)"
+    folder = joinpath("exp0_results", exp_path, "$trial")
     mkpath(folder)
 
-    path = "$folder/$run.jld2"
+    path = joinpath(folder, "$run.jld2")
     if ispath(path)
         error("file exists, exiting..")
     end
@@ -53,8 +52,8 @@ function main()
     if attention
         exp = Exp0Attention(trial=trial, save_path=path)
     else
-        if compute_type == "avg"
-            exp = Exp0Avg(trial=trial, save_path=path)
+        if compute_type == "trial_avg"
+            exp = Exp0TrialAvg(trial=trial, save_path=path)
         elseif compute_type == "base"
             exp = Exp0Base(trial=trial, save_path=path)
         else
