@@ -45,7 +45,7 @@ function load_exp0_trial(trial, gm, dataset_path)
 	inertia = data["inertia"]
 	spring = data["spring"]
 	sigma_w = data["sigma_w"]
-    motion = BrownianDynamicsModel(inertia, spring, sigma_w)
+    motion = BrownianDynamicsModel(inertia, spring, sigma_w, sigma_w)
     
     return init_positions, masks, motion
 end

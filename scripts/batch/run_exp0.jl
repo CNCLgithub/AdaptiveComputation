@@ -35,7 +35,7 @@ function main()
         #compute_type = args["compute_type"]
     else
         run = 9
-        trial = 124
+        trial = 2
         attention = true
         compute_type = "attention"
     end
