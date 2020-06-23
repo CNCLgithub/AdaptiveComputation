@@ -2,6 +2,15 @@ export extract_tracker_positions,
         extract_assignments,
         extract_chain
 
+function extract_chain(r::String)
+    data = read(r)
+    v = Vector{Dict}(undef, length(data))
+    for i = 1:length(data)
+        v[i] = data[i]
+    end
+    extract_chain(v)
+end
+
 function extract_chain(r::Gen_Compose.SequentialChain)
     extract_chain(r.buffer)
 end

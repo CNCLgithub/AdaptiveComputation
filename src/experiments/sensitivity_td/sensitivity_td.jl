@@ -78,10 +78,11 @@ function run_inference(q::SensTDExperiment, path::String)
     # you can find images under inference_render
     viz_path = joinpath(path, "viz")
     mkpath(viz_path)
-    visualize(tracker_positions, full_imgs, gm_params, viz_path)
+    # visualize(tracker_positions, full_imgs, gm_params, viz_path)
 
     aux_state = extracted["aux_state"]
     attention_weights = [aux_state[t].stats for t = 1:q.k]
+    attention_weights = collect(hcat(attention_weights...)')
     plot_compute_weights(attention_weights, path)
     return results
 end

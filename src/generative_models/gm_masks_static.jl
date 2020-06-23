@@ -145,22 +145,20 @@ end
 #@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
 @gen function sample_init_tracker(init_pos_spread::Real, exp0::Bool)::Dot
     
-    println("hello")
-
     # legacy support for exp0
-    if !exp0
-        x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
-        y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
-        # initial velocity is zero (in the new version)
-        vx = 0.0
-        vy = 0.0
-    else
+    if exp0
         # exp0 initial position was sampled from normal (0.0, 30.0)
         x = @trace(normal(0.0, 30.0), :x)
         y = @trace(normal(0.0, 30.0), :y)
         # exp0 initial velocity was sampled from normal(0.0, 2.2)
         vx = @trace(normal(0.0, 2.2), :vx)
         vy = @trace(normal(0.0, 2.2), :vy)
+    else
+        x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
+        y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
+        # initial velocity is zero (in the new version)
+        vx = 0.0
+        vy = 0.0
     end
 
     # z (depth) drawn at beginning
@@ -193,7 +191,6 @@ end
     prev_graph = prev_state.graph
 
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
-    #println(typeof(new_graph))
     new_trackers = new_graph.elements
 
     # get masks params returns parameters for the poisson multi bernoulli
