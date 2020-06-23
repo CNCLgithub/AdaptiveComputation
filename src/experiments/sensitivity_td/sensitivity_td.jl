@@ -66,9 +66,10 @@ function run_inference(q::SensTDExperiment, path::String)
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = nothing)
+                                     path = joinpath(path, "trace.jld"))
 
-    extracted = extract_chain(results)
+    extracted = extract_chain(joinpath(path, "trace.jld"))
+    # extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
 
     # getting the images

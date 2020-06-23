@@ -2,12 +2,16 @@ export extract_tracker_positions,
         extract_assignments,
         extract_chain
 
+using JLD2, FileIO
+
 function extract_chain(r::String)
-    data = read(r)
-    v = Vector{Dict}(undef, length(data))
-    for i = 1:length(data)
-        v[i] = data[i]
+    v = []
+    jldopen(r, "r") do data
+        for i = 1:length(keys(data))
+            push!(v, data["$i"])
+        end
     end
+    v = collect(Dict, v)
     extract_chain(v)
 end
 
