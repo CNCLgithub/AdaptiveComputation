@@ -75,4 +75,3 @@ for now returns false, no early stopping
 function early_stopping(::TDEntropyAttentionModel, new_stats, prev_stats)
     return false
 end
-

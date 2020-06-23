@@ -1,10 +1,15 @@
 export plot_score,
     heatmap,
     plot_rejuvenation,
-    plot_xy
+    plot_xy,
+    plot_compute_weights
 
 using Gadfly
+Gadfly.push_theme(Theme(background_color = colorant"white"))
+using Compose
+import Cairo
 using DataFrames
+
 """
 Plots the log scores in a 2D histogram.
 """
@@ -32,6 +37,20 @@ function heatmap(df, x, y, z; points=false)
              Scale.color_continuous(minvalue=0.5),
              Theme(background_color="white"))
     Gadfly.draw(SVG("heatmap.svg", 6Gadfly.inch, 4Gadfly.inch), p)
+end
+
+function plot_compute_weights(weights::Matrix{Float64}, path::String)
+    k,n = size(weights)
+    plots = []
+    ts = collect(1:k)
+    for i = 1:n
+        plt = plot(x = ts, y = weights[:, i], Geom.line,
+                   Theme(background_color = "white"))
+        push!(plots, plt)
+    end
+    out = joinpath(path, "compute_weights.png")
+    plots = vstack(plots...)
+    plots |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
 end
 
 """

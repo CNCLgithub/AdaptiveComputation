@@ -104,6 +104,12 @@ git-tree-sha1 = "d296f5e975306844de3e57118c3cf4a7cf2a8762"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.16.0+4"
 
+[[Calculus]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
+uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
+version = "0.5.1"
+
 [[CatIndices]]
 deps = ["CustomUnitRanges", "OffsetArrays"]
 git-tree-sha1 = "0c91e4fcda51bbd881c5d49ef784460750abcac0"
@@ -791,6 +797,12 @@ version = "0.2.2"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
+[[Measurements]]
+deps = ["Calculus", "LinearAlgebra", "RecipesBase", "Requires"]
+git-tree-sha1 = "f6164478d4e5aab3f66ee265e3569603ad0eca12"
+uuid = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
+version = "2.2.1"
+
 [[Measures]]
 git-tree-sha1 = "e498ddeee6f9fdb4551ce855a46f54dbd900245f"
 uuid = "442fdcdd-2543-5da2-b0f3-8c86c306513e"
@@ -898,6 +910,12 @@ git-tree-sha1 = "eb3e09940c0d7ae01b01d9291ebad7b081c844d3"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "1.0.5"
 
+[[PhysicalConstants]]
+deps = ["Measurements", "Roots", "Unitful"]
+git-tree-sha1 = "2bc26b693b5cbc823c54b33ea88a9209d27e2db7"
+uuid = "5ad8b20f-a522-5ce9-bfc9-ddf1d5bda6ab"
+version = "0.2.1"
+
 [[Pixman_jll]]
 deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "ae66367153a89ecb2a5c7acc2df4ba082b729b6a"
@@ -970,6 +988,11 @@ git-tree-sha1 = "5862d915387ebb954016f50a88e34f79a9e5fcd2"
 uuid = "a223df75-4e93-5b7c-acf9-bdd599c0f4de"
 version = "0.8.3"
 
+[[RecipesBase]]
+git-tree-sha1 = "54f8ceb165a0f6d083f0d12cb4996f5367c6edbc"
+uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
+version = "1.0.1"
+
 [[Reexport]]
 deps = ["Pkg"]
 git-tree-sha1 = "7b1d07f411bc8ddb7977ec7f377b97b158514fe0"
@@ -1005,6 +1028,12 @@ deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "d76185aa1f421306dec73c057aa384bad74188f0"
 uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
 version = "0.2.2+1"
+
+[[Roots]]
+deps = ["Printf"]
+git-tree-sha1 = "c2f7348c55d1433d1cab0159b4d2c6d27af36fc4"
+uuid = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+version = "1.0.2"
 
 [[Rotations]]
 deps = ["LinearAlgebra", "StaticArrays", "Statistics"]
@@ -1141,6 +1170,12 @@ version = "1.0.1"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[Unitful]]
+deps = ["ConstructionBase", "LinearAlgebra", "Random"]
+git-tree-sha1 = "3714b55de06b11b2aa788b8643d6e91f13648be5"
+uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
+version = "1.2.1"
 
 [[Wayland_jll]]
 deps = ["Expat_jll", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]

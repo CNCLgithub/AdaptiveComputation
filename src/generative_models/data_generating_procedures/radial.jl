@@ -3,7 +3,7 @@ export dgp
 using Setfield
 
 function dgp(k::Int, params::GMMaskParams,
-             motion::BrownianDynamicsModel)
+             motion::RadialMotion)
     
     # new params with all dots
     # having state for data generation

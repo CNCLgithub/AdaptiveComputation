@@ -102,3 +102,8 @@ function findnearest(a,x)
     x-a[last(r)] > a[first(r)]-x && return searchsorted(a,a[first(r)])
     return first(searchsorted(a,a[last(r)])):last(searchsorted(a,a[first(r)]))
 end
+
+# cribbed from https://github.com/JuliaDynamics/DrWatson.jl/blob/abed4bc699d5c6049c6010a5bc78ca62149a3cc9/src/saving_tools.jl#L300-L307
+function struct2dict(s)
+    Dict(x => getfield(s, x) for x in fieldnames(typeof(s)))
+end

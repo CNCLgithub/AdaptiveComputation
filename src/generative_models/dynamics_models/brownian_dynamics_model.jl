@@ -3,7 +3,8 @@ export BrownianDynamicsModel
 @with_kw struct BrownianDynamicsModel <: AbstractDynamicsModel
     inertia::Float64 = 0.8
     spring::Float64 = 0.002
-    sigma_w::Float64 = 1.5
+    sigma_x::Float64 = 1.5
+    sigma_y::Float64 = 1.5
 end
 
 function load(::Type{BrownianDynamicsModel}, path::String)
@@ -15,9 +16,9 @@ end
     _vx,_vy = dot.vel
 
     vx = @trace(normal(model.inertia * _vx - model.spring * _x,
-                               model.sigma_w), :vx)
+                               model.sigma_x), :vx)
     vy = @trace(normal(model.inertia * _vy - model.spring * _y,
-                               model.sigma_w), :vy)
+                               model.sigma_y), :vy)
     x = _x + _vx
     y = _y + _vy
     d = Dot([x,y,z], [vx,vy])
