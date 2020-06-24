@@ -6,18 +6,18 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "run"
-            help = "run"
-		    arg_type = Int
-            required = true
+        help = "run"
+        arg_type = Int
+        required = true
         "attention"
-            arg_type = Bool
-            required = true
+        arg_type = Bool
+        required = true
         "trial"
-            arg_type = Int
-            required = true
+        arg_type = Int
+        required = true
         "compute_type"
-            arg_type = String
-            required = true
+        arg_type = String
+        required = true
     end
 
     return parse_args(s)
@@ -25,27 +25,26 @@ end
 
 
 function main()
-    #args = parse_commandline()
 
-    test = true
+    test = false
     if !test
-        #run = args["run"]
-        #trial = args["trial"]
-        #attention = args["attention"]
-        #compute_type = args["compute_type"]
+        args = parse_commandline()
+        run = args["run"]
+        trial = args["trial"]
+        attention = args["attention"]
+        compute_type = args["compute_type"]
     else
-        run = 9
-        trial = 2
+        run = 3
+        trial = 89
         attention = true
         compute_type = "attention"
     end
-
     
-    attention_str = attention ? "attention" : "no_attention_$(compute_type)"
-    folder = "exp0_results/$(attention_str)/$(trial)"
+    exp_path = attention ? "attention" : "no_attention_$(compute_type)"
+    folder = joinpath("exp0_results", exp_path, "$trial")
     mkpath(folder)
 
-    path = "$folder/$run.jld2"
+    path = joinpath(folder, "$run.jld2")
     if ispath(path)
         error("file exists, exiting..")
     end
@@ -53,8 +52,8 @@ function main()
     if attention
         exp = Exp0Attention(trial=trial, save_path=path)
     else
-        if compute_type == "avg"
-            exp = Exp0Avg(trial=trial, save_path=path)
+        if compute_type == "trial_avg"
+            exp = Exp0TrialAvg(trial=trial, save_path=path)
         elseif compute_type == "base"
             exp = Exp0Base(trial=trial, save_path=path)
         else

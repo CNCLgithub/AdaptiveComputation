@@ -184,9 +184,9 @@ end
 ##################################
 
 @gen (static) function kernel(t::Int,
-                     prev_state::FullState,
-                     dynamics_model::AbstractDynamicsModel,
-                     params::GMMaskParams)
+                              prev_state::FullState,
+                              dynamics_model::AbstractDynamicsModel,
+                              params::GMMaskParams)
 
     prev_graph = prev_state.graph
 
