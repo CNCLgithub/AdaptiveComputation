@@ -35,10 +35,10 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         jittered = map(idx -> att.jitter(seed, idx), 1:n_latents)
         new_latents = map(att.latents, jittered)
         ẟs = entropies[i] .- map(entropy ∘ att.objective, jittered)
-        println(latents .- new_latents)
-        println(latents)
-        println(new_latents)
-        ẟh = max.(map(norm, eachrow(latents .- new_latents)), 1E-10)
+        ẟs = abs.(ẟs)
+        ẟh = map(norm, eachrow(latents .- new_latents))
+        println(ẟs)
+        println(map(norm, eachrow(latents .- new_latents)))
         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
     end
     gs = vec(mean(abs.(gradients), dims = 1))
@@ -106,8 +106,8 @@ function target_designation(tr::Gen.Trace; w::Int = 3)
     for t = max(1, k-w):(size(lls, 1) -1)
         lls[t, :] = ret[t].pmbrfs_params.pmbrfs_stats.ll
     end
-    lls = mean(lls, dims = 1)
-    exp.(lls) .+ 1E-5
+    mean(lls, dims = 1)
+    # exp.(lls) .+ 1E-5
 end
 
 
@@ -118,7 +118,7 @@ Computes the entropy of a discrete distribution
 """
 function entropy(ps::AbstractArray{Float64})
     # -k_B * sum(map(p -> p * log(p), ps))
-    -1 * sum(map(p -> p * log(p), ps))
+    -1 * sum(map(p -> p * exp(p), ps))
 end
 
 function kl(p::T, q) where T<:Vector{Tuple}
