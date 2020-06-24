@@ -26,7 +26,7 @@ end
 
 function main()
 
-    test = false
+    test = true
     if !test
         args = parse_commandline()
         run = args["run"]
@@ -36,8 +36,8 @@ function main()
     else
         run = 3
         trial = 89
-        attention = true
-        compute_type = "attention"
+        attention = false
+        compute_type = "trial_avg"
     end
     
     exp_path = attention ? "attention" : "no_attention_$(compute_type)"

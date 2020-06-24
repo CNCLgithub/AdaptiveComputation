@@ -13,6 +13,9 @@ function get_name(exp::AbstractExperiment)
 end
 
 include("example/example.jl")
+include("sensitivity_td/sensitivity_td.jl")
+
+# exp0
 include("exp0/generic/exp0_generic.jl")
 include("exp0/attention/exp0_attention.jl")
-include("sensitivity_td/sensitivity_td.jl")
+include("exp0/trial_avg/exp0_trial_avg.jl")
