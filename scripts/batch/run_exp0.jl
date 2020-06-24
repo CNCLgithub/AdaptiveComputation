@@ -6,18 +6,18 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "run"
-            help = "run"
-		    arg_type = Int
-            required = true
+        help = "run"
+        arg_type = Int
+        required = true
         "attention"
-            arg_type = Bool
-            required = true
+        arg_type = Bool
+        required = true
         "trial"
-            arg_type = Int
-            required = true
+        arg_type = Int
+        required = true
         "compute_type"
-            arg_type = String
-            required = true
+        arg_type = String
+        required = true
     end
 
     return parse_args(s)
@@ -25,17 +25,17 @@ end
 
 
 function main()
-    #args = parse_commandline()
 
-    test = true
+    test = false
     if !test
-        #run = args["run"]
-        #trial = args["trial"]
-        #attention = args["attention"]
-        #compute_type = args["compute_type"]
+        args = parse_commandline()
+        run = args["run"]
+        trial = args["trial"]
+        attention = args["attention"]
+        compute_type = args["compute_type"]
     else
-        run = 9
-        trial = 2
+        run = 3
+        trial = 89
         attention = true
         compute_type = "attention"
     end
