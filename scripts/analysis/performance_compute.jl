@@ -1,41 +1,45 @@
 using MOT
-using Gen
-#Gen.load_generated_functions()
 
 using HDF5
 using Gadfly
 using Statistics
-using GLM
+#using GLM
 using DataFrames
-
-using Bootstrap
 using CSV
 
+#using Bootstrap
 
-include("loading_utils.jl")
-
-#### parameters ####
-T = 120
 num_trials = 128
-first_timestep = 11
-
-num_particles = 30
-num_rejuv = 10
-
-num_observations = 8
-num_targets = 4
-
-maximum_distance = 150
-
-plot_dir = "loc_error_plots"
 results_dir = "exp0_results"
-models = ["rejuv", "no_rejuv_trial", "no_rejuv_avg", "no_rejuv_base"]
-#models = ["rejuv"]
 
-rejuvenation = true
-compute_type = "avg"
-####################
 
+function performance_compute(experiments)
+    for experiment in experiments
+        performance, compute, pred_target = load_results(joinpath(results_dir, experiment))
+        
+        perf_trial = mean(performance, dims=2)[:,1]
+        comp_trial = mean(compute, dims=2)[:,1]
+        pred_target_trial = mean(pred_target, dims=2)[:,1,:]
+
+        pred_target_packaged = []
+        for i=1:size(pred_target_trial, 1)
+            push!(pred_target_packaged, pred_target_trial[i,:])
+        end
+
+        trials = collect(1:length(perf_trial))
+
+        df = DataFrame(performance=perf_trial, compute=comp_trial,
+                       trial=trials;
+                       [Symbol("dot_$i")=>pred_target_trial[:,i] for i=1:8]...
+                      )
+
+        mkpath("results")
+        CSV.write("results/performance_compute_$experiment.csv", df)
+        println(df)
+    end
+end
+
+performance_compute(["attention"])
 
 
 function confidence_intervals(data; samples=false)
@@ -114,24 +118,6 @@ function significance_analysis(first, second)
 	println(1 - count(first_samples .- second_samples .> 0)/100000)
 end
 
-function accuracy_compute()
-    for model in models
-        _,A,_,perf,comp = load_results_trials("$results_dir/$model")
-        performance = mean(perf, dims=2)[:,1]/4
-        compute = mean(comp, dims=2)[:,1]
-
-        println(compute[99,:])
-        println(mean(perf)/4)
-
-        trials = collect(1:num_trials)
-
-        df = DataFrame(accuracy=performance, compute=compute, trial=trials)
-
-        mkpath("results")
-        CSV.write("results/accuracy_compute_$model.csv", df)
-        println(df)
-    end
-end
 
 function plot_performance_between_models(model_1, model_2)
     _,_,_,perf_1,_ = load_results_trials("$results_dir/$model_1")
@@ -155,4 +141,4 @@ end
 #significance_analysis("rejuv", "no_rejuv_trial")
 #plot_performance()
 #accuracy_compute()
-plot_performance_between_models("rejuv", "no_rejuv_trial")
+#plot_performance_between_models("rejuv", "no_rejuv_trial")
