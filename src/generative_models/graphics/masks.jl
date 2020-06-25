@@ -53,23 +53,17 @@ there are two gaussian functions stacked on one another
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
-                                spread_1::Float64, spread_2::Float64)
+                                gaus_amp::Float64, gaus_std::Float64)
     
-    # amplitude of first gaussian
-    A = 0.4999999999
-
-    std_1 = sqrt(spread_1 * r)
-    std_2 = sqrt(spread_2 * r)
-
     mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            mask[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1)
-            mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], A, std_2, std_2)
+            mask[j,i] = norm(center - [i, j]) < r
+            mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
+                                                  gaus_amp, gaus_std, gaus_std)
         end
     end
-
-    return mask
+    min.(mask, 0.99)
 end
 
 
@@ -101,7 +95,7 @@ function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
             push!(masks_t, mask)
             img_so_far .|= mask
         end
-        masks[t] = masks_t
+        masks[t] = masks_t[invperm(depth_perm)]
     end
 
     return masks

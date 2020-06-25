@@ -20,8 +20,17 @@ function run_inference(q::SensTDExperiment, path::String)
 
 
     # generating positions
-    init_positions, masks = dgp(q.k, gm_params, 3.0)
+    init_positions, masks = dgp(q.k, gm_params, 5.0)
 
+    masks_out = joinpath(path, "masks")
+    mkpath(masks_out)
+    for t=1:length(masks)
+        ms = masks[t]
+        for m = 1:length(ms)
+            filename = "$(lpad(t, 3, "0"))_$(lpad(m, 3,"0")).png"
+            save(joinpath(masks_out, filename), ms[m])
+        end
+    end
     # init_positions, init_vels, masks = dgp(q.k, gm_params, motion)
 
     latent_map = LatentMap(Dict(
@@ -76,15 +85,20 @@ function run_inference(q::SensTDExperiment, path::String)
     # getting the images
     full_imgs = get_full_imgs(masks)
 
+
+
+
+    aux_state = extracted["aux_state"]
+    attention_weights = [aux_state[t].stats for t = 1:q.k]
+    attention_weights = collect(hcat(attention_weights...)')
+    plot_compute_weights(attention_weights, path)
+
+
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
     viz_path = joinpath(path, "viz")
     mkpath(viz_path)
     visualize(tracker_positions, full_imgs, gm_params, viz_path)
 
-    aux_state = extracted["aux_state"]
-    attention_weights = [aux_state[t].stats for t = 1:q.k]
-    attention_weights = collect(hcat(attention_weights...)')
-    plot_compute_weights(attention_weights, path)
     return results
 end
