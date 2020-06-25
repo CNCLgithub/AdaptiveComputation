@@ -20,7 +20,7 @@ get_name(::Exp0TrialAvg) = "exp0_trial_avg"
 function load_uniform_attention(q::Exp0TrialAvg)
     trial_dir = joinpath(q.exp0_results_attention_path, "$(q.trial)")
     trial_results = load_trial(trial_dir)
-    sweeps = round(Int, mean(trial_results)/q.k)
+    sweeps = round(Int, mean(trial_results["compute"])/q.k)
 
     return UniformAttention(sweeps=sweeps,
                             perturb_function = perturb_state!)
@@ -33,7 +33,7 @@ function run_inference(q::Exp0TrialAvg)
     
     # generating initial positions and masks (observations)
     init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
-    attention = load_uniform_attention(q.trial, q.k)
+    attention = load_uniform_attention(q)
     println(attention)
 
     latent_map = LatentMap(Dict(
