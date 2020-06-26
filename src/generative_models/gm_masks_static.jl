@@ -116,7 +116,7 @@ function get_masks_params(trackers, params::GMMaskParams)
             end
         end
     end
-    
+
     # legacy support for exp0 - masks always present
     if params.exp0
         rs = ones(params.n_trackers)
