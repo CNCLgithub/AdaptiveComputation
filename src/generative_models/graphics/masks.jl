@@ -59,7 +59,7 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
         for j=1:w
             mask[j,i] += norm([i,j] - center) < r
             mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
-                                                  gauss_amp, r, r)
+                                                  gauss_amp, gauss_std, gauss_std)
         end
     end
     

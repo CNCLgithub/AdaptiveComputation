@@ -1,5 +1,5 @@
 {
-    "rejuv_smoothness" : 1.002,
+    "rejuv_smoothness" : 1.001,
     "max_sweeps": 15,
     "max_fails": 3
 }

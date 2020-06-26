@@ -11,7 +11,7 @@ function load(::Type{TDEntropyAttentionModel}, path; kwargs...)
     TDEntropyAttentionModel(;read_json(path)..., kwargs...)
 end
 
-function get_stats(::TDEntropyAttentionModel, state::Gen.ParticleFilterState)
+function get_stats(attention::TDEntropyAttentionModel, state::Gen.ParticleFilterState)
     num_particles = length(state.traces)
 
     samples = sample_unweighted_traces(state, num_particles)
@@ -62,11 +62,16 @@ function get_stats(::TDEntropyAttentionModel, state::Gen.ParticleFilterState)
     # dividing td_entropy by num_particles to normalize
     td_entropy .-= log(num_particles)
 
+    # making it smoother
+    td_entropy = attention.max_sweeps * attention.rejuv_smoothness.^td_entropy
+
     return td_entropy
 end
 
 function get_sweeps(attention::TDEntropyAttentionModel, stats)
-    return round(Int, attention.max_sweeps * attention.rejuv_smoothness^logsumexp(stats))
+    #return round(Int, attention.max_sweeps * attention.rejuv_smoothness^logsumexp(stats))
+    sweeps = min(attention.max_sweeps, sum(stats))
+    round(Int, sweeps)
 end
 
 """
