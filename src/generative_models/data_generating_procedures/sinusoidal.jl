@@ -9,7 +9,7 @@ function dgp(k::Int, params::GMMaskParams,
     # one target is fixed at +x
     amp = params.dot_radius * 3.0
     positions[:, 2, 1] .= -amp * 2.0
-    positions[:, 1, :] .= amp
+    positions[:, 1, :] .= amp * 0.8
     for t = 10:k+10
         positions[t, 1, 2] = amp - sin(period * (t-10) * pi / 180) * 2.0 * amp
     end

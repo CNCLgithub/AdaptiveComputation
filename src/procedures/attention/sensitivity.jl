@@ -40,8 +40,6 @@ end
 #         ẟs = seed_obj[i] .- jittered_obj
 #         ẟs = abs.(ẟs)
 #         ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
-#         # println(ẟs)
-#         # println(ẟh)
 #         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
 #     end
 #     gs = vec(abs.(mean(gradients, dims = 1)))
@@ -58,8 +56,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
                                     1:n_latents)...)
         new_latents = map(att.latents, jittered)
         jittered_obj = map(att.objective, jittered)
-        ẟs = map(j -> relative_entropy(seed_obj[i], j), jittered_obj)
-        ẟs = abs.(ẟs)
+        ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j), jittered_obj))
         ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
         # println(ẟs)
         # println(ẟh)
@@ -147,7 +144,6 @@ Computes the entropy of a discrete distribution
 """
 function entropy(ps::AbstractArray{Float64})
     # -k_B * sum(map(p -> p * log(p), ps))
-    println(ps)
     -1 * sum(map(p -> p * exp(p), ps))
 end
 
@@ -168,9 +164,11 @@ end
 
 function _merge(p::T, q::T) where T<:Dict
     keys_p, lls_p = zip(p...)
-    reserve_p = last(lls_p) + log(0.9) # logsumexp(lls_p)
+    # reserve_p =  last(lls_p) - log(1E5) #log(1 - sum(exp.(lls_p))) - log(1E5)
+    reserve_p =  log(1 - sum(exp.(lls_p))) - 1E5
     keys_q, lls_q = zip(q...)
-    reserve_q = last(lls_q) + log(0.9) # logsumexp(lls_p)
+    reserve_q = log(1 - sum(exp.(lls_q))) - 1E5
+    # reserve_q = last(lls_q) + log(0.9) # logsumexp(lls_p)
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
@@ -179,14 +177,13 @@ end
 
 function relative_entropy(p::T, q::T) where T<:Dict
     ps, qs = _merge(p, q)
-    p_den = logsumexp(collect(Float64, values(ps)))
-    q_den = logsumexp(collect(Float64, values(qs)))
+    p_den = logsumexp(collect(Float64, values(ps))) + 1
+    q_den = logsumexp(collect(Float64, values(qs))) + 1
     kl = 0
     for (k, v) in ps
-        # println("exp $v * $(qs[k]) - $(v)")
-        kl += exp(v - p_den) * (qs[k] - v)
+        kl += exp(v - p_den) * (v - qs[k] + (q_den - p_den))
     end
-    -1 * kl
+    kl
 end
 
 function index_pairs(n::Int)
