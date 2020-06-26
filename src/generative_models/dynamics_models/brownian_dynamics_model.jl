@@ -19,8 +19,11 @@ end
                                model.sigma_x), :vx)
     vy = @trace(normal(model.inertia * _vy - model.spring * _y,
                                model.sigma_y), :vy)
+
     x = _x + vx
     y = _y + vy
+    z = @trace(uniform(0, 1), :z)
+
     d = Dot([x,y,z], [vx,vy])
     return d
 end
