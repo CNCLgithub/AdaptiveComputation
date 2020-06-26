@@ -62,7 +62,8 @@ end
 """
 Plots rejuvenation steps accross time
 """
-function plot_rejuvenation(rejuvenations, out)
+function plot_rejuvenation(rejuvenations, path="plots")
+    mkpath(path)
     k = length(rejuvenations)
     x = collect(1:k)
 
@@ -72,8 +73,45 @@ function plot_rejuvenation(rejuvenations, out)
              Theme(default_color="black",
                    background_color="white")
              )
-    p |> PNG(joinpath(out, "rejuv_plot.png"),
-             8Gadfly.inch, 3Gadfly.inch)
+    Gadfly.draw(PNG(joinpath(path, "rejuvenations.png"), 8Gadfly.inch, 3Gadfly.inch), p)
+end
+
+"""
+Plots distribution of attention accross time
+"""
+function plot_attention(attended,
+                        attention,
+                        tracker_colors=["indigo", "green", "blue", "yellow"],
+                        path="plots")
+    mkpath(path)
+
+    k = length(attended)
+    x = collect(1:k)
+    
+    n_trackers = length(first(attended))
+    
+    plots = []
+
+    for i = 1:n_trackers
+
+        att_tracker = Vector{Float64}(undef, k)
+        for t=1:k
+            att_tracker[t] = attended[t][i]
+        end
+
+        p = plot(x=x, y=att_tracker,
+                 Geom.bar,
+                 Scale.y_continuous(minvalue=0, maxvalue=attention.max_sweeps),
+                 Theme(default_color=tracker_colors[i],
+                       background_color="white")
+                 )
+
+        push!(plots, p)
+    end
+
+    p = vstack(Tuple(plots)...)
+
+    Gadfly.draw(PNG(joinpath(path, "attention.png"), 4Gadfly.inch, 8Gadfly.inch), p)
 end
 
 """

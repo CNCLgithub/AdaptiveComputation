@@ -74,25 +74,26 @@ function run_inference(q::Exp0)
     attended = Vector{Vector{Float64}}(undef, q.k)
     for t=1:q.k
         attempts[t] = aux_state[t].attempts
-        attended[t] = aux_state[t].attended_trackers * attempts[t]/attention.max_sweeps
+        attended[t] = aux_state[t].attended_trackers
     end
 
+    println("compute: ", sum(attempts))
+    
+    println(tracker_positions[:,1,1,3])
+
     plot_rejuvenation(attempts)
+    plot_attention(attended, attention)
+
     
     # visualizing inference on stimuli
     render(positions, q, gm_params;
-           pf_xy=tracker_positions,
-           attended=attended,
+           pf_xy=tracker_positions[:,:,:,1:2],
+           attended=attended/attention.max_sweeps,
            tracker_masks=tracker_masks)
-
-    # for i=1:gm_params.n_trackers
-        # m = tracker_masks[end,1,i]
-        # save("tracker_mask_$i.png", m)
-    # end
 
     # visualizing inference
     #full_imgs = get_full_imgs(masks)
-    #visualize(tracker_positions, full_imgs, gm_params, "inference_render")
+    #visualize(tracker_positions[:,:,:,1:2], full_imgs, gm_params, "inference_render")
 
     return results
 end
