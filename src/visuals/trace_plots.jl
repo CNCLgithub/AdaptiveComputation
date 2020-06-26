@@ -53,7 +53,7 @@ function plot_compute_weights(weights::Matrix{Float64}, path::String)
     plt = plot(data,
                x = :t, y = :weight, color = :tracker,
                Geom.line,
-               Scale.y_continuous(minvalue=0, maxvalue=15),
+               # Scale.y_continuous(minvalue=0, maxvalue=15),
                Theme(background_color = "white"))
     out = joinpath(path, "compute_weights.png")
     plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
@@ -62,8 +62,7 @@ end
 """
 Plots rejuvenation steps accross time
 """
-function plot_rejuvenation(rejuvenations)
-    mkpath("plots")
+function plot_rejuvenation(rejuvenations, out)
     k = length(rejuvenations)
     x = collect(1:k)
 
@@ -73,7 +72,8 @@ function plot_rejuvenation(rejuvenations)
              Theme(default_color="black",
                    background_color="white")
              )
-    Gadfly.draw(PNG(joinpath("plots","rejuvenations.png"), 8Gadfly.inch, 3Gadfly.inch), p)
+    p |> PNG(joinpath(out, "rejuv_plot.png"),
+             8Gadfly.inch, 3Gadfly.inch)
 end
 
 """
