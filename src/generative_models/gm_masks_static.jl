@@ -122,7 +122,7 @@ function get_masks_params(trackers, params::GMMaskParams)
         rs = ones(params.n_trackers)
     end
 
-    rvs = fill(mask, params.n_trackers)
+    rvs = fill(MOT.mask, params.n_trackers)
     rvs_args, trackers_img = get_masks_rvs_args(objects, params)
     mbrfs_params = MBRFSParams(rs, rvs, rvs_args)
 

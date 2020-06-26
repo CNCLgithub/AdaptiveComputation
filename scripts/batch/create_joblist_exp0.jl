@@ -1,24 +1,24 @@
 file = open("joblist.txt", "w")
 beginning = "module load singularity; "
-script = "scripts/milgram/run_exp0.jl"
+script = "scripts/batch/run_exp0.jl"
 
-num_trials = 128
+trials = [x for x=1:128]
 num_runs = 20
 
-rejuvenation = false
-if rejuvenation
+attention = true
+
+if attention
 	compute_types = ["none"]
 else
-	compute_types = ["test"]
-	#compute_types = ["trial", "avg", "base"]
+	compute_types = ["trial_avg", "base"]
 end
 
 for compute_type in compute_types
-	for trial=1:num_trials
+	for trial in trials
 		for run=1:num_runs
-			cmd = "singularity run mot.sif julia $script "
+			cmd = "./run.sh julia $script "
 			cmd *= "$run "
-			cmd *= "$rejuvenation "
+			cmd *= "$attention "
 			cmd *= "$trial "
 			cmd *= "$compute_type "
 			println(file, cmd)

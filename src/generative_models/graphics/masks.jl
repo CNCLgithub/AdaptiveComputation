@@ -45,25 +45,24 @@ end
 
 
 """
-drawing a gaussian dot
-there are two gaussian functions stacked on one another
-    parameters for how spread out the mask is
-    spread_1: local steep gradient
-    spread_2: global gradient
+drawing a gaussian dot with two components:
+1) just a dot at the center with probability 1 and 0 elsewhere
+2) spread out gaussian modelling where the dot is likely to be in some sense
+    and giving some gradient if the tracker is completely off
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
-                                gaus_amp::Float64, gaus_std::Float64)
-    
+                                gauss_amp::Float64, gauss_std::Float64)
+ 
     mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            mask[j,i] = norm(center - [i, j]) < r
+            mask[j,i] += norm([i,j] - center) < r
             mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
-                                                  gaus_amp, gaus_std, gaus_std)
+                                                  gauss_amp, gauss_std, gauss_std)
         end
     end
-    min.(mask, 0.99)
+    mask = min.(mask, 1.0 - 1e-5)
 end
 
 
@@ -73,12 +72,12 @@ end
 
     returns an array of masks
 """
-function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
-    k, num_dots = size(positions)
+function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw)
+    k = length(positions)
     masks = Vector{Vector{BitArray{2}}}(undef, k)
     
     for t=1:k
-        pos = positions[t,:,:]
+        pos = positions[t]
 
         # sorting according to depth
         depth_perm = sortperm(pos[:, 3])
@@ -89,7 +88,8 @@ function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
         img_so_far .= false
         
         masks_t = []
-        for i=1:num_dots
+        n_dots = size(pos,1)
+        for i=1:n_dots
             mask = draw_dot_mask(pos[i,:], r, h, w, ah, aw)
             mask[img_so_far] .= false
             push!(masks_t, mask)

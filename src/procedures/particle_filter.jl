@@ -21,6 +21,7 @@ mutable struct RejuvTrace
     attempts::Int
     acceptance::Float64
     stats::Any
+    attended_trackers::Vector{Float64}
 end
 
 function Gen_Compose.rejuvenate!(proc::PopParticleFilter,

@@ -10,7 +10,6 @@ function load_exp0_trial(trial, gm, dataset_path)
 	dataset = read(file, "dataset")
 	data = dataset["$(trial-1)"]
     
-   
     # getting initial positions
 	init_dots = data["init_dots"]
     init_positions = Array{Float64}(undef, gm.n_trackers, 3)
@@ -23,22 +22,20 @@ function load_exp0_trial(trial, gm, dataset_path)
 	dots = data["gt_dots"]
     k = size(dots, 1)
     n_dots = Int(gm.n_trackers + gm.distractor_rate)
-    positions = Array{Float64}(undef, k, n_dots, 3)
-
-    # sampling a depth ordering
-    depth = Vector{Float64}(undef, n_dots)
-    for i=1:n_dots
-        depth[i] = uniform(0,1)
-    end
+    positions = Vector{Array{Float64}}(undef, k)
 
     for t=1:k
+        n_dots = size(dots[t,:,:], 1)
+        positions[t] = Array{Float64}(undef, n_dots, 3)
+         
         for i=1:n_dots
-            positions[t,i,1:2] = dots[t,i,:]
-            positions[t,i,3] = 0.5 #depth[i]
+            positions[t][i,1:2] = dots[t,i,:]
+            positions[t][i,3] = uniform(0,1)
         end
     end
 
-    masks = get_masks(positions, gm.dot_radius,
+    masks = get_masks(positions,
+                      gm.dot_radius,
                       gm.img_height, gm.img_width,
                       gm.area_height, gm.area_width)
 
@@ -46,7 +43,7 @@ function load_exp0_trial(trial, gm, dataset_path)
 	inertia = data["inertia"]
 	spring = data["spring"]
 	sigma_w = data["sigma_w"]
-    motion = BrownianDynamicsModel(inertia, spring, sigma_w)
+    motion = BrownianDynamicsModel(inertia, spring, sigma_w, sigma_w)
     
-    return init_positions, masks, motion
+    return init_positions, masks, motion, positions
 end

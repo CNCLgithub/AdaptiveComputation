@@ -1,27 +1,44 @@
-export Exp0
+export Exp0TrialAvg
 
-
-@with_kw struct Exp0 <: AbstractExperiment
-    trial::Int = 1
+@with_kw struct Exp0TrialAvg <: AbstractExperiment
+    trial::Int
+    save_path::Union{Nothing,String} = nothing
     dataset_path::String = "datasets/exp_0.h5"
+    exp0_results_attention_path = "exp0_results/attention"
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
-    motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 10
+    k::Int = 120
 end
 
-get_name(::Exp0) = "exp0"
+get_name(::Exp0TrialAvg) = "exp0_trial_avg"
 
-function run_inference(q::Exp0)
+
+"""
+    computes the trial average compute per timestep
+"""
+function load_uniform_attention(q::Exp0TrialAvg)
+    trial_dir = joinpath(q.exp0_results_attention_path, "$(q.trial)")
+    trial_results = load_trial(trial_dir)
+    sweeps = round(Int, mean(trial_results["compute"])/q.k)
+
+    return UniformAttention(sweeps=sweeps,
+                            perturb_function = perturb_state!)
+end
+
+
+function run_inference(q::Exp0TrialAvg)
 
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
     init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
+    attention = load_uniform_attention(q)
+    println(attention)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
+                                :assignments => extract_assignments
                                ))
 
     
@@ -51,9 +68,6 @@ function run_inference(q::Exp0)
                                         args,
                                         observations)
 
-    attention = load(TDEntropyAttentionModel, q.attention;
-                     perturb_function = perturb_state!)
-
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
@@ -61,20 +75,18 @@ function run_inference(q::Exp0)
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = nothing)
+                                     path = q.save_path)
     
-
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
 
-    # getting the images
-    full_imgs = get_full_imgs(masks)
-
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under inference_render
-    #visualize(tracker_positions, full_imgs, gm_params)
+    final_assignments = extracted["weighted"][:assignments][q.k,:,:]
+    final_log_scores = extracted["log_scores"][q.k,:]
+    
+    for i in sortperm(final_log_scores, rev=true)
+        println("particle $i   A $(final_assignments[i,:])    log_score $(final_log_scores[i])")
+    end
 
     return results
 end
-
 

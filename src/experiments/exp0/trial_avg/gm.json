@@ -1,0 +1,18 @@
+{
+    "n_trackers": 4,
+    "distractor_rate": 4.0,
+    "init_pos_spread": 400.0,
+
+    "img_width": 200,
+    "img_height": 200,
+
+    "area_width": 800,
+    "area_height": 800,
+
+    "dot_radius": 20.0,
+    
+    "mask_spread_1": 0.5,
+    "mask_spread_2": 2.5,
+
+    "exp0": true
+}
