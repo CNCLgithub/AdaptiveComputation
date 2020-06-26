@@ -1,4 +1,5 @@
 import PhysicalConstants.CODATA2018: k_B
+using Base.Iterators: take
 
 export PairwiseSensitivity, MapSensitivity
 
@@ -7,7 +8,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :states => t => :dynamics => :brownian => tracker
-    first(regenerate(tr, args, diffs, Gen.select(addr)))
+    take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
 end
 
 @with_kw struct MapSensitivity <: AbstractAttentionModel
@@ -23,25 +24,45 @@ function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
+# function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
+#     seeds = Gen.sample_unweighted_traces(state, att.samples)
+#     latents = map(att.latents, seeds)
+#     seed_obj = map(entropy ∘ att.objective, seeds)
+#     n_latents = size(first(latents), 2)
+#     gradients = zeros(att.samples, n_latents)
+#     for i = 1:att.samples
+#         seed_latents = att.latents(seeds[i])
+#         jittered, weights = zip(map(idx -> att.jitter(seeds[i], idx),
+#                                     1:n_latents)...)
+#         new_latents = map(att.latents, jittered)
+#         # ∘ == 2218: ring operator
+#         jittered_obj = map(entropy ∘ att.objective, jittered)
+#         ẟs = seed_obj[i] .- jittered_obj
+#         ẟs = abs.(ẟs)
+#         ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
+#         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
+#     end
+#     gs = vec(abs.(mean(gradients, dims = 1)))
+# end
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     latents = map(att.latents, seeds)
-    entropies = map(entropy ∘ att.objective, seeds)
+    seed_obj = map(att.objective, seeds)
     n_latents = size(first(latents), 2)
     gradients = zeros(att.samples, n_latents)
     for i = 1:att.samples
-        seed = seeds[i]
-        seed_latents = att.latents(seed)
-        jittered = map(idx -> att.jitter(seed, idx), 1:n_latents)
+        seed_latents = att.latents(seeds[i])
+        jittered, weights = zip(map(idx -> att.jitter(seeds[i], idx),
+                                    1:n_latents)...)
         new_latents = map(att.latents, jittered)
-        ẟs = entropies[i] .- map(entropy ∘ att.objective, jittered)
-        println(latents .- new_latents)
-        println(latents)
-        println(new_latents)
-        ẟh = max.(map(norm, eachrow(latents .- new_latents)), 1E-10)
+        jittered_obj = map(att.objective, jittered)
+        ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j), jittered_obj))
+        ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
+        # println(ẟs)
+        # println(ẟh)
         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
     end
-    gs = vec(mean(abs.(gradients), dims = 1))
+    gs = vec(abs.(mean(gradients, dims = 1)))
 end
 
 function get_sweeps(att::MapSensitivity, stats)
@@ -97,17 +118,22 @@ end
 
 # Objectives
 
+
+function _td(tr::Gen.Trace, t)
+    ret = Gen.get_retval(tr)[2][t]
+    tds = ret.pmbrfs_params.pmbrfs_stats.partitions
+    lls = min.(ret.pmbrfs_params.pmbrfs_stats.ll, 1E-10)
+    Dict(zip(tds, lls))
+end
+
 function target_designation(tr::Gen.Trace; w::Int = 3)
     k = first(Gen.get_args(tr))
-    ret = Gen.get_retval(tr)[2]
-    ll = pmbrfs_stats = ret[end].pmbrfs_params.pmbrfs_stats.ll
-    lls = zeros(min(k, w), length(ll))
-    lls[end, :] = ll
-    for t = max(1, k-w):(size(lls, 1) -1)
-        lls[t, :] = ret[t].pmbrfs_params.pmbrfs_stats.ll
+    current_td = _td(tr, k)
+    previous = []
+    for t = max(1, k-w):(k - 1)
+        push!(previous, _td(tr, t))
     end
-    lls = mean(lls, dims = 1)
-    exp.(lls) .+ 1E-5
+    Base.merge((x,y) -> 0.5*(x+y), current_td, previous...)
 end
 
 
@@ -118,15 +144,46 @@ Computes the entropy of a discrete distribution
 """
 function entropy(ps::AbstractArray{Float64})
     # -k_B * sum(map(p -> p * log(p), ps))
-    -1 * sum(map(p -> p * log(p), ps))
+    -1 * sum(map(p -> p * exp(p), ps))
 end
 
-function kl(p::T, q) where T<:Vector{Tuple}
-    pairs = merge(p, q)
-    for (td_p, ll_p) in p
-        for (td_q, ll_q) in q
-        end
+function entropy(pd::Dict)
+    lls = collect(Float64, values(pd))
+    entropy(lls)
+end
+
+function extend(as, bs, reserve)
+    not_in_p = setdiff(bs, as)
+    es = []
+    for k in not_in_p
+        push!(es, (k, reserve))
     end
+    return Dict(es)
+end
+
+
+function _merge(p::T, q::T) where T<:Dict
+    keys_p, lls_p = zip(p...)
+    # reserve_p =  last(lls_p) - log(1E5) #log(1 - sum(exp.(lls_p))) - log(1E5)
+    reserve_p =  log(1 - sum(exp.(lls_p))) - 1E5
+    keys_q, lls_q = zip(q...)
+    reserve_q = log(1 - sum(exp.(lls_q))) - 1E5
+    # reserve_q = last(lls_q) + log(0.9) # logsumexp(lls_p)
+
+    extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
+    extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
+    (extended_p, extended_q)
+end
+
+function relative_entropy(p::T, q::T) where T<:Dict
+    ps, qs = _merge(p, q)
+    p_den = logsumexp(collect(Float64, values(ps))) + 1
+    q_den = logsumexp(collect(Float64, values(qs))) + 1
+    kl = 0
+    for (k, v) in ps
+        kl += exp(v - p_den) * (v - qs[k] + (q_den - p_den))
+    end
+    kl
 end
 
 function index_pairs(n::Int)
