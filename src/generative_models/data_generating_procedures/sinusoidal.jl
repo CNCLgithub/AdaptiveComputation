@@ -7,8 +7,8 @@ function dgp(k::Int, params::GMMaskParams,
     positions = zeros(k+10, 3, 3)
     # distractor is fixed at origin
     # one target is fixed at +x
-    amp = params.area_width * 0.1
-    positions[:, 2, 1] .= -amp
+    amp = params.dot_radius * 3.0
+    positions[:, 2, 1] .= -amp * 2.0
     positions[:, 1, :] .= amp
     for t = 10:k+10
         positions[t, 1, 2] = amp - sin(period * (t-10) * pi / 180) * 2.0 * amp
