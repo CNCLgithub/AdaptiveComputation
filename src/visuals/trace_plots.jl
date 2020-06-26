@@ -53,7 +53,7 @@ function plot_compute_weights(weights::Matrix{Float64}, path::String)
     plt = plot(data,
                x = :t, y = :weight, color = :tracker,
                Geom.line,
-               Scale.y_continuous(minvalue=0, maxvalue=15),
+               # Scale.y_continuous(minvalue=0, maxvalue=15),
                Theme(background_color = "white"))
     out = joinpath(path, "compute_weights.png")
     plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
