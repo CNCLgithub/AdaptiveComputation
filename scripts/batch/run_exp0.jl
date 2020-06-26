@@ -35,12 +35,13 @@ function main()
         compute_type = args["compute_type"]
     else
         run = 3
-        trial = 89
-        attention = false
-        compute_type = "trial_avg"
+        trial = 124
+        attention = true
+        compute_type = "none"
     end
     
     exp_path = attention ? "attention" : "no_attention_$(compute_type)"
+
     folder = joinpath("exp0_results", exp_path, "$trial")
     mkpath(folder)
 

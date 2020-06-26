@@ -1,6 +1,5 @@
 export Exp0
 
-
 @with_kw struct Exp0 <: AbstractExperiment
     trial::Int = 1
     dataset_path::String = "datasets/exp_0.h5"
@@ -8,7 +7,7 @@ export Exp0
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 20
+    k::Int = 120
 end
 
 get_name(::Exp0) = "exp0"
@@ -18,11 +17,12 @@ function run_inference(q::Exp0)
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
-    init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
+    init_positions, masks, motion, positions = load_exp0_trial(q.trial, gm_params, q.dataset_path)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
-                                :assignments => extract_assignments
+                                :assignments => extract_assignments,
+                                :tracker_masks => extract_tracker_masks
                                ))
 
     
@@ -67,21 +67,32 @@ function run_inference(q::Exp0)
 
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
-
-    final_assignments = extracted["weighted"][:assignments][q.k,:,:]
-    final_log_scores = extracted["log_scores"][q.k,:]
+    tracker_masks = extracted["unweighted"][:tracker_masks]
     
-    for i in sortperm(final_log_scores, rev=true)
-        println("particle $i   A $(final_assignments[i,:])    log_score $(final_log_scores[i])")
+    aux_state = extracted["aux_state"]
+    attempts = Vector{Int}(undef, q.k)
+    attended = Vector{Vector{Float64}}(undef, q.k)
+    for t=1:q.k
+        attempts[t] = aux_state[t].attempts
+        attended[t] = aux_state[t].attended_trackers * attempts[t]/attention.max_sweeps
     end
-    
 
-    # getting the images
-    #full_imgs = get_full_imgs(masks)
+    plot_rejuvenation(attempts)
     
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under inference_render
-    #visualize(tracker_positions, full_imgs, gm_params)
+    # visualizing inference on stimuli
+    render(positions, q, gm_params;
+           pf_xy=tracker_positions,
+           attended=attended,
+           tracker_masks=tracker_masks)
+
+    # for i=1:gm_params.n_trackers
+        # m = tracker_masks[end,1,i]
+        # save("tracker_mask_$i.png", m)
+    # end
+
+    # visualizing inference
+    #full_imgs = get_full_imgs(masks)
+    #visualize(tracker_positions, full_imgs, gm_params, "inference_render")
 
     return results
 end

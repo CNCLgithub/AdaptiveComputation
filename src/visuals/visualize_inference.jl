@@ -1,5 +1,4 @@
-export visualize,
-        get_full_imgs
+export visualize
 
 function visualize(xy, full_imgs, params, folder)
     k, n, _, _ = size(xy)
@@ -25,25 +24,4 @@ function visualize(xy, full_imgs, params, folder)
         filename = "$(lpad(t, 3, "0")).png"
         save(joinpath(folder, filename), img)
     end
-
 end
-
-function get_full_imgs(T, choices, params, folder)
-    full_imgs = []
-    for t=1:T
-        masks = choices[:states => t => :masks]
-
-        for m=1:length(masks)
-            filename = "$(lpad(t, 3, "0"))_$(lpad(m, 3,"0")).png"
-            mkpath(folder)
-            save(joinpath(folder, filename), masks[m]) 
-        end
-
-        img = reduce(|, masks)  # enjoy, mario
-
-        push!(full_imgs, img)
-    end
-
-    return full_imgs
-end
-

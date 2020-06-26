@@ -56,34 +56,18 @@ end
 """
 Plots rejuvenation steps accross time
 """
-function plot_rejuvenation(rejuvenations; t=nothing)
-    mkpath("rejuvenations")
+function plot_rejuvenation(rejuvenations)
+    mkpath("plots")
+    k = length(rejuvenations)
+    x = collect(1:k)
 
-    rej_new = deepcopy(rejuvenations)
-    file = "rejuvenation_steps"
-    if !isnothing(t)
-        rej_new[t+1:end] .= 0
-        """
-        rej_new = rej_new[51:end]
-        rej_new = rej_new[1:120]
-        if t < 51
-            rej_new .= 0
-        end
-        """
-
-        file = "$(lpad(t, 3, "0"))"
-    end
-
-    T = size(rej_new, 1)
-    x = collect(1:T)
-
-    p = plot(x=x, y=rej_new,
+    p = plot(x=x, y=rejuvenations,
              Geom.bar,
              Scale.y_continuous(minvalue=0, maxvalue=20),
              Theme(default_color="black",
                    background_color="white")
              )
-    Gadfly.draw(SVG("rejuvenations/$file.svg", 8Gadfly.inch, 3Gadfly.inch), p)
+    Gadfly.draw(PNG(joinpath("plots","rejuvenations.png"), 8Gadfly.inch, 3Gadfly.inch), p)
 end
 
 """
