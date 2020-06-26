@@ -63,14 +63,17 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
     end
     gs = vec(abs.(mean(gradients, dims = 1)))
-    println(gs)
-    att.sweeps * (1.02).^log.(gs)
+    # println(gs)
+    # (1.5).^log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    sweeps = min(att.sweeps, sum(stats))
-    round(Int, sweeps)
-    # round(Int, attention.sweeps * attention.rejuv_smoothness^logsumexp(stats))
+    # sweeps = min(att.sweeps, sum(stats))
+    # round(Int, sweeps)
+    println(logsumexp(log.(stats)))
+    amp = att.sweeps * (1.05)^logsumexp(log.(stats))
+    println("amp: $(amp)")
+    round(Int, min(amp, att.sweeps))
     # norm(stats) >= att.eps ? att.sweeps : 0
 end
 
@@ -82,22 +85,22 @@ end
 # Objectives
 
 
-function _td(tr::Gen.Trace, t)
+function _td(tr::Gen.Trace, t::Int, scale::Float64)
     ret = Gen.get_retval(tr)[2][t]
     tds = ret.pmbrfs_params.pmbrfs_stats.partitions
-    lls = min.(ret.pmbrfs_params.pmbrfs_stats.ll, 1E-10)
+    lls = ret.pmbrfs_params.pmbrfs_stats.ll ./ scale
     Dict(zip(tds, lls))
 end
 
-function target_designation(tr::Gen.Trace; w::Int = 3,
-                            scale = 10.0)
+function target_designation(tr::Gen.Trace; w::Int = 4,
+                            scale = 75.0)
     k = first(Gen.get_args(tr))
-    current_td = _td(tr, k)
+    current_td = _td(tr, k, scale)
     previous = []
     for t = max(1, k-w):(k - 1)
-        push!(previous, _td(tr, t))
+        push!(previous, _td(tr, t, scale))
     end
-    Base.merge((x,y) -> 0.5*(x+y) / scale, current_td, previous...)
+    Base.merge((x,y) -> 0.5*(x+y), current_td, previous...)
 end
 
 

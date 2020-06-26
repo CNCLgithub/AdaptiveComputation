@@ -43,14 +43,14 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
         rtrace.attempts += 1
 
         # computing new population statistics
-        new_stats = get_stats(attention, pf_state)
+        # new_stats = get_stats(attention, pf_state)
 
-        # early stopping
-        if early_stopping(attention, new_stats, rtrace.stats)
-            break
-        end
+        # # early stopping
+        # if early_stopping(attention, new_stats, rtrace.stats)
+        #     break
+        # end
 
-        rtrace.stats = new_stats
+        # rtrace.stats = new_stats
     end
 
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts

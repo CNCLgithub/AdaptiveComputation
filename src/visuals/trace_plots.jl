@@ -79,10 +79,9 @@ end
 """
 Plots distribution of attention accross time
 """
-function plot_attention(attended,
-                        attention,
-                        tracker_colors=["indigo", "green", "blue", "yellow"],
-                        path="plots")
+default_colors = ["indigo", "green", "blue", "yellow"]
+function plot_attention(attended, max_sweeps::Int, path::String;
+                        tracker_colors=default_colors)
     mkpath(path)
 
     k = length(attended)
@@ -101,7 +100,7 @@ function plot_attention(attended,
 
         p = plot(x=x, y=att_tracker,
                  Geom.bar,
-                 Scale.y_continuous(minvalue=0, maxvalue=attention.max_sweeps),
+                 Scale.y_continuous(minvalue=0, maxvalue=max_sweeps),
                  Theme(default_color=tracker_colors[i],
                        background_color="white")
                  )

@@ -77,7 +77,7 @@ function run_inference(q::Exp0SensTD, path::String)
     attended = Vector{Vector{Float64}}(undef, q.k)
     for t=1:q.k
         attempts[t] = aux_state[t].attempts
-        attended[t] = aux_state[t].attended_trackers * attempts[t]/attention.sweeps
+        attended[t] = aux_state[t].attended_trackers
     end
 
     plot_rejuvenation(attempts, path)
@@ -85,19 +85,11 @@ function run_inference(q::Exp0SensTD, path::String)
     # visualizing inference on stimuli
     render(positions, q, gm_params;
            pf_xy=tracker_positions,
-           attended=attended,
+           attended = attended / attention.sweeps,
            tracker_masks=tracker_masks,
            dir = joinpath(path, "render"))
 
-
-    # for i=1:gm_params.n_trackers
-        # m = tracker_masks[end,1,i]
-        # save("tracker_mask_$i.png", m)
-    # end
-
-    # visualizing inference
-    #full_imgs = get_full_imgs(masks)
-    #visualize(tracker_positions, full_imgs, gm_params, "inference_render")
+    plot_attention(attended, attention.sweeps, path)
 
     return results
 end
