@@ -69,7 +69,7 @@ end
 function _td(tr::Gen.Trace, t::Int, scale::Float64)
     ret = Gen.get_retval(tr)[2][t]
     tds = ret.pmbrfs_params.pmbrfs_stats.partitions
-    lls = ret.pmbrfs_params.pmbrfs_stats.ll ./ scale
+    lls = ret.pmbrfs_params.pmbrfs_stats.ll_partitions ./ scale
     Dict(zip(tds, lls))
 end
 
@@ -82,6 +82,18 @@ function target_designation(tr::Gen.Trace; w::Int = 0,
         push!(previous, _td(tr, t, scale))
     end
     Base.merge((x,y) -> 0.5*(x+y), current_td, previous...)
+end
+
+function _dc(tr::Gen.Trace, t::Int, scale::Float64)
+    ret = Gen.get_retval(tr)[2][t]
+    tds = ret.pmbrfs_params.pmbrfs_stats.assignments
+    lls = ret.pmbrfs_params.pmbrfs_stats.ll_assignments ./ scale
+    Dict(zip(tds, lls))
+end
+
+function data_correspondence(tr::Gen.Trace; scale::Float64 = 100.0)
+    k = first(Gen.get_args(tr))
+    _td(tr, k, scale)
 end
 
 
@@ -147,24 +159,3 @@ function get_dims(latents::Function, trace::Gen.Trace)
     results = latents(trace)
     size(results, 2)
 end
-
-
-# """
-# Returns a weighted vector of approximated
-# elbo derivatives per object
-# """
-# function elbo(s, ss, logs)
-#     weights = logsumexp(logs)
-#     ss .* weights - s
-# end
-
-# function first_order(state::Gen.ParticleFilterState, objective, args, cm)
-#     map_tr = get_map(state)
-#     current_s = (entropy ∘ objective)(map_tr)
-#     prediction, p_ls = Gen.update(map_tr, args, (UnknownChange,), cm)
-#     base_h = (entropy ∘ target_designation)(prediction)
-#     perturbations = map(i -> perturb_state(prediction, i), 1:N)
-#     trs, lgs = zip(perturbations...)
-#     entropies = map(entropy ∘ target_designation, trs)
-#     elbo(base_h, entropies, lgs)
-# end
