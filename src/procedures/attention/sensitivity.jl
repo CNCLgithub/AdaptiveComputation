@@ -8,7 +8,8 @@ function jitter(tr::Gen.Trace, tracker::Int)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :states => t => :dynamics => :brownian => tracker
-    take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
+    (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
+    (new_tr, min(ll, 0))
 end
 
 @with_kw struct MapSensitivity <: AbstractAttentionModel
@@ -28,53 +29,56 @@ end
 #     seeds = Gen.sample_unweighted_traces(state, att.samples)
 #     latents = map(att.latents, seeds)
 #     seed_obj = map(entropy ∘ att.objective, seeds)
-#     n_latents = size(first(latents), 2)
+#     n_latents = size(first(latents), 1)
 #     gradients = zeros(att.samples, n_latents)
 #     for i = 1:att.samples
 #         seed_latents = att.latents(seeds[i])
-#         jittered, weights = zip(map(idx -> att.jitter(seeds[i], idx),
+#         jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
 #                                     1:n_latents)...)
 #         new_latents = map(att.latents, jittered)
 #         # ∘ == 2218: ring operator
 #         jittered_obj = map(entropy ∘ att.objective, jittered)
 #         ẟs = seed_obj[i] .- jittered_obj
 #         ẟs = abs.(ẟs)
-#         ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
-#         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
+        # gradients[i, :] = log.(ẟs) .+ ẟh
 #     end
 #     gs = vec(abs.(mean(gradients, dims = 1)))
+#     println(softmax(gs))
+#     gs
 # end
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     latents = map(att.latents, seeds)
     seed_obj = map(att.objective, seeds)
     n_latents = size(first(latents), 1)
-    gradients = zeros(att.samples, n_latents)
+    kls = zeros(att.samples, n_latents)
+    lls = zeros(att.samples, n_latents)
     for i = 1:att.samples
         seed_latents = att.latents(seeds[i])
-        jittered, weights = zip(map(idx -> att.jitter(seeds[i], idx),
+        jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
                                     1:n_latents)...)
-        new_latents = map(att.latents, jittered)
+        # lls[i, :] = collect(ẟh)
+        # ẟh = ẟh .- logsumexp(collect(ẟh))
         jittered_obj = map(att.objective, jittered)
-        ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j), jittered_obj))
-        ẟh = map(norm, eachrow(latents[i,:] .- new_latents))
-        # println(ẟs)
-        # println(ẟh)
-        gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
+        ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j),
+                      jittered_obj))
+        kls[i, :] = collect(ẟs)
     end
-    gs = vec(abs.(mean(gradients, dims = 1)))
-    # println(gs)
-    # (1.5).^log.(gs)
+    gs = Vector{Float64}(undef, n_latents)
+    for i = 1:n_latents
+        gs[i] = sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i])))
+    end
+    println("kl per tracker: $(gs)")
+    log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
     # sweeps = min(att.sweeps, sum(stats))
     # round(Int, sweeps)
-    println(logsumexp(log.(stats)))
-    amp = att.sweeps * (1.05)^logsumexp(log.(stats))
+    println(logsumexp(stats))
+    amp = att.sweeps * (1.04)^logsumexp(stats)
     println("amp: $(amp)")
     round(Int, min(amp, att.sweeps))
-    # norm(stats) >= att.eps ? att.sweeps : 0
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -92,8 +96,8 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
     Dict(zip(tds, lls))
 end
 
-function target_designation(tr::Gen.Trace; w::Int = 4,
-                            scale = 75.0)
+function target_designation(tr::Gen.Trace; w::Int = 0,
+                            scale = 100.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []
@@ -132,9 +136,9 @@ end
 function _merge(p::T, q::T) where T<:Dict
     keys_p, lls_p = zip(p...)
     reserve_p =  last(lls_p) * 1.1 #log(1 - sum(exp.(lls_p))) - log(1E5)
-    # reserve_p =  log(1 - sum(exp.(lls_p))) - 1E5
+    # reserve_p =  log(1 - sum(exp.(lls_p)))
     keys_q, lls_q = zip(q...)
-    # reserve_q = log(1 - sum(exp.(lls_q))) - 1E5
+    # reserve_q = log(1 - sum(exp.(lls_q)))
     reserve_q = last(lls_q) * 1.1 # logsumexp(lls_p)
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
@@ -148,6 +152,7 @@ function relative_entropy(p::T, q::T) where T<:Dict
     q_den = logsumexp(collect(Float64, values(qs))) + 1
     kl = 0
     for (k, v) in ps
+        # kl += exp(v) * (v - qs[k])
         kl += exp(v - p_den) * ((v - p_den) - (qs[k] - q_den))
     end
     kl

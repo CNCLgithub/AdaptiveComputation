@@ -28,7 +28,8 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     rtrace.stats = get_stats(attention, pf_state)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("td entropy: $(rtrace.stats)")
+    println("objective: $(rtrace.stats)")
+    println("weights: $(softmax(rtrace.stats))")
     println("sweeps: $sweeps")
 
     fails = 0
