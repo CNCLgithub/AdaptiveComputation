@@ -62,7 +62,6 @@ function main()
             error("unrecognized compute type")
         end
     end
-    mkpath(folder)
 
     mkpath(folder)
     run_inference(exp)
