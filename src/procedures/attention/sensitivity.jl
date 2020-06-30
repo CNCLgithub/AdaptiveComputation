@@ -25,27 +25,6 @@ function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
-# function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
-#     seeds = Gen.sample_unweighted_traces(state, att.samples)
-#     latents = map(att.latents, seeds)
-#     seed_obj = map(entropy ∘ att.objective, seeds)
-#     n_latents = size(first(latents), 1)
-#     gradients = zeros(att.samples, n_latents)
-#     for i = 1:att.samples
-#         seed_latents = att.latents(seeds[i])
-#         jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
-#                                     1:n_latents)...)
-#         new_latents = map(att.latents, jittered)
-#         # ∘ == 2218: ring operator
-#         jittered_obj = map(entropy ∘ att.objective, jittered)
-#         ẟs = seed_obj[i] .- jittered_obj
-#         ẟs = abs.(ẟs)
-        # gradients[i, :] = log.(ẟs) .+ ẟh
-#     end
-#     gs = vec(abs.(mean(gradients, dims = 1)))
-#     println(softmax(gs))
-#     gs
-# end
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     latents = map(att.latents, seeds)
@@ -54,11 +33,9 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     kls = zeros(att.samples, n_latents)
     lls = zeros(att.samples, n_latents)
     for i = 1:att.samples
-        seed_latents = att.latents(seeds[i])
         jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
                                     1:n_latents)...)
-        # lls[i, :] = collect(ẟh)
-        # ẟh = ẟh .- logsumexp(collect(ẟh))
+        lls[i, :] = collect(ẟh)
         jittered_obj = map(att.objective, jittered)
         ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j),
                       jittered_obj))
