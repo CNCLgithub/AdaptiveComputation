@@ -1,7 +1,7 @@
 import PhysicalConstants.CODATA2018: k_B
 using Base.Iterators: take
 
-export PairwiseSensitivity, MapSensitivity
+export MapSensitivity
 
 function jitter(tr::Gen.Trace, tracker::Int)
     args = Gen.get_args(tr)
@@ -48,7 +48,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     latents = map(att.latents, seeds)
     seed_obj = map(att.objective, seeds)
-    n_latents = size(first(latents), 2)
+    n_latents = size(first(latents), 1)
     gradients = zeros(att.samples, n_latents)
     for i = 1:att.samples
         seed_latents = att.latents(seeds[i])
@@ -63,55 +63,18 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         gradients[i, :] = exp.(log.(ẟs) .- log.(ẟh))
     end
     gs = vec(abs.(mean(gradients, dims = 1)))
+    println(gs)
+    att.sweeps * (1.02).^log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    norm(stats) >= att.eps ? att.sweeps : 0
+    sweeps = min(att.sweeps, sum(stats))
+    round(Int, sweeps)
+    # round(Int, attention.sweeps * attention.rejuv_smoothness^logsumexp(stats))
+    # norm(stats) >= att.eps ? att.sweeps : 0
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
-    # norm(new_stats) <= att.eps
-    false
-end
-
-@with_kw struct PairwiseSensitivity <: AbstractAttentionModel
-    objective::Function = target_designation
-    latents::Function = t -> extract_tracker_positions(t)[1, 1, :, :]
-    sweeps::Int = 5
-    eps::Float64 = 0.01
-end
-
-function load(::Type{PairwiseSensitivity}, path; kwargs...)
-    PairwiseSensitivity(;read_json(path)..., kwargs...)
-end
-
-
-function get_stats(att::PairwiseSensitivity, state::Gen.ParticleFilterState)
-    num_particles = length(state.traces)
-    # using weighted traces
-    indices = index_pairs(num_particles)
-    n_pairs = size(indices, 1)
-    n_latents = get_dims(att.latents, state.traces[1])
-    gradients = zeros(n_pairs, n_latents)
-    weights = zeros(n_pairs)
-    for i = 1:n_pairs
-        idxs = indices[i, :]
-        weights[i] = sum(state.log_weights[idxs])
-        traces = state.traces[idxs]
-        entropies = map(entropy ∘ att.objective, traces)
-        a_l, b_l = map(att.latents, traces)
-        ẟs = diff(entropies)
-        ẟh = max.(map(norm, eachrow(a_l - b_l)), 1E-10)
-        gradients[i, :] = ẟs./ẟh
-    end
-    gs = vec(sum(abs.(gradients) .* weights ./ logsumexp(weights), dims = 1))
-end
-
-function get_sweeps(att::PairwiseSensitivity, stats)
-    norm(stats) >= att.eps ? att.sweeps : 0
-end
-
-function early_stopping(att::PairwiseSensitivity, new_stats, prev_stats)
     # norm(new_stats) <= att.eps
     false
 end
@@ -126,14 +89,15 @@ function _td(tr::Gen.Trace, t)
     Dict(zip(tds, lls))
 end
 
-function target_designation(tr::Gen.Trace; w::Int = 3)
+function target_designation(tr::Gen.Trace; w::Int = 3,
+                            scale = 10.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k)
     previous = []
     for t = max(1, k-w):(k - 1)
         push!(previous, _td(tr, t))
     end
-    Base.merge((x,y) -> 0.5*(x+y), current_td, previous...)
+    Base.merge((x,y) -> 0.5*(x+y) / scale, current_td, previous...)
 end
 
 
@@ -164,11 +128,11 @@ end
 
 function _merge(p::T, q::T) where T<:Dict
     keys_p, lls_p = zip(p...)
-    # reserve_p =  last(lls_p) - log(1E5) #log(1 - sum(exp.(lls_p))) - log(1E5)
-    reserve_p =  log(1 - sum(exp.(lls_p))) - 1E5
+    reserve_p =  last(lls_p) * 1.1 #log(1 - sum(exp.(lls_p))) - log(1E5)
+    # reserve_p =  log(1 - sum(exp.(lls_p))) - 1E5
     keys_q, lls_q = zip(q...)
-    reserve_q = log(1 - sum(exp.(lls_q))) - 1E5
-    # reserve_q = last(lls_q) + log(0.9) # logsumexp(lls_p)
+    # reserve_q = log(1 - sum(exp.(lls_q))) - 1E5
+    reserve_q = last(lls_q) * 1.1 # logsumexp(lls_p)
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
@@ -181,7 +145,7 @@ function relative_entropy(p::T, q::T) where T<:Dict
     q_den = logsumexp(collect(Float64, values(qs))) + 1
     kl = 0
     for (k, v) in ps
-        kl += exp(v - p_den) * (v - qs[k] + (q_den - p_den))
+        kl += exp(v - p_den) * ((v - p_den) - (qs[k] - q_den))
     end
     kl
 end
