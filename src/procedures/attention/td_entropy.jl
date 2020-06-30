@@ -27,17 +27,17 @@ function get_stats(attention::TDEntropyAttentionModel, state::Gen.ParticleFilter
         # getting tracker designation, assignment and the weights for TD
         # from saved state in pmbrfs_params (Gen hack)
         pmbrfs_stats = Gen.get_retval(samples[i])[2][t].pmbrfs_params.pmbrfs_stats
-        tds, As, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.assignments, pmbrfs_stats.ll
+        tds, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.ll_partitions
         
         # saving main TD and assignment hypothesis
-        main_td = tds[1]
-        main_A = As[1]
+        main_td = tds[1][1]
+        main_A = tds[1][2]
 
         # comparing them to the other hypotheses
         for j=2:length(tds)
 
             # these are in the main hypothesis, but not in the alternative
-            differing_obs = setdiff(main_td, tds[j])
+            differing_obs = setdiff(main_td, tds[j][1])
            
             # finding the trackers that are involved
             # i.e. trackers having differing observations different hypotheses
@@ -56,7 +56,6 @@ function get_stats(attention::TDEntropyAttentionModel, state::Gen.ParticleFilter
                 td_entropy[tracker] = logsumexp(td_entropy[tracker], td_weights[j])
             end
         end
-
     end
     
     # dividing td_entropy by num_particles to normalize

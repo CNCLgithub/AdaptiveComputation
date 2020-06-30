@@ -6,15 +6,17 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "run"
-        help = "run"
         arg_type = Int
         required = true
+
         "attention"
         arg_type = Bool
         required = true
+
         "trial"
         arg_type = Int
         required = true
+
         "compute_type"
         arg_type = String
         required = true
@@ -36,14 +38,13 @@ function main()
     else
         run = 3
         trial = 124
-        attention = true
-        compute_type = "none"
+        attention = false
+        compute_type = "trial_avg"
     end
     
     exp_path = attention ? "attention" : "no_attention_$(compute_type)"
 
     folder = joinpath("exp0_results", exp_path, "$trial")
-    mkpath(folder)
 
     path = joinpath(folder, "$run.jld2")
     if ispath(path)
@@ -62,6 +63,7 @@ function main()
         end
     end
 
+    mkpath(folder)
     run_inference(exp)
 end
 

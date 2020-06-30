@@ -197,7 +197,7 @@ end
     ppp_params, mbrfs_params = get_masks_params(new_trackers, params)
 
     # initializing the saved state for the target designation
-    pmbrfs_stats = PMBRFSStats([],[],[])
+    pmbrfs_stats = PMBRFSStats()
     pmbrfs_params = PMBRFSParams(ppp_params, mbrfs_params, pmbrfs_stats)
 
     @trace(pmbrfs(pmbrfs_params), :masks)
