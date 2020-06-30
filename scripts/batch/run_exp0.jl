@@ -6,15 +6,17 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "run"
-        help = "run"
         arg_type = Int
         required = true
+
         "attention"
         arg_type = Bool
         required = true
+
         "trial"
         arg_type = Int
         required = true
+
         "compute_type"
         arg_type = String
         required = true
@@ -62,6 +64,7 @@ function main()
     end
     mkpath(folder)
 
+    mkpath(folder)
     run_inference(exp)
 end
 
