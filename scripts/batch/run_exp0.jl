@@ -26,7 +26,7 @@ end
 
 function main()
 
-    test = true
+    test = false
     if !test
         args = parse_commandline()
         run = args["run"]
@@ -36,14 +36,13 @@ function main()
     else
         run = 3
         trial = 124
-        attention = true
-        compute_type = "none"
+        attention = false
+        compute_type = "trial_avg"
     end
     
     exp_path = attention ? "attention" : "no_attention_$(compute_type)"
 
     folder = joinpath("exp0_results", exp_path, "$trial")
-    mkpath(folder)
 
     path = joinpath(folder, "$run.jld2")
     if ispath(path)
@@ -61,6 +60,7 @@ function main()
             error("unrecognized compute type")
         end
     end
+    mkpath(folder)
 
     run_inference(exp)
 end

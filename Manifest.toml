@@ -297,9 +297,9 @@ version = "0.4.0"
 
 [[Expat_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "def36fdc72dc7a9953673cf5492588ef3d79139c"
+git-tree-sha1 = "fb53564d23aeaa2936ff26adbe17255296ef487c"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
-version = "2.2.7+3"
+version = "2.2.7+2"
 
 [[FFTViews]]
 deps = ["CustomUnitRanges", "FFTW"]
@@ -434,9 +434,9 @@ version = "0.1.0"
 
 [[Gettext_jll]]
 deps = ["Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
-git-tree-sha1 = "731622006369631e1d0c180a61d2dd5fe9e4dfd4"
+git-tree-sha1 = "1147180191fb5dcccd39bab776d50dc61c32fcbb"
 uuid = "78b55507-aeef-58d4-861c-77aaff3498b1"
-version = "0.20.1+4"
+version = "0.20.1+3"
 
 [[Glib_jll]]
 deps = ["Gettext_jll", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE_jll", "Pkg", "Zlib_jll"]
@@ -685,7 +685,6 @@ uuid = "1d6d02ad-be62-4b6b-8a6d-2f90e265016e"
 version = "0.1.2"
 
 [[LibGit2]]
-deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
@@ -723,9 +722,9 @@ version = "1.36.0+1"
 
 [[Libiconv_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "c9d4035d7481bcdff2babf5a55525a818ef8ed8f"
+git-tree-sha1 = "a06937d9aa48855f52484c9a77a2670158fa90e2"
 uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
-version = "1.16.0+5"
+version = "1.16.0+4"
 
 [[Libmount_jll]]
 deps = ["Libdl", "Pkg"]
@@ -941,7 +940,7 @@ uuid = "30392449-352a-5448-841d-b1acce4e97dc"
 version = "0.38.4+2"
 
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PooledArrays]]
@@ -1347,9 +1346,9 @@ version = "1.4.0+1"
 
 [[Zlib_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "622d8b6dc0c7e8029f17127703de9819134d1b71"
+git-tree-sha1 = "4838361eb3ba796a57457bdc183e1a128639d0ec"
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.11+14"
+version = "1.2.11+12"
 
 [[Zstd_jll]]
 deps = ["Libdl", "Pkg"]

@@ -12,7 +12,7 @@
     "dot_radius": 20.0,
     
     "mask_spread_1": 0.5,
-    "mask_spread_2": 2.5,
+    "mask_spread_2": 5.0,
 
     "exp0": true
 }

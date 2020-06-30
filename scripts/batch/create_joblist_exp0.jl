@@ -5,7 +5,7 @@ script = "scripts/batch/run_exp0.jl"
 trials = [x for x=1:128]
 num_runs = 20
 
-attention = true
+attention = false
 
 if attention
 	compute_types = ["none"]

@@ -1,6 +1,6 @@
-export Exp0Attention
+export Exp0Base
 
-@with_kw struct Exp0Attention <: AbstractExperiment
+@with_kw struct Exp0Base <: AbstractExperiment
     trial::Int
     save_path::Union{Nothing,String} = nothing
     dataset_path::String = "datasets/exp_0.h5"
@@ -10,9 +10,9 @@ export Exp0Attention
     k::Int = 120
 end
 
-get_name(::Exp0Attention) = "exp0_attention"
+get_name(::Exp0Base) = "exp0_attention"
 
-function run_inference(q::Exp0Attention)
+function run_inference(q::Exp0Base)
 
     gm_params = load(GMMaskParams, q.gm)
     
@@ -50,9 +50,10 @@ function run_inference(q::Exp0Attention)
                                         constraints,
                                         args,
                                         observations)
-
-    attention = load(TDEntropyAttentionModel, q.attention;
-                     perturb_function = perturb_state!)
+    
+    # base model without attention so 0 sweeps
+    attention = UniformAttention(sweeps=0,
+                                 perturb_function = perturb_state!)
 
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
