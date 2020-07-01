@@ -1,6 +1,6 @@
-export Exp0SensTD
+export Exp0SensDC
 
-@with_kw struct Exp0SensTD <: AbstractExperiment
+@with_kw struct Exp0SensDC <: AbstractExperiment
     trial::Int = 1
     dataset_path::String = "datasets/exp_0.h5"
     proc::String = "$(@__DIR__)/proc.json"
@@ -10,12 +10,10 @@ export Exp0SensTD
     k::Int = 120
 end
 
-get_name(::Exp0SensTD) = "exp0_senstd"
+get_name(::Exp0SensDC) = "exp0_sensdc"
 
-function run_inference(q::Exp0SensTD, path::String;
-                       render::Bool = false)
+function run_inference(q::Exp0SensDC, path::String)
 
-    mkpath(path)
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
@@ -54,7 +52,8 @@ function run_inference(q::Exp0SensTD, path::String;
                                         args,
                                         observations)
 
-    attention = load(MapSensitivity, q.attention)
+    attention = load(MapSensitivity, q.attention,
+                     objective = data_correspondence)
 
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
@@ -63,7 +62,7 @@ function run_inference(q::Exp0SensTD, path::String;
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = joinpath(path, "trace.jld"))
+                                     path = nothing)
     
 
     extracted = extract_chain(results)
@@ -72,6 +71,7 @@ function run_inference(q::Exp0SensTD, path::String;
     aux_state = extracted["aux_state"]
     attention_weights = [aux_state[t].stats for t = 1:q.k]
     attention_weights = collect(hcat(attention_weights...)')
+    mkpath(path)
     plot_compute_weights(attention_weights, path)
     
     attempts = Vector{Int}(undef, q.k)
@@ -82,15 +82,13 @@ function run_inference(q::Exp0SensTD, path::String;
     end
 
     plot_rejuvenation(attempts, path)
-
-    if render
-        # visualizing inference on stimuli
-        render(positions, q, gm_params;
-            pf_xy=tracker_positions,
-            attended = attended / attention.sweeps,
-            tracker_masks=tracker_masks,
-            dir = joinpath(path, "render"))
-    end
+    
+    # visualizing inference on stimuli
+    render(positions, q, gm_params;
+           pf_xy=tracker_positions,
+           attended = attended / attention.sweeps,
+           tracker_masks=tracker_masks,
+           dir = joinpath(path, "render"))
 
     plot_attention(attended, attention.sweeps, path)
 

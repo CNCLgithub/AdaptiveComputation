@@ -9,7 +9,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :states => t => :dynamics => :brownian => tracker
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
-    (new_tr, min(ll, 0))
+    # (new_tr, min(ll, 0))
 end
 
 @with_kw struct MapSensitivity <: AbstractAttentionModel
@@ -74,7 +74,7 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale = 100.0)
+                            scale::Float64 = 100.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []
@@ -91,9 +91,9 @@ function _dc(tr::Gen.Trace, t::Int, scale::Float64)
     Dict(zip(tds, lls))
 end
 
-function data_correspondence(tr::Gen.Trace; scale::Float64 = 100.0)
+function data_correspondence(tr::Gen.Trace; scale::Float64 = 10.0)
     k = first(Gen.get_args(tr))
-    _td(tr, k, scale)
+    d = _td(tr, k, scale)
 end
 
 
@@ -144,6 +144,7 @@ function relative_entropy(p::T, q::T) where T<:Dict
         # kl += exp(v) * (v - qs[k])
         kl += exp(v - p_den) * ((v - p_den) - (qs[k] - q_den))
     end
+    # @assert kl >=  0
     kl
 end
 
