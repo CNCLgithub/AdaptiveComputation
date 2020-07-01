@@ -22,16 +22,20 @@ def main():
     )
     parser.add_argument('exp_key', type = str, choices = default_keys,
                         help = 'Experiment key')
+    parser.add_argument('--trials', type = int, default = 128,
+                        help = 'number of trials')
+    parser.add_argument('--chains', type = int, default = 20,
+                        help = 'number of chains')
     args = parser.parse_args()
 
     script = experiments[args.exp_key]
 
-    n = 128
+    n = args.trials
     duration = 120 # in minutes
 
     interpreter = '#!/bin/bash'
     tasks = [(t,) for t in range(n)]
-    kargs= []
+    kargs= ['--chains {}'.format(args.chains)]
     extras = []
     resources = {
         'cpus-per-task' : '1',

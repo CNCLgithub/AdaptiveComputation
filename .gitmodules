@@ -7,3 +7,6 @@
 [submodule "deps/Gen_Compose"]
 	path = deps/Gen_Compose
 	url = https://github.com/CNCLgithub/Gen_Compose
+[submodule "deps/slurm"]
+	path = deps/slurm
+	url = git@github.com:belledon/slurm.git
