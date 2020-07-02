@@ -27,10 +27,10 @@ function main()
     args = parse_commandline()
     exp = Exp0SensTD(;trial = args["trial"])
     path = "/experiments/$(get_name(exp))/$(exp.trial)"
-    isdir(path) || mkdir(path)
+    isdir(path) || mkpath(path)
     for c = 1:args["chains"]
         out = joinpath(path, "$c")
-        if isdir(out) && !args["restart"]
+        if isfile(joinpath(out, "trace.jld")) && args["restart"]
             continue
         end
         run_inference(exp, out)

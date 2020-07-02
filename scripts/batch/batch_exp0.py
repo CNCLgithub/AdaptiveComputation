@@ -9,7 +9,7 @@ from slurmpy import sbatch
 base_func = 'bash {0!s}/run.sh julia {1!s}'
 
 experiments = {
-    'exp0_sens_td': '/project/scripts/experiments/exp0_sens_td.jl',
+    'exp0_sens_td': 'scripts/inference/exp0_sens_td.jl',
     # 'exp0_sens_dc': '',
     # 'exp0_entropy_td': ''
 }
@@ -34,7 +34,7 @@ def main():
     duration = 120 # in minutes
 
     interpreter = '#!/bin/bash'
-    tasks = [(t,) for t in range(n)]
+    tasks = [(t,) for t in range(1, n+1)]
     kargs= ['--chains {}'.format(args.chains)]
     extras = []
     resources = {
