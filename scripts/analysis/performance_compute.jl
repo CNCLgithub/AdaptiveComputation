@@ -7,7 +7,7 @@ using Statistics
 using DataFrames
 using CSV
 
-#using Bootstrap
+using Bootstrap
 
 num_trials = 128
 results_dir = "exp0_results"
@@ -15,17 +15,17 @@ results_dir = "exp0_results"
 
 function performance_compute(experiments)
     for experiment in experiments
-        performance, compute, pred_target = load_results(joinpath(results_dir, experiment))
-        
-        perf_trial = mean(performance, dims=2)[:,1]
-        comp_trial = mean(compute, dims=2)[:,1]
-        pred_target_trial = mean(pred_target, dims=2)[:,1,:]
+        results = load_results(joinpath(results_dir, experiment))
+
+        perf_trial = mean(results["performance"], dims=2)[:,1]
+        comp_trial = mean(results["compute"], dims=2)[:,1]
+        pred_target_trial = mean(results["pred_target"], dims=2)[:,1,:]
 
         pred_target_packaged = []
         for i=1:size(pred_target_trial, 1)
             push!(pred_target_packaged, pred_target_trial[i,:])
         end
-
+        
         trials = collect(1:length(perf_trial))
 
         df = DataFrame(performance=perf_trial, compute=comp_trial,
@@ -35,11 +35,11 @@ function performance_compute(experiments)
 
         mkpath("results")
         CSV.write("results/performance_compute_$experiment.csv", df)
-        println(df)
+        #println(df)
+        println("$experiment performance: $(mean(perf_trial))")
     end
 end
 
-performance_compute(["attention"])
 
 
 function confidence_intervals(data; samples=false)
@@ -54,49 +54,44 @@ function confidence_intervals(data; samples=false)
 end
 
 
-function plot_performance()
+function plot_performance(models, path="plots")
 	num_targets = 4
 	num_observations = 8
 	num_trials = 128
-	model_names = deepcopy(models)
 
 	perf_plot = []
 	perf_plot_min = []
 	perf_plot_max = []
+    captions = []
 
-	for i=1:length(models)
-		model = models[i]
+	for model in models
 		println(model)
-		_, A, _, perf, comp = load_results_trials("$results_dir/$model")
+        results = load_results(joinpath(results_dir, model))
 		
-		models[i] *= "\n compute $(mean(comp))\n perf $(mean(perf)/4)"
-		compute = mean(comp; dims=2)
-		println("maximum compute $(maximum(compute))")
-		perf /= num_targets
-		
-		perf = mean(perf, dims=2)
+        compute = mean(results["compute"]; dims=2)[:,1]
+        perf = mean(results["performance"], dims=2)[:,1]
+
 		perf_mean, perf_min, perf_max = confidence_intervals(perf)
 		push!(perf_plot_min, perf_min)
 		push!(perf_plot_max, perf_max)
 		push!(perf_plot, perf_mean)
+        push!(captions, model * "\n compute $(mean(compute))\n perf $(mean(perf))")
 	end
 
-	bars = Gadfly.layer(x=models, y=perf_plot,
-						color=model_names,
+	bars = Gadfly.layer(x=captions, y=perf_plot,
+						color=models,
 						Geom.bar)
-	errorbars = Gadfly.layer(x=models,
+	errorbars = Gadfly.layer(x=captions,
 							 y=perf_plot,
 							ymin=perf_plot_min,
 							ymax=perf_plot_max,
 							Geom.errorbar,
 							Theme(default_color="black"))
 
-	df = DataFrame(models=model_names, y=perf_plot, ymin=perf_plot_min, ymax=perf_plot_max)
-	CSV.write("models_performance.csv", df)
+	df = DataFrame(models=models, y=perf_plot, ymin=perf_plot_min, ymax=perf_plot_max)
+	CSV.write("results/models_performance.csv", df)
 
-	performance_plots = "plots/performance_plots"
-	mkpath(performance_plots)
-	path = "$performance_plots/performance.svg"
+	mkpath(path)
 
 	p = Gadfly.plot(errorbars, bars,
 					Scale.y_continuous(minvalue=0.75, maxvalue=0.9),
@@ -104,7 +99,7 @@ function plot_performance()
 					Guide.ylabel("performance"),
 					Theme(background_color="white"))
 
-	Gadfly.draw(SVG(path, 10Gadfly.inch, 6Gadfly.inch), p)
+    Gadfly.draw(PNG(joinpath(path, "performance.png"), 10Gadfly.inch, 6Gadfly.inch), p)
 end
 
 function significance_analysis(first, second)
@@ -142,3 +137,7 @@ end
 #plot_performance()
 #accuracy_compute()
 #plot_performance_between_models("rejuv", "no_rejuv_trial")
+    
+models = ["attention", "trial_avg", "base"]
+plot_performance(models)
+#performance_compute(models)

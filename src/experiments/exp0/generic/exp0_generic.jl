@@ -76,14 +76,8 @@ function run_inference(q::Exp0)
         attempts[t] = aux_state[t].attempts
         attended[t] = aux_state[t].attended_trackers
     end
-
-    println("compute: ", sum(attempts))
     
-    println(tracker_positions[:,1,1,3])
-
-    plot_rejuvenation(attempts)
     plot_attention(attended, attention)
-
     
     # visualizing inference on stimuli
     render(positions, q, gm_params;

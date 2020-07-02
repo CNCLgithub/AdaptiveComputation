@@ -17,7 +17,7 @@ function run_inference(q::ExampleExperiment, path::String)
     motion = load(BrownianDynamicsModel, q.motion)
     
     # generating initial positions and masks (observations)
-    init_positions, masks = dgp(q.k, gm_params, motion)
+    init_positions, init_vels, masks, positions = dgp(q.k, gm_params, motion)
 
     # testing less inertia in dynamics for inference
     #motion = @set motion.inertia = 0.99
@@ -77,6 +77,7 @@ function run_inference(q::ExampleExperiment, path::String)
     # this is visualizing what the observations look like (and inferred state too)
     # you can find images under inference_render
     visualize(tracker_positions, full_imgs, gm_params)
+    
 
     return results
 end

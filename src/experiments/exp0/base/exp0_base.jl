@@ -17,11 +17,12 @@ function run_inference(q::Exp0Base)
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
-    init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
+    init_positions, masks, motion, positions = load_exp0_trial(q.trial, gm_params, q.dataset_path)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
-                                :assignments => extract_assignments
+                                :assignments => extract_assignments,
+                                :tracker_masks => extract_tracker_masks
                                ))
 
     
@@ -40,6 +41,7 @@ function run_inference(q::Exp0Base)
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
+        #cm[:states => t => :masks] = masks[t]
         cm[:states => t => :masks] = masks[t]
         observations[t] = cm
     end
@@ -63,6 +65,15 @@ function run_inference(q::Exp0Base)
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
                                      path = q.save_path)
+
+    extracted = extract_chain(results)
+    tracker_positions = extracted["unweighted"][:tracker_positions]
+    tracker_masks = extracted["unweighted"][:tracker_masks]
+    
+    # visualizing inference on stimuli
+    render(positions, gm_params;
+           pf_xy=tracker_positions[:,:,:,1:2],
+           tracker_masks=tracker_masks)
 
     return results
 end

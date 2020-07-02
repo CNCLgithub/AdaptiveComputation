@@ -2,9 +2,9 @@ export render
 
 using Luxor
 
-function _init_drawing(frame, dir, gm;
+function _init_drawing(frame, dir, gm, prefix;
                        background_color="ghostwhite")
-    fname = "$(lpad(frame, 3, "0")).png"
+    fname = prefix * "$(lpad(frame, 3, "0")).png"
     Drawing(gm.area_width, gm.area_height,
             joinpath(dir, fname))
     origin()
@@ -123,11 +123,11 @@ end
     renders detailed information about inference on top of stimuli
 """
 function render(dot_positions,
-                q,
                 gm;
                 stimuli=false,
                 pf_xy=nothing,
                 dir="render",
+                prefix="",
                 freeze_time=0,
                 highlighted=nothing,
                 attended=nothing,
@@ -135,12 +135,17 @@ function render(dot_positions,
 
     println("rendering inference info on stimuli...")
     mkpath(dir)
+    
+    # getting number of timesteps
+    k = size(dot_positions, 1)
 
     # stopped at beginning
     for t=1:freeze_time
-        _init_drawing(t, dir, gm)
+        _init_drawing(t, dir, gm, prefix)
         
-        _render_dots(dot_positions[1], gm; highlighted=collect(1:gm.n_trackers))
+        _render_dots(dot_positions[1], gm;
+                     highlighted=collect(1:gm.n_trackers),
+                     show_label=!stimuli)
     
         if !isnothing(pf_xy)
             _render_pf(pf_xy[1,:,:,:], gm, tracker_masks=tracker_masks[1,:,:])
@@ -151,15 +156,21 @@ function render(dot_positions,
     end
     
     # tracking while dots are moving
-    for t=1:q.k
-        println("timestep: $t")
-        _init_drawing(t+freeze_time, dir, gm)
-        _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
+    for t=1:k
+        print("render timestep: $t \r")
+        _init_drawing(t+freeze_time, dir, gm, prefix)
 
-        _render_dots(dot_positions[t], gm)
+        if !stimuli
+            _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
+        end
+
+        _render_dots(dot_positions[t], gm, show_label=!stimuli)
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[t,:,:,:], gm; attended=attended[t], tracker_masks=tracker_masks[t,:,:])
+            attended_t = isnothing(attended) ? nothing : attended[t]
+            _render_pf(pf_xy[t,:,:,:], gm;
+                       attended=attended_t,
+                       tracker_masks=tracker_masks[t,:,:])
         end
 
         finish()
@@ -167,12 +178,16 @@ function render(dot_positions,
     
     # final freeze time showing the answer
     for t=1:freeze_time
-        _init_drawing(t+q.k+freeze_time, dir, gm)
+        _init_drawing(t+k+freeze_time, dir, gm, prefix)
 
-        _render_dots(dot_positions[q.k], gm; highlighted=collect(1:gm.n_trackers))
+        _render_dots(dot_positions[k], gm;
+                     highlighted=collect(1:gm.n_trackers),
+                     show_label=!stimuli)
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[q.k,:,:,:], gm; attended=attended[q.k], tracker_masks=tracker_masks[q.k,:,:])
+            _render_pf(pf_xy[k,:,:,:], gm;
+                       attended=attended[k],
+                       tracker_masks=tracker_masks[k,:,:])
         end
 
         finish()
