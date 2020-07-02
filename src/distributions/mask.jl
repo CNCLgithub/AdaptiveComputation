@@ -13,9 +13,11 @@ function Gen.random(::Mask, ps::Matrix{Float64})
 end
 
 function Gen.logpdf(::Mask, image::BitArray{2}, ps::Matrix{Float64})
-    bernoullis = fill(bernoulli, size(ps))
-    lpdfs = Gen.logpdf.(bernoullis, image, ps)
-    return sum(lpdfs)
+    ll = 0
+    for i in eachindex(image)
+        ll += Gen.logpdf(bernoulli, image[i], ps[i])
+    end
+    ll
 end
 
 
