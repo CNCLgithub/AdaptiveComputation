@@ -225,11 +225,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="finetune faster-rcnn")
+        description="test faster-rcnn")
 
-    parser.add_argument('--data-path', default='../data/MOTDots', help='dataset')
-    parser.add_argument('--load-path', default='../checkpoints/model_9.pth', help='checkpoint file to load')
-    parser.add_argument('--output-dir', default='../segments/', help='where to save output segmentations')
+    parser.add_argument('--data-path', default='outputs/datasets/mask_rcnn', help='dataset')
+    parser.add_argument('--load-path', default='outputs/checkpoints/model_9.pth', help='checkpoint file to load')
+    parser.add_argument('--output-dir', default='outputs/segments/', help='where to save output segmentations')
     
     args = parser.parse_args()
 

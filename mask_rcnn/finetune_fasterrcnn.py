@@ -150,40 +150,106 @@ def main(args):
 
     # move model to the right device
     model.to(device)
+    
+    # if we're just testing
+    if args.testing:
+        utils.mkdir(args.segments_dir)
 
-    # construct an optimizer
-    params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
-    # and a learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=3,
-                                                   gamma=0.1)
+        # load model
+        checkpoint_path = Path(args.checkpoints_dir) / args.checkpoint_file
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint['model'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format(checkpoint_path, checkpoint['epoch']))
+        model.eval()
 
-    # let's train it for 10 epochs
-    num_epochs = 10
+        counter = 0
+        positions = []
+        diffs = []
+        #f = h5py.File(os.path.join(args.output_dir, 'bottom-up-observations.hdf5'), 'w')
+        for images, targets in data_loader_test:
+            images = list(img.to(device) for img in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            outputs = model(images)
+            outputs = [{k: v.to(device) for k, v in t.items()} for t in outputs]
 
-    for epoch in range(num_epochs):
+            # visualize segments
+            aggregate = np.zeros((800, 800))
+            segments = outputs[0]['masks'].detach().cpu().numpy()
 
-        # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
-        # update the learning rate
-        lr_scheduler.step()
+            for k in range(segments.shape[0]):
+                segment = segments[k].squeeze()
+                segment[segment < 0.75] = 0
+                segment[segment != 0] = 1
+                aggregate += segment
+                
+            aggregate[aggregate != 0] = 255
+            aggregate_image = Image.fromarray(aggregate)
+            aggregate_image = aggregate_image.convert('L')
+            aggregate_image.save(Path(args.segments_dir) / f'{counter:05}.png')
+            
+            """
+            boxes = outputs[0]['boxes'].detach().cpu().numpy()
+            boxes_x = (boxes[:, 0] + boxes[:, 2]) / 2 - 400
+            boxes_y = (boxes[:, 1] + boxes[:, 3]) / 2 - 400
+            boxes = np.vstack((boxes_x, boxes_y))
+            positions.append(boxes)
 
-        if args.output_dir:
-            utils.save_on_master({
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict(),
-                'args': args,
-                'epoch': epoch},
-                os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+            target_boxes = targets[0]['boxes'].detach().cpu().numpy()
+            target_boxes_x = (target_boxes[:, 0] + target_boxes[:,2]) / 2 - 400
+            target_boxes_y = (target_boxes[:, 1] + target_boxes[:,3]) / 2 - 400
+            target_boxes = np.vstack((target_boxes_x, target_boxes_y))
+            
+            if boxes.shape[1] == target_boxes.shape[1]:
+                diff = mix_match_score(boxes, target_boxes)
+                print(diff)
+                diffs.append(diff)
+            
 
-        # evaluate on the test dataset
-        evaluate(model, data_loader_test, device=device)
+            f.create_dataset(str(counter), data=positions[-1])
+
+            """
+
+            counter += 1
+
+        # f.close()
+
+        return positions, outputs, targets, diffs
+
+    else: 
+
+        # construct an optimizer
+        params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.SGD(params, lr=0.005,
+                                    momentum=0.9, weight_decay=0.0005)
+        # and a learning rate scheduler
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                       step_size=3,
+                                                       gamma=0.1)
+
+        # let's train it for 10 epochs
+        num_epochs = 10
+
+        for epoch in range(num_epochs):
 
 
-    print("That's it!")
+            # train for one epoch, printing every 10 iterations
+            train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
+            # update the learning rate
+            lr_scheduler.step()
+
+            if args.checkpoints_dir:
+                utils.save_on_master({
+                    'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'lr_scheduler': lr_scheduler.state_dict(),
+                    'args': args,
+                    'epoch': epoch},
+                    os.path.join(args.checkpoints_dir, 'model_{}.pth'.format(epoch)))
+
+            # evaluate on the test dataset
+            evaluate(model, data_loader_test, device=device)
+
     
 if __name__ == "__main__":
     import argparse
@@ -192,11 +258,15 @@ if __name__ == "__main__":
         description="finetune faster-rcnn")
 
     parser.add_argument('--data-path', default='output/datasets/mask_rcnn', help='dataset')
-    parser.add_argument('--output-dir', default='output/checkpoints/', help='where to save')
+    parser.add_argument('--checkpoints-dir', default='output/checkpoints/', help='where to save')
+    parser.add_argument('--testing', action='store_true', help='testing the model')
+    parser.add_argument('--checkpoint-file', default='model_6.pth', help='checkpoint file')
+    parser.add_argument('--segments-dir', default='output/segments/',
+                        help='directory for outputted segments')
     
     args = parser.parse_args()
 
-    if args.output_dir:
-        utils.mkdir(args.output_dir)
+    if args.checkpoints_dir:
+        utils.mkdir(args.checkpoints_dir)
     main(args)
 
