@@ -2,7 +2,7 @@ export Exp0
 
 @with_kw struct Exp0 <: AbstractExperiment
     trial::Int = 1
-    dataset_path::String = "datasets/exp_0.h5"
+    dataset_path::String = "output/datasets/exp_0.h5"
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"

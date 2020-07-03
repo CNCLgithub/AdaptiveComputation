@@ -133,7 +133,6 @@ function render(dot_positions,
                 attended=nothing,
                 tracker_masks=nothing)
 
-    println("rendering inference info on stimuli...")
     mkpath(dir)
     
     # getting number of timesteps

@@ -18,6 +18,8 @@ import transforms as T
 import json
 from pathlib import Path
 
+from matplotlib import cm
+
 class MOTDataset(object):
     def __init__(self, dataset_path, transforms):
         self.dataset_path = Path(dataset_path)
@@ -31,6 +33,7 @@ class MOTDataset(object):
         # load images ad masks
         input_png_path = self.dataset_path / 'input_pngs' / self.input_pngs[idx]
         target_npys_path = self.dataset_path / 'target_npys' / self.target_npys[idx]
+
         img = Image.open(input_png_path).convert("RGB")
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
@@ -48,17 +51,29 @@ class MOTDataset(object):
     
         # split the color-encoded mask into a set
         # of binary masks
-        binary_masks = np.empty((len(masks), *(masks[0].shape)))
-        for i in range(len(masks)):
-            binary_masks[i] = np.isin(masks[i], obj_ids)
+        #binary_masks = np.empty((len(masks), *(masks[0].shape)))
+        #for i in range(len(masks)):
+        #    binary_masks[i] = np.isin(masks[i], obj_ids)
         
-        masks = binary_masks
-        #masks = masks == obj_ids[:, None, None]
+        #masks = binary_masks
+        masks = np.isin(masks, obj_ids)
 
         # get bounding box coordinates for each mask
         num_objs = len(obj_ids)
         boxes = []
         for i in range(num_objs):
+            """
+            # if all zeros, then just put positions as 0 0
+            # TODO get rid of this in the dataset creation
+            # (but a tiny bit of noise should be fine)
+            if not np.any(masks[i]):
+                print("mask all zeros", target_npys_path, i)
+                print("!!!!!!!!\n\n\n\n")
+                pos = [[0],[0]]
+            else:
+                pos = np.where(masks[i])
+            """
+
             pos = np.where(masks[i])
             xmin = np.min(pos[1])
             xmax = np.max(pos[1])
@@ -130,6 +145,8 @@ def main(args):
     # use our dataset and defined transformations
     dataset = MOTDataset(args.data_path, get_transform(train=True)) #this should give the folder of the dataset
     dataset_test = MOTDataset(args.data_path, get_transform(train=False))
+    
+    print("dataset length:", len(dataset))
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
@@ -142,7 +159,7 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=2,
+        dataset_test, batch_size=1, shuffle=False, num_workers=1,
         collate_fn=utils.collate_fn)
 
     # get the model using our helper function
@@ -174,19 +191,28 @@ def main(args):
             outputs = [{k: v.to(device) for k, v in t.items()} for t in outputs]
 
             # visualize segments
-            aggregate = np.zeros((800, 800))
-            segments = outputs[0]['masks'].detach().cpu().numpy()
+            img = images[0].detach().cpu()
+            img = np.transpose(img.numpy(), (1, 2, 0))
+            img *= 255
+            img = img.astype(np.uint8)
+            img = Image.fromarray(img)
 
+            segments = outputs[0]['masks'].detach().cpu().numpy()
             for k in range(segments.shape[0]):
                 segment = segments[k].squeeze()
                 segment[segment < 0.75] = 0
-                segment[segment != 0] = 1
-                aggregate += segment
+                segment[segment != 0] = 160
                 
-            aggregate[aggregate != 0] = 255
-            aggregate_image = Image.fromarray(aggregate)
-            aggregate_image = aggregate_image.convert('L')
-            aggregate_image.save(Path(args.segments_dir) / f'{counter:05}.png')
+                color = np.random.rand(3) * 255
+                color_array = np.broadcast_to(color, (800, 800, 3))
+                color_img = Image.fromarray(color_array.astype('uint8')).convert('RGBA')
+                mask = Image.fromarray(segment).convert('L')
+                
+                img = Image.composite(color_img, img, mask)
+
+                
+            img_path = Path(args.segments_dir) / f'{counter:03}.png'
+            img.save(img_path)
             
             """
             boxes = outputs[0]['boxes'].detach().cpu().numpy()
@@ -260,7 +286,7 @@ if __name__ == "__main__":
     parser.add_argument('--data-path', default='output/datasets/mask_rcnn', help='dataset')
     parser.add_argument('--checkpoints-dir', default='output/checkpoints/', help='where to save')
     parser.add_argument('--testing', action='store_true', help='testing the model')
-    parser.add_argument('--checkpoint-file', default='model_6.pth', help='checkpoint file')
+    parser.add_argument('--checkpoint-file', default='model_9.pth', help='checkpoint file')
     parser.add_argument('--segments-dir', default='output/segments/',
                         help='directory for outputted segments')
     
