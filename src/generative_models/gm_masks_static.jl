@@ -183,7 +183,7 @@ end
 
 ##################################
 
-@gen (static) function kernel(t::Int,
+@gen (static, nojuliacache) function kernel(t::Int,
                               prev_state::FullState,
                               dynamics_model::AbstractDynamicsModel,
                               params::GMMaskParams)
@@ -211,7 +211,7 @@ end
 
 chain = Gen.Unfold(kernel)
 
-@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen (static, nojuliacache) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
     init_state = @trace(sample_init_state(params), :init_state)

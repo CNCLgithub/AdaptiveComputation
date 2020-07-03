@@ -15,11 +15,12 @@ results_dir = "exp0_results"
 
 function performance_compute(experiments)
     for experiment in experiments
-        performance, compute, pred_target = load_results(joinpath(results_dir, experiment))
+        # performance, compute, pred_target = load_results(experiment)
+        results = load_results(experiment)
         
-        perf_trial = mean(performance, dims=2)[:,1]
-        comp_trial = mean(compute, dims=2)[:,1]
-        pred_target_trial = mean(pred_target, dims=2)[:,1,:]
+        perf_trial = mean(results["performance"], dims=2)[:,1]
+        comp_trial = mean(results["compute"], dims=2)[:,1]
+        pred_target_trial = mean(results["pred_target"], dims=2)[:,1,:]
 
         pred_target_packaged = []
         for i=1:size(pred_target_trial, 1)
@@ -33,13 +34,12 @@ function performance_compute(experiments)
                        [Symbol("dot_$i")=>pred_target_trial[:,i] for i=1:8]...
                       )
 
-        mkpath("results")
-        CSV.write("results/performance_compute_$experiment.csv", df)
+        CSV.write("$(experiment)/performance_compute.csv", df)
         println(df)
     end
 end
 
-performance_compute(["attention"])
+performance_compute(["output/experiments/exp0_senstd"])
 
 
 function confidence_intervals(data; samples=false)

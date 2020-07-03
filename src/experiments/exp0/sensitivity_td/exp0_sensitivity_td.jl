@@ -15,7 +15,6 @@ get_name(::Exp0SensTD) = "exp0_senstd"
 function run_inference(q::Exp0SensTD, path::String;
                        render::Bool = false)
 
-    mkpath(path)
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
@@ -24,9 +23,7 @@ function run_inference(q::Exp0SensTD, path::String;
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
                                 :assignments => extract_assignments,
-                                :tracker_masks => extract_tracker_masks
                                ))
-
     
     # initial observations based on init_positions
     # model knows where trackers start off
@@ -59,41 +56,10 @@ function run_inference(q::Exp0SensTD, path::String;
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
-    
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = joinpath(path, "trace.jld"))
-    
-
-    extracted = extract_chain(results)
-    tracker_positions = extracted["unweighted"][:tracker_positions]
-    tracker_masks = extracted["unweighted"][:tracker_masks]
-    aux_state = extracted["aux_state"]
-    attention_weights = [aux_state[t].stats for t = 1:q.k]
-    attention_weights = collect(hcat(attention_weights...)')
-    plot_compute_weights(attention_weights, path)
-    
-    attempts = Vector{Int}(undef, q.k)
-    attended = Vector{Vector{Float64}}(undef, q.k)
-    for t=1:q.k
-        attempts[t] = aux_state[t].attempts
-        attended[t] = aux_state[t].attended_trackers
-    end
-
-    plot_rejuvenation(attempts, path)
-
-    if render
-        # visualizing inference on stimuli
-        render(positions, q, gm_params;
-            pf_xy=tracker_positions,
-            attended = attended / attention.sweeps,
-            tracker_masks=tracker_masks,
-            dir = joinpath(path, "render"))
-    end
-
-    plot_attention(attended, attention.sweeps, path)
-
+                                     path = path)
     return results
 end
 

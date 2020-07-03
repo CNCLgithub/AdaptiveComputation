@@ -6,7 +6,7 @@ import argparse
 from slurmpy import sbatch
 
 
-base_func = 'bash {0!s}/run.sh julia {1!s}'
+base_func = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no {1!s}'
 
 experiments = {
     'exp0_sens_td': 'scripts/inference/exp0_sens_td.jl',
@@ -30,12 +30,12 @@ def main():
 
     script = experiments[args.exp_key]
 
-    n = args.trials
-    duration = 120 # in minutes
+    n = args.trials * args.chains
+    duration = 30 # in minutes
 
     interpreter = '#!/bin/bash'
-    tasks = [(t,) for t in range(1, n+1)]
-    kargs= ['--chains {}'.format(args.chains)]
+    tasks = [(t,c) for c in range(1, args.chains + 1) for t in range(1, args.trials+1)]
+    kargs= []
     extras = []
     resources = {
         'cpus-per-task' : '1',
