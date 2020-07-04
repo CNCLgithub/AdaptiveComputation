@@ -4,7 +4,7 @@ export load_exp0_trial
 """
 loads init_positions, masks and the motion model from exp0 dataset
 """
-function load_exp0_trial(trial, gm, dataset_path)
+function load_exp0_trial(trial, gm, dataset_path; generate_masks=true)
 
 	file = h5open(dataset_path, "r")
 	dataset = read(file, "dataset")
@@ -33,11 +33,15 @@ function load_exp0_trial(trial, gm, dataset_path)
             positions[t][i,3] = uniform(0,1)
         end
     end
-
-    masks = get_masks(positions,
-                      gm.dot_radius,
-                      gm.img_height, gm.img_width,
-                      gm.area_height, gm.area_width)
+    
+    if generate_masks
+        masks = get_masks(positions,
+                          gm.dot_radius,
+                          gm.img_height, gm.img_width,
+                          gm.area_height, gm.area_width)
+    else
+        masks = nothing
+    end
 
     # getting the motion model
 	inertia = data["inertia"]

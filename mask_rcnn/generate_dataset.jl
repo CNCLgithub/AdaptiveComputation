@@ -5,9 +5,9 @@ using Random
 
 dataset_path = joinpath("output", "datasets", "mask_rcnn")
 n_batches = 128
-n_examples = 20
+n_examples = 40
 # most of the action is later, so skipping first timesteps
-start_timestep = 21
+start_timestep = 61
 n_timesteps = 120
 
 # dumping some information about the dataset to a json
@@ -35,7 +35,15 @@ for batch=1:n_batches
     q = Exp0(trial=batch)
 
     gm = MOT.load(GMMaskParams, q.gm)
-    init_positions, masks, motion, positions = load_exp0_trial(batch, gm, q.dataset_path)
+    init_positions, masks, motion, positions = load_exp0_trial(batch, gm, q.dataset_path,
+                                                               generate_masks=false)
+    
+    # replacing z with y for a fixed ordering based on y
+    for t=1:length(positions)
+        for i=1:size(positions[t],1)
+            positions[t][i,3] = positions[t][i,2]
+        end
+    end
     
     """
     gm = GMMaskParams(n_trackers = 4, distractor_rate = 4)
@@ -67,5 +75,6 @@ for batch=1:n_batches
             index += 1
         end
     end
+    println()
 end
 

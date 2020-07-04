@@ -5,7 +5,7 @@
 import os
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -139,6 +139,7 @@ def get_transform(train):
 def main(args):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print("device:", device)
 
     # our dataset has two classes only - background and person
     num_classes = 2
@@ -159,7 +160,7 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=1,
+        dataset_test, batch_size=1, shuffle=False, num_workers=2,
         collate_fn=utils.collate_fn)
 
     # get the model using our helper function
@@ -168,16 +169,18 @@ def main(args):
     # move model to the right device
     model.to(device)
     
-    # if we're just testing
-    if args.testing:
-        utils.mkdir(args.segments_dir)
-
+    if args.checkpoint_file:
         # load model
         checkpoint_path = Path(args.checkpoints_dir) / args.checkpoint_file
         checkpoint = torch.load(checkpoint_path)
         model.load_state_dict(checkpoint['model'])
         print("=> loaded checkpoint '{}' (epoch {})"
               .format(checkpoint_path, checkpoint['epoch']))
+
+    # if we're just testing
+    if args.testing:
+        utils.mkdir(args.segments_dir)
+
         model.eval()
 
         counter = 0
@@ -201,7 +204,7 @@ def main(args):
             for k in range(segments.shape[0]):
                 segment = segments[k].squeeze()
                 segment[segment < 0.75] = 0
-                segment[segment != 0] = 160
+                segment[segment != 0] = 128
                 
                 color = np.random.rand(3) * 255
                 color_array = np.broadcast_to(color, (800, 800, 3))
@@ -210,6 +213,22 @@ def main(args):
                 
                 img = Image.composite(color_img, img, mask)
 
+            for k in range(segments.shape[0]):
+                segment = segments[k].squeeze()
+                segment[segment < 0.75] = 0
+                segment[segment != 0] = 128
+
+                pos = np.where(segment)
+                xmin = np.min(pos[0])
+                ymin = np.min(pos[1])
+                xmax = np.max(pos[0])
+                ymax = np.max(pos[1])
+
+                x = (xmin + xmax)/2
+                y = (ymin + ymax)/2
+
+                d = ImageDraw.Draw(img)
+                d.text((y + np.random.uniform(-10,10), x + np.random.uniform(-10,10)), str(k+1), fill=(0,0,0))
                 
             img_path = Path(args.segments_dir) / f'{counter:03}.png'
             img.save(img_path)
@@ -256,8 +275,8 @@ def main(args):
         # let's train it for 10 epochs
         num_epochs = 10
 
-        for epoch in range(num_epochs):
-
+        #for epoch in range(num_epochs):
+        for epoch in range(5, num_epochs):
 
             # train for one epoch, printing every 10 iterations
             train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
