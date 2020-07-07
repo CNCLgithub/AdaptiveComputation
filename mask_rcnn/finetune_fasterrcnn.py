@@ -261,8 +261,7 @@ def main(args):
         # let's train it for 10 epochs
         num_epochs = 10
 
-        #for epoch in range(num_epochs):
-        for epoch in range(5, num_epochs):
+        for epoch in range(num_epochs):
 
             # train for one epoch, printing every 10 iterations
             train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
@@ -279,7 +278,7 @@ def main(args):
                     os.path.join(args.checkpoints_dir, 'model_{}.pth'.format(epoch)))
 
             # evaluate on the test dataset
-            evaluate(model, data_loader_test, device=device)
+            #evaluate(model, data_loader_test, device=device)
 
     
 if __name__ == "__main__":

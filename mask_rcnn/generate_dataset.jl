@@ -32,10 +32,7 @@ mkpath(target_pngs_path)
 
 for (batch, elements) in enumerate(batches)
     println("batch $batch")
-    
-    if batch > 10
-        error()
-    end
+
     # sample some timesteps from the back of the trial
     timesteps = collect(start_timestep:n_timesteps)
     perm = randperm(length(timesteps))
