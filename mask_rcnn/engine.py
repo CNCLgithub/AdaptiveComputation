@@ -38,16 +38,17 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         loss_value = losses_reduced.item()
 
         if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
+            #print("Loss is {}, stopping training".format(loss_value))
+            print("Loss is {}, skipping this step".format(loss_value))
             print(loss_dict_reduced)
-            sys.exit(1)
+            #sys.exit(1)
+        else:
+            optimizer.zero_grad()
+            losses.backward()
+            optimizer.step()
 
-        optimizer.zero_grad()
-        losses.backward()
-        optimizer.step()
-
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+            if lr_scheduler is not None:
+                lr_scheduler.step()
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])

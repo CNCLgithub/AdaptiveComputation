@@ -62,19 +62,18 @@ class MOTDataset(object):
         num_objs = len(obj_ids)
         boxes = []
         for i in range(num_objs):
-            """
-            # if all zeros, then just put positions as 0 0
+            # if all zeros, then just put position in the middle
             # TODO get rid of this in the dataset creation
             # (but a tiny bit of noise should be fine)
+            #print("mask ", target_npys_path, i)
             if not np.any(masks[i]):
                 print("mask all zeros", target_npys_path, i)
                 print("!!!!!!!!\n\n\n\n")
-                pos = [[0],[0]]
+                pos = [[380,420],[380,420]]
             else:
                 pos = np.where(masks[i])
-            """
 
-            pos = np.where(masks[i])
+            #pos = np.where(masks[i])
             xmin = np.min(pos[1])
             xmax = np.max(pos[1])
             ymin = np.min(pos[0])
@@ -275,8 +274,7 @@ def main(args):
         # let's train it for 10 epochs
         num_epochs = 10
 
-        #for epoch in range(num_epochs):
-        for epoch in range(5, num_epochs):
+        for epoch in range(num_epochs):
 
             # train for one epoch, printing every 10 iterations
             train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
@@ -293,7 +291,7 @@ def main(args):
                     os.path.join(args.checkpoints_dir, 'model_{}.pth'.format(epoch)))
 
             # evaluate on the test dataset
-            evaluate(model, data_loader_test, device=device)
+            #evaluate(model, data_loader_test, device=device)
 
     
 if __name__ == "__main__":
