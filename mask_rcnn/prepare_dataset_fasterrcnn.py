@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 
 # we read target_pngs and transform to numpy arrays (target_npys)
-dataset_path = Path('output') / 'datasets' / 'mask_rcnn'
+dataset_path = Path('output') / 'datasets' / 'mask_rcnn_exp0'
 target_pngs = dataset_path / 'target_pngs'
 target_npys = dataset_path / 'target_npys'
 target_npys.mkdir(exist_ok=True)

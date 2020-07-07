@@ -30,6 +30,8 @@ class MOTDataset(object):
         self.target_npys = list(sorted(os.listdir(self.dataset_path / 'target_npys')))
 
     def __getitem__(self, idx):
+        print(idx)
+
         # load images ad masks
         input_png_path = self.dataset_path / 'input_pngs' / self.input_pngs[idx]
         target_npys_path = self.dataset_path / 'target_npys' / self.target_npys[idx]
@@ -51,29 +53,12 @@ class MOTDataset(object):
     
         # split the color-encoded mask into a set
         # of binary masks
-        #binary_masks = np.empty((len(masks), *(masks[0].shape)))
-        #for i in range(len(masks)):
-        #    binary_masks[i] = np.isin(masks[i], obj_ids)
-        
-        #masks = binary_masks
         masks = np.isin(masks, obj_ids)
 
         # get bounding box coordinates for each mask
         num_objs = len(obj_ids)
         boxes = []
         for i in range(num_objs):
-            """
-            # if all zeros, then just put positions as 0 0
-            # TODO get rid of this in the dataset creation
-            # (but a tiny bit of noise should be fine)
-            if not np.any(masks[i]):
-                print("mask all zeros", target_npys_path, i)
-                print("!!!!!!!!\n\n\n\n")
-                pos = [[0],[0]]
-            else:
-                pos = np.where(masks[i])
-            """
-
             pos = np.where(masks[i])
             xmin = np.min(pos[1])
             xmax = np.max(pos[1])
@@ -150,6 +135,7 @@ def main(args):
     print("dataset length:", len(dataset))
 
     # split the dataset in train and test set
+    torch.manual_seed(0)
     indices = torch.randperm(len(dataset)).tolist()
     dataset = torch.utils.data.Subset(dataset, indices[:-50])
     dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
@@ -160,7 +146,7 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=2,
+        dataset_test, batch_size=1, shuffle=False, num_workers=1,
         collate_fn=utils.collate_fn)
 
     # get the model using our helper function
