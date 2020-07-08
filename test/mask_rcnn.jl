@@ -7,6 +7,7 @@ end
 
 mask_rcnn = PyNULL()
 copy!(mask_rcnn, pyimport("mask_rcnn.get_masks"))
+
 img = load("output/datasets/mask_rcnn_exp0/input_pngs/001_001.png")
 mat = channelview(img)
 @show size(mat)
