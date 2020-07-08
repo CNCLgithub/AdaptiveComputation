@@ -1,6 +1,6 @@
 export render
 
-using Luxor
+using Luxor, ImageMagick
 
 function _init_drawing(frame, dir, gm, prefix;
                        background_color="ghostwhite")
@@ -125,6 +125,7 @@ end
 function render(dot_positions,
                 gm;
                 stimuli=false,
+                array=false,
                 pf_xy=nothing,
                 dir="render",
                 prefix="",
@@ -132,8 +133,8 @@ function render(dot_positions,
                 highlighted=nothing,
                 attended=nothing,
                 tracker_masks=nothing)
-
-    mkpath(dir)
+    
+    array ? imgs = [] : mkpath(dir)
     
     # getting number of timesteps
     k = size(dot_positions, 1)
@@ -149,9 +150,8 @@ function render(dot_positions,
         if !isnothing(pf_xy)
             _render_pf(pf_xy[1,:,:,:], gm, tracker_masks=tracker_masks[1,:,:])
         end
-
-        finish()
-
+        
+        array ? push!(imgs, image_as_matrix()) : finish()
     end
     
     # tracking while dots are moving
@@ -172,7 +172,7 @@ function render(dot_positions,
                        tracker_masks=tracker_masks[t,:,:])
         end
 
-        finish()
+        array ? push!(imgs, image_as_matrix()) : finish()
     end
     
     # final freeze time showing the answer
@@ -189,7 +189,11 @@ function render(dot_positions,
                        tracker_masks=tracker_masks[k,:,:])
         end
 
-        finish()
+        array ? push!(imgs, image_as_matrix()) : finish()
+    end
+
+    if array
+        return imgs
     end
 end
 

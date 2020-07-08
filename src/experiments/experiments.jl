@@ -17,6 +17,8 @@ include("sensitivity_td/sensitivity_td.jl")
 
 # exp0
 include("exp0/generic/exp0_generic.jl")
+include("exp0/mask_rcnn/exp0_mask_rcnn.jl")
+
 include("exp0/attention/exp0_attention.jl")
 include("exp0/trial_avg/exp0_trial_avg.jl")
 include("exp0/base/exp0_base.jl")

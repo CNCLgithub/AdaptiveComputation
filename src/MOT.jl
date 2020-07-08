@@ -6,9 +6,10 @@ using GenRFS
 using Parameters: @with_kw
 using PyCall
 
+mask_rcnn = PyNULL()
+
 function __init__()
 	#copy!(npp_lib, pyimport("npp.permutation_sample"))
-    mask_rcnn = PyNULL()
 	copy!(mask_rcnn, pyimport("mask_rcnn.get_masks"))
 
     # setup gen static functions
