@@ -1,7 +1,8 @@
-export ExampleExperiment
+export Exp0MaskRCNN
 
-
-@with_kw struct ExampleExperiment <: AbstractExperiment
+@with_kw struct Exp0MaskRCNN <: AbstractExperiment
+    trial::Int = 1
+    dataset_path::String = "output/datasets/exp_0.h5"
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
@@ -9,23 +10,21 @@ export ExampleExperiment
     k::Int = 120
 end
 
-get_name(::ExampleExperiment) = "example"
+get_name(::Exp0MaskRCNN) = "exp0_mask_rcnn"
 
-function run_inference(q::ExampleExperiment, path::String)
+function run_inference(q::Exp0MaskRCNN)
 
     gm_params = load(GMMaskParams, q.gm)
-    motion = load(BrownianDynamicsModel, q.motion)
     
     # generating initial positions and masks (observations)
-    init_positions, init_vels, masks, positions = dgp(q.k, gm_params, motion)
-
-    # testing less inertia in dynamics for inference
-    #motion = @set motion.inertia = 0.99
-    #motion = @set motion.spring = 0.001
-    #motion = @set motion.sigma_w = 2.5
-
+    init_positions, masks, motion, positions = load_exp0_trial(q.trial, gm_params, q.dataset_path,
+                                                               from_mask_rcnn = true)
+    positions = positions[1:q.k]
+    
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
+                                :assignments => extract_assignments,
+                                :tracker_masks => extract_tracker_masks
                                ))
 
     
@@ -55,7 +54,6 @@ function run_inference(q::ExampleExperiment, path::String)
                                         args,
                                         observations)
 
-    
     attention = load(TDEntropyAttentionModel, q.attention;
                      perturb_function = perturb_state!)
 
@@ -67,17 +65,32 @@ function run_inference(q::ExampleExperiment, path::String)
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
                                      path = nothing)
+    
 
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
-
-    # getting the images
-    full_imgs = get_full_imgs(masks)
-
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params)
+    tracker_masks = extracted["unweighted"][:tracker_masks]
     
+    aux_state = extracted["aux_state"]
+    attempts = Vector{Int}(undef, q.k)
+    attended = Vector{Vector{Float64}}(undef, q.k)
+    for t=1:q.k
+        attempts[t] = aux_state[t].attempts
+        attended[t] = aux_state[t].attended_trackers
+    end
+    
+    plot_rejuvenation(attempts .+ 1)
+    plot_attention(attended)
+    
+    # visualizing inference on stimuli
+    render(positions, gm_params;
+           pf_xy=tracker_positions[:,:,:,1:2],
+           attended=attended/attention.max_sweeps,
+           tracker_masks=tracker_masks)
+
+    # visualizing inference
+    full_imgs = get_full_imgs(masks)
+    visualize(tracker_positions[:,:,:,1:2], full_imgs, gm_params, "inference_render")
 
     return results
 end

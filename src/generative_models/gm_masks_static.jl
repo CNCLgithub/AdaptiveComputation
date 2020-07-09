@@ -1,4 +1,5 @@
-export gm_masks_static
+export gm_masks_static,
+        GMMaskParams
 
 using LinearAlgebra
 
@@ -10,7 +11,7 @@ end
 @with_kw struct GMMaskParams
     n_trackers::Int = 1
     distractor_rate::Real = 0.0
-    init_pos_spread::Real = 400.0
+    init_pos_spread::Real = 300.0
     
     # graphics parameters
     dot_radius::Real = 20.0

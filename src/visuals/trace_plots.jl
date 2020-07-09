@@ -1,6 +1,7 @@
 export plot_score,
     heatmap,
     plot_rejuvenation,
+    plot_attention,
     plot_xy,
     plot_compute_weights
 
@@ -66,21 +67,25 @@ function plot_rejuvenation(rejuvenations, path="plots")
     mkpath(path)
     k = length(rejuvenations)
     x = collect(1:k)
-
+    
     p = plot(x=x, y=rejuvenations,
              Geom.bar,
+             Scale.x_continuous(minvalue=0, maxvalue=k),
              Scale.y_continuous(minvalue=0, maxvalue=20),
+             Guide.xlabel("Time"),
+             Guide.ylabel("Allocated Compute"),
              Theme(default_color="black",
-                   background_color="white")
+                   background_color="white",
+                   minor_label_font_size=20pt,
+                   major_label_font_size=30pt)
              )
-    Gadfly.draw(PNG(joinpath(path, "rejuvenations.png"), 8Gadfly.inch, 3Gadfly.inch), p)
+    Gadfly.draw(PNG(joinpath(path, "rejuvenations.png"), 16Gadfly.inch, 6Gadfly.inch), p)
 end
 
 """
 Plots distribution of attention accross time
 """
 function plot_attention(attended,
-                        attention,
                         tracker_colors=["indigo", "green", "blue", "yellow"],
                         path="plots")
     mkpath(path)
@@ -101,7 +106,7 @@ function plot_attention(attended,
 
         p = plot(x=x, y=att_tracker,
                  Geom.bar,
-                 Scale.y_continuous(minvalue=0, maxvalue=attention.max_sweeps),
+                 Scale.y_continuous(minvalue=0, maxvalue=15),
                  Theme(default_color=tracker_colors[i],
                        background_color="white")
                  )

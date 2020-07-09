@@ -71,12 +71,22 @@ end
     get_masks(positions::Array{Float64})
 
     returns an array of masks
+    args:
+    r - radius of the dot in image size
+    h - image height
+    w - image width
+    ah - area height
+    aw - area width
+    ;
+    background - true if you want background masks
 """
-function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw)
+function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw;
+                   background=false)
     k = length(positions)
     masks = Vector{Vector{BitArray{2}}}(undef, k)
     
     for t=1:k
+        print("get_masks timestep: $t \r")
         pos = positions[t]
 
         # sorting according to depth
@@ -95,7 +105,18 @@ function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw)
             push!(masks_t, mask)
             img_so_far .|= mask
         end
-        masks[t] = masks_t[invperm(depth_perm)]
+
+        masks_t = masks_t[invperm(depth_perm)]
+    
+        if background
+            # pushing background to the end
+            bg = BitArray{2}(undef, h, w)
+            bg .= true
+            bg -= img_so_far
+            prepend!(masks_t, [bg])
+        end
+
+        masks[t] = masks_t
     end
 
     return masks
