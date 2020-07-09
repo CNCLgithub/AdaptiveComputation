@@ -18,7 +18,8 @@ end
     jitter::Function = jitter
     samples::Int = 1
     sweeps::Int = 5
-    eps::Float64 = 0.01
+    scale::Float64 = 100.0
+    m::Float64 = 1.04
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
@@ -53,7 +54,7 @@ function get_sweeps(att::MapSensitivity, stats)
     # sweeps = min(att.sweeps, sum(stats))
     # round(Int, sweeps)
     println(logsumexp(stats))
-    amp = att.sweeps * (1.04)^logsumexp(stats)
+    amp = att.sweeps * (att.m)^logsumexp(stats)
     println("amp: $(amp)")
     round(Int, min(amp, att.sweeps))
 end

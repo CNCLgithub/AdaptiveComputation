@@ -8,20 +8,14 @@ from slurmpy import sbatch
 
 base_func = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no {1!s}'
 
-experiments = {
-    'exp0_sens_td': 'scripts/inference/exp0_sens_td.jl',
-    'exp0_trial_avg': 'scripts/inference/exp0_trial_avg.jl',
-    # 'exp0_sens_dc': '',
-    # 'exp0_entropy_td': ''
-}
+script = 'scripts/inference/exp0_trial_avg.jl'
 
-default_keys = list(experiments.keys())
 def main():
     parser = argparse.ArgumentParser(
         description = 'Submits batch jobs for in-silico experiment.',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('exp_key', type = str, choices = default_keys,
+    parser.add_argument('attention_path', type = str,
                         help = 'Experiment key')
     parser.add_argument('--trials', type = int, default = 128,
                         help = 'number of trials')
@@ -29,13 +23,12 @@ def main():
                         help = 'number of chains')
     args = parser.parse_args()
 
-    script = experiments[args.exp_key]
-
     n = args.trials * args.chains
     duration = 30 # in minutes
 
     interpreter = '#!/bin/bash'
-    tasks = [(t,c) for c in range(1, args.chains + 1) for t in range(1, args.trials+1)]
+    tasks = [(t,c,args.attention_path) for c in range(1, args.chains + 1) 
+             for t in range(1, args.trials+1)]
     kargs= []
     extras = []
     resources = {
