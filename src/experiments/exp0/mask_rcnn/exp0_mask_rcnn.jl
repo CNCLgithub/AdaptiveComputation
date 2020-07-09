@@ -17,35 +17,10 @@ function run_inference(q::Exp0MaskRCNN)
     gm_params = load(GMMaskParams, q.gm)
     
     # generating initial positions and masks (observations)
-    init_positions, true_masks, motion, positions = load_exp0_trial(q.trial, gm_params, q.dataset_path)
+    init_positions, masks, motion, positions = load_exp0_trial(q.trial, gm_params, q.dataset_path,
+                                                               from_mask_rcnn = true)
     positions = positions[1:q.k]
     
-    # rendering images in memory (array=true)
-    imgs = render(positions, gm_params,
-                  stimuli=true,
-                  array=true)
-    
-    println("getting those masks from Mask RCNN...")
-    masks = Vector{Vector{BitArray{2}}}(undef, q.k)
-    for t=1:q.k-1
-        print("timestep: $t / $(q.k) \r")
-        masks_t = []
-        chan_img = channelview(RGB.(imgs[t]))
-        masks_bool = mask_rcnn.get_masks(chan_img)
-        for i=1:size(masks_bool,1)
-            mask_bool = transpose(masks_bool[i,:,:])
-            mask_bool = imresize(mask_bool, gm_params.img_height, gm_params.img_width)
-            mask_bool = round.(Int, mask_bool)
-            push!(masks_t, BitArray(mask_bool))
-        end
-        masks[t] = masks_t
-    end
-    println("Mask RCNN done!")
-    
-    # last timestep from true masks,
-    # so that we know performance
-    masks[q.k] = true_masks[q.k]
-
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
                                 :assignments => extract_assignments,
@@ -104,6 +79,7 @@ function run_inference(q::Exp0MaskRCNN)
         attended[t] = aux_state[t].attended_trackers
     end
     
+    plot_rejuvenation(attempts .+ 1)
     plot_attention(attended)
     
     # visualizing inference on stimuli

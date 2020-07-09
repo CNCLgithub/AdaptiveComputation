@@ -4,7 +4,9 @@ export load_exp0_trial
 """
 loads init_positions, masks and the motion model from exp0 dataset
 """
-function load_exp0_trial(trial, gm, dataset_path; generate_masks=true)
+function load_exp0_trial(trial, gm, dataset_path;
+                         generate_masks=true,
+                         from_mask_rcnn=false)
 
 	file = h5open(dataset_path, "r")
 	dataset = read(file, "dataset")
@@ -35,10 +37,41 @@ function load_exp0_trial(trial, gm, dataset_path; generate_masks=true)
     end
     
     if generate_masks
-        masks = get_masks(positions,
-                          gm.dot_radius,
-                          gm.img_height, gm.img_width,
-                          gm.area_height, gm.area_width)
+        if from_mask_rcnn
+            # rendering images in memory (array=true)
+            imgs = render(positions, gm,
+                          stimuli=true,
+                          array=true)
+        
+            println("getting those masks from Mask RCNN...")
+
+            masks = Vector{Vector{BitArray{2}}}(undef, k)
+            for t=1:k-1
+                print("timestep: $t / $(k) \r")
+                masks_t = []
+                chan_img = channelview(RGB.(imgs[t]))
+                masks_bool = mask_rcnn.get_masks(chan_img)
+                for i=1:size(masks_bool,1)
+                    mask_bool = transpose(masks_bool[i,:,:])
+                    mask_bool = imresize(mask_bool, gm.img_height, gm.img_width)
+                    mask_bool = round.(Int, mask_bool)
+                    push!(masks_t, BitArray(mask_bool))
+                end
+                masks[t] = masks_t
+            end
+
+            println("Mask RCNN done!")
+            # getting the last masks from ground truth
+            masks[k] = get_masks(positions[k],
+                                 gm.dot_radius,
+                                 gm.img_height, gm.img_width,
+                                 gm.area_height, gm.area_width)
+        else
+            masks = get_masks(positions,
+                              gm.dot_radius,
+                              gm.img_height, gm.img_width,
+                              gm.area_height, gm.area_width)
+        end
     else
         masks = nothing
     end
