@@ -12,8 +12,7 @@ end
 
 get_name(::Exp0SensTD) = "exp0_senstd"
 
-function run_inference(q::Exp0SensTD, path::String;
-                       render::Bool = false)
+function run_inference(q::Exp0SensTD, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
     
