@@ -39,7 +39,7 @@ function performance_compute(experiments)
     end
 end
 
-performance_compute(["output/experiments/exp0_senstd"])
+performance_compute(["output/experiments/exp0_trial_avg"])
 
 
 function confidence_intervals(data; samples=false)
