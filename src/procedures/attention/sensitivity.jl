@@ -9,6 +9,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :states => t => :dynamics => :brownian => tracker
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
+    # (new_tr, get_score(new_tr))
     # (new_tr, min(ll, 0))
 end
 
@@ -43,22 +44,29 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         kls[i, :] = collect(ẟs)
     end
     gs = Vector{Float64}(undef, n_latents)
+    display(kls)
+    display(lls)
     for i = 1:n_latents
         gs[i] = sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i])))
+        # gs[i] = sum(kls[:, i]) /att.samples
+        # gs[i] = sum(kls[:, i] .* exp.(lls[:, i]))
     end
     println("kl per tracker: $(gs)")
-    log.(gs)
+    gs
+    # log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
     # sweeps = min(att.sweeps, sum(stats))
     # round(Int, sweeps)
-    println(logsumexp(stats))
-    x = logsumexp(stats)
-    # amp = att.sweeps * (att.m)^logsumexp(stats)
-    # amp = 0.5(x - -30.0) + 1
-    amp = (15.) / (1 + exp(-1*0.15(x - (-23.0))))
-    println("amp: $(amp)")
+    # println(logsumexp(stats))
+    # x = logsumexp(stats)
+    # # amp = att.sweeps * (att.m)^logsumexp(stats)
+    # # amp = 0.5(x - -30.0) + 1
+    # amp = (15.) / (1 + exp(-1*0.15(x - (-23.0))))
+    x = sum(stats)
+    amp = x < 300 ? 0 : 15.0*x / 1600.0
+    println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
 end
 
@@ -73,12 +81,13 @@ end
 function _td(tr::Gen.Trace, t::Int, scale::Float64)
     ret = Gen.get_retval(tr)[2][t]
     tds = ret.pmbrfs_params.pmbrfs_stats.partitions
+    tds = map(first, tds)
     lls = ret.pmbrfs_params.pmbrfs_stats.ll_partitions ./ scale
     Dict(zip(tds, lls))
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 100.0)
+                            scale::Float64 = 1.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []
@@ -141,13 +150,15 @@ end
 
 function relative_entropy(p::T, q::T) where T<:Dict
     ps, qs = _merge(p, q)
-    p_den = logsumexp(collect(Float64, values(ps))) + 1
-    q_den = logsumexp(collect(Float64, values(qs))) + 1
+    p_den = logsumexp(collect(Float64, values(ps)))
+    q_den = logsumexp(collect(Float64, values(qs)))
     kl = 0
+    # println(ps)
+    # println(qs)
     for (k, v) in ps
-        # kl += exp(v) * (v - qs[k])
-        kl += exp(v - p_den) * ((v - p_den) - (qs[k] - q_den))
+        kl += exp(v - p_den) * (v - qs[k])
     end
+    # println(kl)
     # @assert kl >=  0
     kl
 end
