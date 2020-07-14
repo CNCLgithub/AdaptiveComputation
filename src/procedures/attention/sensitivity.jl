@@ -30,6 +30,7 @@ end
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     latents = map(att.latents, seeds)
+    # seed_obj = map(entropy ∘ att.objective, seeds)
     seed_obj = map(att.objective, seeds)
     n_latents = size(first(latents), 1)
     kls = zeros(att.samples, n_latents)
@@ -38,34 +39,31 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
                                     1:n_latents)...)
         lls[i, :] = collect(ẟh)
+        # ẟs = seed_obj[i] .- map(entropy ∘ att.objective, jittered)
+        # kls[i, :] = collect(abs.(ẟs))
         jittered_obj = map(att.objective, jittered)
-        ẟs = abs.(map(j -> relative_entropy(seed_obj[i], j),
-                      jittered_obj))
+        ẟs = map(j -> relative_entropy(seed_obj[i], j),
+                      jittered_obj)
         kls[i, :] = collect(ẟs)
     end
     gs = Vector{Float64}(undef, n_latents)
     display(kls)
-    display(lls)
+    # display(lls)
     for i = 1:n_latents
-        gs[i] = sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i])))
-        # gs[i] = sum(kls[:, i]) /att.samples
-        # gs[i] = sum(kls[:, i] .* exp.(lls[:, i]))
+        gs[i] = max(mean(kls[:, i]), 1E-150)
+        # gs[i] = max(sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i]))), 1E-150)
+        # gs[i] = sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i])))
     end
     println("kl per tracker: $(gs)")
-    gs
-    # log.(gs)
+    log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    # sweeps = min(att.sweeps, sum(stats))
-    # round(Int, sweeps)
-    # println(logsumexp(stats))
-    # x = logsumexp(stats)
-    # # amp = att.sweeps * (att.m)^logsumexp(stats)
-    # # amp = 0.5(x - -30.0) + 1
-    # amp = (15.) / (1 + exp(-1*0.15(x - (-23.0))))
     x = sum(stats)
-    amp = x < 300 ? 0 : 15.0*x / 1600.0
+    # g = x / 100.
+    amp = 15. * exp((x + 100)/245)
+    # amp = x < -800 ? 0 : (0.0185714285714)*x + (16.8571428571)
+    # amp = x < -1000 ? 0 : 5
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
 end
@@ -87,14 +85,14 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 1.0)
+                            scale::Float64 = 10.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []
     for t = max(1, k-w):(k - 1)
         push!(previous, _td(tr, t, scale))
     end
-    Base.merge((x,y) -> 0.5*(x+y), current_td, previous...)
+    Base.merge((x,y) -> logsumexp([x,y]) .- log(2), current_td, previous...)
 end
 
 function _dc(tr::Gen.Trace, t::Int, scale::Float64)
@@ -117,12 +115,17 @@ Computes the entropy of a discrete distribution
 """
 function entropy(ps::AbstractArray{Float64})
     # -k_B * sum(map(p -> p * log(p), ps))
-    -1 * sum(map(p -> p * exp(p), ps))
+    normed = ps .- logsumexp(ps)
+    s = 0
+    for (p,n) in zip(ps, normed)
+        s += p * exp(n)
+    end
+    -1 * s
 end
 
 function entropy(pd::Dict)
     lls = collect(Float64, values(pd))
-    entropy(lls)
+    log(entropy(lls))
 end
 
 function extend(as, bs, reserve)
@@ -156,11 +159,12 @@ function relative_entropy(p::T, q::T) where T<:Dict
     # println(ps)
     # println(qs)
     for (k, v) in ps
-        kl += exp(v - p_den) * (v - qs[k])
+        # kl += exp(v - p_den) * (v - qs[k])
+        kl += exp(v - p_den) * (v - p_den - qs[k] + q_den)
     end
     # println(kl)
     # @assert kl >=  0
-    kl
+    max(kl, 0)
 end
 
 function index_pairs(n::Int)
