@@ -62,7 +62,7 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
                                                   gauss_amp, gauss_std, gauss_std)
         end
     end
-    mask = min.(mask, 1.0 - 1e-5)
+    mask = min.(mask, 0.8) # 1.0 - 1e-5)
 end
 
 

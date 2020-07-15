@@ -9,6 +9,10 @@ function parse_commandline()
         help = "Whether to resume inference"
         action = :store_true
 
+        "--masks", "-m"
+        help = "Whether to render masks"
+        action = :store_true
+
         "trial"
         help = "Which trial to run"
         arg_type = Int
@@ -35,7 +39,7 @@ function main()
         return
     end
     println("running chain $c")
-    run_inference(exp, out)
+    run_inference(exp, out; masks = args["masks"])
     return nothing
 end
 

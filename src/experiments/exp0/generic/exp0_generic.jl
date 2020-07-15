@@ -25,7 +25,6 @@ function run_inference(q::Exp0)
                                 :tracker_masks => extract_tracker_masks
                                ))
 
-    
     # initial observations based on init_positions
     # model knows where trackers start off
     constraints = Gen.choicemap()
