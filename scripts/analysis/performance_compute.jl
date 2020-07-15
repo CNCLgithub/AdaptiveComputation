@@ -41,9 +41,7 @@ function performance_compute(experiments)
 end
 
 
-
-function confidence_intervals(data; samples=false)
-	n_boot = 100000
+function confidence_intervals(data; samples=false, n_boot = 100000)
 	cil = 0.95
 	bs = bootstrap(mean, data, BasicSampling(n_boot))
 	if samples
@@ -102,15 +100,19 @@ function plot_performance(models, path="plots")
     Gadfly.draw(PNG(joinpath(path, "performance.png"), 10Gadfly.inch, 6Gadfly.inch), p)
 end
 
-function significance_analysis(first, second)
-	_,A,_,perf_1,comp = load_results_trials("$results_dir/$first")
-	_,A,_,perf_2,comp = load_results_trials("$results_dir/$second")
-	perf_1 = mean(perf_1, dims=2)
-	perf_2 = mean(perf_2, dims=2)
+function significance_analysis(models; n_samples = 100000)
+    paths = map(joinpath, fill(results_dir, length(models)), models)
+    results = map(load_results, paths)
+    
+    for i=1:length(models)-1
+        perf_1 = mean(results[i]["performance"], dims=2)[:,1]
+        perf_2 = mean(results[i+1]["performance"], dims=2)[:,1]
+        first_samples = confidence_intervals(perf_1, samples=true, n_boot=n_samples)
+        second_samples = confidence_intervals(perf_2, samples=true, n_boot=n_samples)
+        print("model $(models[i]) is signficantly worse than $(models[i+1]), p value: ")
+        println(1 - count(second_samples .- first_samples .> 0)/n_samples)
+    end
 
-	first_samples = confidence_intervals(perf_1, samples=true)
-	second_samples = confidence_intervals(perf_2, samples=true)
-	println(1 - count(first_samples .- second_samples .> 0)/100000)
 end
 
 
@@ -133,11 +135,10 @@ function plot_performance_between_models(model_1, model_2)
     Gadfly.draw(PNG("performance_between_models.png", 16Gadfly.inch, 16Gadfly.inch), p)
 end
 
-#significance_analysis("rejuv", "no_rejuv_trial")
 #plot_performance()
 #accuracy_compute()
 #plot_performance_between_models("rejuv", "no_rejuv_trial")
-    
-models = ["attention", "trial_avg", "base"]
-plot_performance(models)
-#performance_compute(models)
+
+significance_analysis(["base", "trial_avg", "attention"])
+#models = ["base", "trial_avg", "attention"]
+#plot_performance(models)
