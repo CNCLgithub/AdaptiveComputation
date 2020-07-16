@@ -57,14 +57,13 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = logsumexp(stats)
+    x = mean(stats)
     # g = x / 100.
     # amp = 15. * exp((x + 100)/245)
-    amp = 18.2 / (1.0 + exp(-0.28(x + 12.1)))
+    amp = 15. / (1.0 + exp(-0.35(x + 12.8)))
     # amp = x < -1000 ? 0 : 5
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
-    # 1
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
