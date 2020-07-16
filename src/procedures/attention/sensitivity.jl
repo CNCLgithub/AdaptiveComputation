@@ -50,22 +50,21 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     display(kls)
     # display(lls)
     for i = 1:n_latents
-        gs[i] = max(mean(kls[:, i]), 1E-150)
-        # gs[i] = max(sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i]))), 1E-150)
-        # gs[i] = sum(kls[:, i] .* exp.(lls[:, i] .- logsumexp(lls[:, i])))
+        gs[i] = max(mean(kls[:, i]), 1E-30)
     end
     println("kl per tracker: $(gs)")
     log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = sum(stats)
+    x = logsumexp(stats)
     # g = x / 100.
     # amp = 15. * exp((x + 100)/245)
-    amp = x < -1000 ? 0 : (0.01645)*x + (18.0)
+    amp = 18.2 / (1.0 + exp(-0.28(x + 12.1)))
     # amp = x < -1000 ? 0 : 5
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
+    # 1
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -85,7 +84,7 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 10.0)
+                            scale::Float64 = 100.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []

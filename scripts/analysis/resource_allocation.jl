@@ -21,6 +21,9 @@ function plot_exp_trial(path::String)
     end
     MOT.plot_attention(attended, 15, out)
     plot_rejuvenation(attempts, out)
+
+
+
     println(sum(attempts))
     return nothing
 end
