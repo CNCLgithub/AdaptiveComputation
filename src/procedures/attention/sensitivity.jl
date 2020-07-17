@@ -50,17 +50,17 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     display(kls)
     # display(lls)
     for i = 1:n_latents
-        gs[i] = max(mean(kls[:, i]), 1E-30)
+        gs[i] = mean(kls[:, i])
     end
     println("kl per tracker: $(gs)")
     log.(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = mean(stats)
+    x = logsumexp(stats)
     # g = x / 100.
     # amp = 15. * exp((x + 100)/245)
-    amp = 15. / (1.0 + exp(-0.35(x + 12.8)))
+    amp = 15.0 / (1.0 + exp(-0.45(x + 13.2)))
     # amp = x < -1000 ? 0 : 5
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
@@ -138,11 +138,9 @@ end
 
 function _merge(p::T, q::T) where T<:Dict
     keys_p, lls_p = zip(p...)
-    reserve_p =  last(lls_p) * 1.1 #log(1 - sum(exp.(lls_p))) - log(1E5)
-    # reserve_p =  log(1 - sum(exp.(lls_p)))
+    reserve_p =  minimum(lls_p) * 1.1
     keys_q, lls_q = zip(q...)
-    # reserve_q = log(1 - sum(exp.(lls_q)))
-    reserve_q = last(lls_q) * 1.1 # logsumexp(lls_p)
+    reserve_q = minimum(lls_q) * 1.1
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
@@ -158,6 +156,7 @@ function relative_entropy(p::T, q::T) where T<:Dict
     # println(qs)
     for (k, v) in ps
         # kl += exp(v - p_den) * (v - qs[k])
+        # println("$(exp(v - p_den)) * $(v - p_den - qs[k] + q_den)")
         kl += exp(v - p_den) * (v - p_den - qs[k] + q_den)
     end
     # println(kl)
