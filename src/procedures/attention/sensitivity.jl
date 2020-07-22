@@ -48,9 +48,11 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     end
     gs = Vector{Float64}(undef, n_latents)
     display(kls)
-    # display(lls)
+    display(lls)
     for i = 1:n_latents
-        gs[i] = mean(kls[:, i])
+        # gs[i] = mean(kls[:, i])
+        weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
+        gs[i] = sum(kls[:, i] .* weights)
     end
     println("kl per tracker: $(gs)")
     log.(gs)
@@ -128,9 +130,11 @@ end
 
 function extend(as, bs, reserve)
     not_in_p = setdiff(bs, as)
+    nn = length(not_in_p)
+    per_missing = reserve - log(nn)
     es = []
     for k in not_in_p
-        push!(es, (k, reserve))
+        push!(es, (k, per_missing))
     end
     return Dict(es)
 end
@@ -138,29 +142,35 @@ end
 
 function _merge(p::T, q::T) where T<:Dict
     keys_p, lls_p = zip(p...)
-    reserve_p =  minimum(lls_p) * 1.1
+    reserve_p =  minimum(lls_p) * 1.01
     keys_q, lls_q = zip(q...)
-    reserve_q = minimum(lls_q) * 1.1
+    reserve_q = minimum(lls_q) * 1.01
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
-    (extended_p, extended_q)
+    vals = Matrix{Float64}(undef, length(extended_p), 2)
+    # println(extended_p)
+    # println(extended_q)
+    for (i,k) in enumerate(keys(extended_p))
+        vals[i, 1] = extended_p[k]
+        vals[i, 2] = extended_q[k]
+    end
+    (keys(extended_p), vals)
 end
 
 function relative_entropy(p::T, q::T) where T<:Dict
-    ps, qs = _merge(p, q)
-    p_den = logsumexp(collect(Float64, values(ps)))
-    q_den = logsumexp(collect(Float64, values(qs)))
+    labels, probs = _merge(p, q)
+    probs[:, 1] .-= logsumexp(probs[:, 1])
+    probs[:, 2] .-= logsumexp(probs[:, 2])
+    ms = log.(sum(exp.(probs), dims = 2)) .- log(2)
+    # display(probs)
+    # display(ms)
     kl = 0
-    # println(ps)
-    # println(qs)
-    for (k, v) in ps
-        # kl += exp(v - p_den) * (v - qs[k])
-        # println("$(exp(v - p_den)) * $(v - p_den - qs[k] + q_den)")
-        kl += exp(v - p_den) * (v - p_den - qs[k] + q_den)
+    for i = 1:length(labels)
+        kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
+        kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
     end
     # println(kl)
-    # @assert kl >=  0
     max(kl, 0)
 end
 
