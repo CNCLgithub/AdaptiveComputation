@@ -26,6 +26,9 @@ end
 
     # legacy support for exp0
     exp0::Bool = false
+
+    # number of hypotheses in the stats
+    stats_n_hypotheses::Int = 3
 end
 
 function load(::Type{GMMaskParams}, path::String)
@@ -198,7 +201,7 @@ end
     ppp_params, mbrfs_params = get_masks_params(new_trackers, params)
 
     # initializing the saved state for the target designation
-    pmbrfs_stats = PMBRFSStats()
+    pmbrfs_stats = PMBRFSStats(params.stats_n_hypotheses)
     pmbrfs_params = PMBRFSParams(ppp_params, mbrfs_params, pmbrfs_stats)
 
     @trace(pmbrfs(pmbrfs_params), :masks)

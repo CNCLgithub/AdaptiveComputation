@@ -23,6 +23,7 @@ function load_exp0_trial(trial, gm, dataset_path;
     # getting masks
 	dots = data["gt_dots"]
     k = size(dots, 1)
+
     n_dots = Int(gm.n_trackers + gm.distractor_rate)
     positions = Vector{Array{Float64}}(undef, k)
 
@@ -62,10 +63,9 @@ function load_exp0_trial(trial, gm, dataset_path;
 
             println("Mask RCNN done!")
             # getting the last masks from ground truth
-            masks[k] = get_masks(positions[k],
-                                 gm.dot_radius,
+            masks[k] = get_masks(positions, gm.dot_radius,
                                  gm.img_height, gm.img_width,
-                                 gm.area_height, gm.area_width)
+                                 gm.area_height, gm.area_width)[k]
         else
             masks = get_masks(positions,
                               gm.dot_radius,

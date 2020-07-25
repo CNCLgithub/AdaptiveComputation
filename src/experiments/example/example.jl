@@ -19,13 +19,9 @@ function run_inference(q::ExampleExperiment, path::String)
     # generating initial positions and masks (observations)
     init_positions, init_vels, masks, positions = dgp(q.k, gm_params, motion)
 
-    # testing less inertia in dynamics for inference
-    #motion = @set motion.inertia = 0.99
-    #motion = @set motion.spring = 0.001
-    #motion = @set motion.sigma_w = 2.5
-
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
+                                :tracker_masks => extract_tracker_masks
                                ))
 
     
@@ -70,14 +66,27 @@ function run_inference(q::ExampleExperiment, path::String)
 
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
-
-    # getting the images
-    full_imgs = get_full_imgs(masks)
-
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under inference_render
-    visualize(tracker_positions, full_imgs, gm_params)
+    tracker_masks = extracted["unweighted"][:tracker_masks]
     
+    aux_state = extracted["aux_state"]
+    attempts = Vector{Int}(undef, q.k)
+    attended = Vector{Vector{Float64}}(undef, q.k)
+
+    for t=1:q.k
+        attempts[t] = aux_state[t].attempts
+        attended[t] = aux_state[t].attended_trackers
+    end
+    
+    plot_attention(attended, attention)
+
+    # visualizing inference on stimuli
+    render(positions, gm_params;
+           pf_xy=tracker_positions[:,:,:,1:2],
+           attended=attended/attention.max_sweeps,
+           tracker_masks=tracker_masks)
+
+    #full_imgs = get_full_imgs(masks)
+    #visualize(tracker_positions, full_imgs, gm_params)
 
     return results
 end
