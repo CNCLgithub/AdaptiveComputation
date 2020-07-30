@@ -143,7 +143,7 @@ function render(dot_positions,
         _render_dots(dot_positions[1], gm; highlighted=collect(1:gm.n_trackers))
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[1,:,:,:], gm, tracker_masks=tracker_masks[1,:,:])
+            _render_pf(pf_xy[1,:,:,:], gm)
         end
 
         finish()
@@ -159,7 +159,7 @@ function render(dot_positions,
         _render_dots(dot_positions[t], gm)
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[t,:,:,:], gm; attended=attended[t], tracker_masks=tracker_masks[t,:,:])
+            _render_pf(pf_xy[t,:,:,:], gm; attended=attended[t])
         end
 
         finish()
@@ -172,7 +172,7 @@ function render(dot_positions,
         _render_dots(dot_positions[q.k], gm; highlighted=collect(1:gm.n_trackers))
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[q.k,:,:,:], gm; attended=attended[q.k], tracker_masks=tracker_masks[q.k,:,:])
+            _render_pf(pf_xy[q.k,:,:,:], gm; attended=attended[q.k])
         end
 
         finish()

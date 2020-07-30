@@ -22,6 +22,13 @@ function plot_exp_trial(path::String)
     MOT.plot_attention(attended, 15, out)
     plot_rejuvenation(attempts, out)
 
+    gm_params = load(GMMaskParams, q.gm)
+    positions = last(load_exp0_trial(q.trial, gm_params, q.dataset_path))
+    render(positions, q, gm_params;
+            dir = joinpath(out, "render"),
+            pf_xy=tracker_positions[:,:,:,1:2],
+            attended=attended/attention.sweeps,
+            tracker_masks=tracker_masks)
 
 
     println(sum(attempts))

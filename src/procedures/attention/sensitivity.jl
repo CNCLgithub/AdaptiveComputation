@@ -102,7 +102,7 @@ function _dc(tr::Gen.Trace, t::Int, scale::Float64)
     Dict(zip(tds, lls))
 end
 
-function data_correspondence(tr::Gen.Trace; scale::Float64 = 10.0)
+function data_correspondence(tr::Gen.Trace; scale::Float64 = 100.0)
     k = first(Gen.get_args(tr))
     d = _td(tr, k, scale)
 end
