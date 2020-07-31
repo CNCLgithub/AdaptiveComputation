@@ -7,7 +7,8 @@ using StatProfilerHTML
 #            :assignments => extract_assignments)
 # latent_map = LatentMap(_lm)
 
-gm_params = GMMaskParams()
+gm_params = GMMaskParams(img_width = 100,
+                         img_height = 100)
 
 # generating initial positions and masks (observations)
 
@@ -36,6 +37,6 @@ obs[:states => 1 => :masks] = masks[1]
 @time (tr, ls, _, _) = Gen.update(trace, (1, motion, gm_params), (UnknownChange(),), obs)
 
 Profile.clear()
-Profile.init(;n = 1000000, delay = 1E-5)
+Profile.init(;n = 10000000, delay = 1E-5)
 @profilehtml (tr, ls, _, _) = Gen.update(trace, (1, motion, gm_params), (UnknownChange(),), obs);
 @profilehtml (tr, ls, _, _) = Gen.update(trace, (1, motion, gm_params), (UnknownChange(),), obs);
