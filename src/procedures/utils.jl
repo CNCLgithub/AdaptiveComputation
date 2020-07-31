@@ -53,15 +53,8 @@ end
 function extract_assignments(trace::Gen.Trace)
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
-     
-    pmbrfs_stats = ret[2][t].pmbrfs_params.pmbrfs_stats
-    As = pmbrfs_stats.assignments
-    
-    # partition permuted by the inverse of the assignment
-    A = As[1][1][invperm(As[1][2])] # this is to get the old sense of assignment, i.e. mapping from trackers to observations
-    A = reshape(A, (1,1,size(A)...))
-
-    return A
+    record = ret[2][t].record
+    collect(zip(record.table, record.logscores))
 end
 
 function extract_tracker_masks(trace::Gen.Trace)

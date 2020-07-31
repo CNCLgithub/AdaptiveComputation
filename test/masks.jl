@@ -18,16 +18,20 @@ mask_args = first(MOT.get_masks_rvs_args(positions, gm_params))
 pmbrfs = RFSElements{Array}(undef, 5)
 pmask = fill(0.1, gm_params.img_height, gm_params.img_width)
 pmbrfs[1] = PoissonElement{Array}(4, mask, (pmask,))
-r = 0.95
+r = 1.0
 for i = 2:5
     pmbrfs[i] = BernoulliElement{Array}(r, mask, mask_args[i-1])
 end
 
 xs = fill(mask(first(mask_args)...), 8)
-logpdf(rfs, xs, pmbrfs)
-Profile.clear()
-Profile.init(;n = 1000000, delay = 1E-5)
-@time logpdf(rfs, xs, pmbrfs)
-@profilehtml logpdf(rfs, xs, pmbrfs)
+record = AssociationRecord(50)
+
+logpdf(rfs, xs, pmbrfs, record)
+# Profile.clear()
+# Profile.init(;n = 1000000, delay = 1E-5)
+@time logpdf(rfs, xs, pmbrfs, record)
+display(collect(zip(record.table, record.logscores)))
+display(sizeof(record.table))
+# @profilehtml logpdf(rfs, xs, pmbrfs)
 # @profile logpdf(rfs, xs, pmbrfs)
 # pprof()

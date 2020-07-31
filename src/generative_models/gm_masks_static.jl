@@ -1,15 +1,15 @@
-export gm_masks_static
+export gm_masks_static, GMMaskParams
 
 using LinearAlgebra
 
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
-    # pmbrfs_params::Union{PMBRFSParams, Nothing}
+    record::AssociationRecord
 end
 
 @with_kw struct GMMaskParams
-    n_trackers::Int = 1
-    distractor_rate::Real = 0.0
+    n_trackers::Int = 4
+    distractor_rate::Real = 4.0
     init_pos_spread::Real = 400.0
     
     # graphics parameters
@@ -23,8 +23,11 @@ end
     mask_spread_1::Float64 = 0.5
     mask_spread_2::Float64 = 2.5
 
+    # rfs parameters
+    record_size::Int = 100 # number of associations
+
     # legacy support for exp0
-    exp0::Bool = false
+    exp0::Bool = true
 end
 
 function load(::Type{GMMaskParams}, path::String)
@@ -39,7 +42,7 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
     depth_perm = sortperm(trackers[:, 3])
     trackers = trackers[depth_perm, :]
 
-    rvs_args = Vector{Tuple}(undef, length(trackers))
+    rvs_args = Vector{Tuple}(undef, params.n_trackers)
     
     # initially empty image
     img_so_far = zeros(params.img_height, params.img_width)
@@ -70,115 +73,116 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
 end
 
 
-# """
-#     find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
+"""
+    find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
    
-# Returns the index of the nearest neighbour
-# """
-# # TODO the copy statement is inefficient
-# function find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
-#     d = copy(distances[i,:])
-#     d[i] = Inf
-#     return argmin(d)
-# end
+Returns the index of the nearest neighbour
+"""
+# TODO the copy statement is inefficient
+function find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
+    d = copy(distances[i,:])
+    d[i] = Inf
+    return argmin(d)
+end
 
-# """
-#     get_masks_params(trackers, params::Params)
+"""
+    get_masks_params(trackers, params::Params)
 
-# Returns the masks parameters (for PMBRFS) - ppp_params, mbrfs_params
-# i.e. parameters for the pmbrfs random variable describing the masks
-# """
-# function get_masks_params(trackers, params::GMMaskParams)
+Returns the masks parameters (for PMBRFS) - ppp_params, mbrfs_params
+i.e. parameters for the pmbrfs random variable describing the masks
+"""
+function get_masks_params(trackers, params::GMMaskParams)
 
-#     # compiling list of x,y,z coordinates of all objects
-#     objects = [trackers[i].pos[j] for i=1:params.n_trackers, j=1:3]
-#     distances = [norm(objects[i,1:2] - objects[j,1:2])
-#                 for i=1:params.n_trackers, j=1:params.n_trackers]
+    # compiling list of x,y,z coordinates of all objects
+    objects = [trackers[i].pos[j] for i=1:params.n_trackers, j=1:3]
+    distances = [norm(objects[i,1:2] - objects[j,1:2])
+                for i=1:params.n_trackers, j=1:params.n_trackers]
     
-#     # probability of existence of a particular tracker in MBRFS masks set
-#     rs = zeros(params.n_trackers)
-#     scaling = 5.0 # parameter to tweak how close objects have to be to occlude
-#     missed_detection = 1e-30 # parameter to tweak probability of missed detection
+    # probability of existence of a particular tracker in MBRFS masks set
+    rs = zeros(params.n_trackers)
+    scaling = 5.0 # parameter to tweak how close objects have to be to occlude
+    missed_detection = 1e-30 # parameter to tweak probability of missed detection
 
-#     if params.n_trackers == 1
-#        rs = [1.0 - missed_detection]
-#     else
-#         for i=1:params.n_trackers
-#             j = find_nearest_neighbour(distances, i)
-            
-#             # comparing the depth
-#             if objects[i,3] > objects[j,3]
-#                 rs[i] = 1.0 - missed_detection
-#             else
-#                 r = 1.0 - exp(-distances[i,j] * scaling)
-#                 r -= missed_detection
-#                 rs[i] = max(r, 0.0) # lower bound 0.0
-#             end
-#         end
-#     end
 
-#     # legacy support for exp0 - masks always present
-#     if params.exp0
-#         rs = ones(params.n_trackers)
-#     end
+    # legacy support for exp0 - masks always present
+    if params.exp0
+        rs = ones(params.n_trackers)
+    else
+        if params.n_trackers == 1
+            rs = [1.0 - missed_detection]
+        else
+            for i=1:params.n_trackers
+                j = find_nearest_neighbour(distances, i)
 
-#     rvs = fill(MOT.mask, params.n_trackers)
-#     rvs_args, trackers_img = get_masks_rvs_args(objects, params)
-#     mbrfs_params = MBRFSParams(rs, rvs, rvs_args)
+                # comparing the depth
+                if objects[i,3] > objects[j,3]
+                    rs[i] = 1.0 - missed_detection
+                else
+                    r = 1.0 - exp(-distances[i,j] * scaling)
+                    r -= missed_detection
+                    rs[i] = max(r, 0.0) # lower bound 0.0
+                end
+            end
+        end
+    end
 
-#     # explaining distractor with one uniform mask with trackers cutout
-#     # probability of sampling true on individual pixel given that one distractor is present
-#     pixel_prob = (params.dot_radius*pi^2)/(params.img_width*params.img_height)
-#     # getting this in the array with size of the image
-#     mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
-#     #mask_prob[trackers_img] .= 1e-6
-#     mask_prob = subtract_images(mask_prob, trackers_img)
-#     mask_params = (mask_prob,)
+    mask_args, trackers_img = get_masks_rvs_args(objects, params)
 
-#     ppp_params = PPPParams(params.distractor_rate, mask, mask_params)
+    # explaining distractor with one uniform mask with trackers cutout
+    # probability of sampling true on individual pixel given that one distractor is present
+    pixel_prob = (params.dot_radius*pi^2)/(params.img_width*params.img_height)
+    # getting this in the array with size of the image
+    mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
+    clutter_mask = subtract_images(mask_prob, trackers_img)
 
-#     return ppp_params, mbrfs_params
-# end
+    pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
+    pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
+    for i = 2:5
+        idx = i - 1
+        pmbrfs[i] = BernoulliElement{Array}(rs[idx], mask, mask_args[idx])
+    end
+    pmbrfs
+end
 
 
 # ##### INIT STATE ######
 # #@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
-# @gen function sample_init_tracker(init_pos_spread::Real, exp0::Bool)::Dot
+@gen function sample_init_tracker(init_pos_spread::Real, exp0::Bool)::Dot
     
-#     # legacy support for exp0
-#     if exp0
-#         # exp0 initial position was sampled from normal (0.0, 30.0)
-#         x = @trace(normal(0.0, 30.0), :x)
-#         y = @trace(normal(0.0, 30.0), :y)
-#         # exp0 initial velocity was sampled from normal(0.0, 2.2)
-#         vx = @trace(normal(0.0, 2.2), :vx)
-#         vy = @trace(normal(0.0, 2.2), :vy)
-#     else
-#         x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
-#         y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
-#         # initial velocity is zero (in the new version)
-#         vx = 0.0
-#         vy = 0.0
-#     end
+    # legacy support for exp0
+    if exp0
+        # exp0 initial position was sampled from normal (0.0, 30.0)
+        x = @trace(normal(0.0, 30.0), :x)
+        y = @trace(normal(0.0, 30.0), :y)
+        # exp0 initial velocity was sampled from normal(0.0, 2.2)
+        vx = @trace(normal(0.0, 2.2), :vx)
+        vy = @trace(normal(0.0, 2.2), :vy)
+    else
+        x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
+        y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
+        # initial velocity is zero (in the new version)
+        vx = 0.0
+        vy = 0.0
+    end
 
-#     # z (depth) drawn at beginning
-#     z = @trace(uniform(0, 1), :z)
+    # z (depth) drawn at beginning
+    z = @trace(uniform(0, 1), :z)
 
-#     # initial velocity is zero
-#     return Dot([x,y,z], [0,0])
-# end
+    # initial velocity is zero
+    return Dot([x,y,z], [0,0])
+end
 
-# init_trackers_map = Gen.Map(sample_init_tracker)
+init_trackers_map = Gen.Map(sample_init_tracker)
 
-# @gen function sample_init_state(params::GMMaskParams)
-#     trackers_params = fill(params.init_pos_spread, params.n_trackers)
-#     exp0 = fill(params.exp0, params.n_trackers)
-#     trackers = @trace(init_trackers_map(trackers_params, exp0), :trackers)
-#     trackers = collect(Dot, trackers)
-#     # add each tracker to the graph as independent vertices
-#     graph = CausalGraph(trackers, SimpleGraph)
-#     return FullState(graph, nothing)
-# end
+@gen function sample_init_state(params::GMMaskParams)
+    trackers_params = fill(params.init_pos_spread, params.n_trackers)
+    exp0 = fill(params.exp0, params.n_trackers)
+    trackers = @trace(init_trackers_map(trackers_params, exp0), :trackers)
+    trackers = collect(Dot, trackers)
+    # add each tracker to the graph as independent vertices
+    graph = CausalGraph(trackers, SimpleGraph)
+    return FullState(graph, AssociationRecord(0))
+end
 
 
 ##################################
@@ -199,7 +203,7 @@ end
 
     # returning this to get target designation and assignment
     # later (HACKY STUFF) saving as part of state
-    new_state = FullState(new_graph, pmbrfs_params)
+    new_state = FullState(new_graph, rfs_rec)
 
     return new_state
 end

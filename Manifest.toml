@@ -370,9 +370,9 @@ version = "0.4.0"
 
 [[Fontconfig_jll]]
 deps = ["Bzip2_jll", "Expat_jll", "FreeType2_jll", "Libdl", "Libuuid_jll", "Pkg", "Zlib_jll"]
-git-tree-sha1 = "73267a13eabf7506cbc205358139e399a365ab4a"
+git-tree-sha1 = "141fe5f6d4013304d2ca5af0ac20ef4855bcc4e5"
 uuid = "a3f928ae-7b40-5064-980b-68af3947d34b"
-version = "2.13.1+12"
+version = "2.13.1+11"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
@@ -655,9 +655,9 @@ version = "0.21.0"
 
 [[JpegTurbo_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "a53414ab7217ae6cc34e41c453339e17a873d169"
+git-tree-sha1 = "b007cedc10bb017cdae3af0062fe4dd29b483c70"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
-version = "2.0.1+1"
+version = "2.0.1+0"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -794,9 +794,9 @@ version = "2.0.0"
 
 [[Lz4_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "51b1db0732bbdcfabb60e36095cc3ed9c0016932"
+git-tree-sha1 = "e1a93171a400d4578193eaa39edd2d3f5db08fb6"
 uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
-version = "1.9.2+2"
+version = "1.9.2+0"
 
 [[MKL_jll]]
 deps = ["IntelOpenMP_jll", "Libdl", "Pkg"]
@@ -869,9 +869,9 @@ version = "1.1.0"
 
 [[OpenBLAS_jll]]
 deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
-git-tree-sha1 = "0c922fd9634e358622e333fc58de61f05a048492"
+git-tree-sha1 = "1887096f6897306a4662f7c5af936da7d5d1a062"
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.9+5"
+version = "0.3.9+4"
 
 [[OpenSpecFun_jll]]
 deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
