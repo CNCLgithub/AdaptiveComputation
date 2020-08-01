@@ -60,10 +60,9 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    # g = x / 100.
-    # amp = 15. * exp((x + 100)/245)
-    amp = 15.0 / (1.0 + exp(-0.285(x + 14.0)))
-    # amp = x < -1000 ? 0 : 5
+    # amp = 15.0 / (1.0 + exp(-0.285(x + 14.0)))
+    amp = 15.0 / (1.0 + exp(-0.3(x + 10.0)))
+
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
 end
@@ -78,14 +77,19 @@ end
 
 function _td(tr::Gen.Trace, t::Int, scale::Float64)
     ret = Gen.get_retval(tr)[2][t]
-    tds = ret.pmbrfs_params.pmbrfs_stats.partitions
-    tds = map(first, tds)
-    lls = ret.pmbrfs_params.pmbrfs_stats.ll_partitions ./ scale
-    Dict(zip(tds, lls))
+    record = ret.record
+    poiss_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
+    unique_poiss_assocs = unique(poiss_assocs)
+    td = Dict{Set{Int64}, Float64}()
+    for ppp_assoc in unique_poiss_assocs
+        idxs = findall(map(x -> x == ppp_assoc, poiss_assocs))
+        td[ppp_assoc] = logsumexp(record.logscores[idxs]) / scale
+    end
+    td
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 100.0)
+                            scale::Float64 = 75.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
     previous = []
@@ -162,9 +166,12 @@ function relative_entropy(p::T, q::T) where T<:Dict
     labels, probs = _merge(p, q)
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
-    ms = log.(sum(exp.(probs), dims = 2)) .- log(2)
+    ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
+    # display(p)
+    # display(q)
     # display(probs)
     # display(ms)
+    # error()
     kl = 0
     for i = 1:length(labels)
         kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])

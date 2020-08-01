@@ -39,8 +39,10 @@ end
 
 
 # 2d gaussian function
-function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
-    return A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
+function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
+                                  sigma_x::T, sigma_y::T) where
+    {I<:Int64,T<:Float64}
+    A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
 
 

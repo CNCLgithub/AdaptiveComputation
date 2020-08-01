@@ -7,8 +7,11 @@ using StatProfilerHTML
 #            :assignments => extract_assignments)
 # latent_map = LatentMap(_lm)
 
-gm_params = GMMaskParams(img_width = 100,
-                         img_height = 100)
+gm_params = GMMaskParams(
+    distractor_rate = 4.0,
+    n_trackers = 4,
+    img_width = 100,
+    img_height = 100)
 
 # generating initial positions and masks (observations)
 

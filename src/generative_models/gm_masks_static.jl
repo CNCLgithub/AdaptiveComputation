@@ -137,7 +137,7 @@ function get_masks_params(trackers, params::GMMaskParams)
 
     pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
     pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
-    for i = 2:5
+    for i = 2:length(pmbrfs)
         idx = i - 1
         pmbrfs[i] = BernoulliElement{Array}(rs[idx], mask, mask_args[idx])
     end

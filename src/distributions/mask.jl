@@ -12,13 +12,9 @@ function Gen.random(::Mask, ps::Matrix{Float64})
 	return image
 end
 
-function Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64})
-    ll = 0
-    for i in eachindex(image)
-        ll += Gen.logpdf(bernoulli, image[i], ps[i])
-    end
-    ll
-end
+b_pdf(x::Bool, p::Float64) = Gen.logpdf(bernoulli, x, p)
+
+Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64}) = reduce(+, b_pdf.(image, ps))
 
 
 (::Mask)(ps) = Gen.random(Mask(), ps)
