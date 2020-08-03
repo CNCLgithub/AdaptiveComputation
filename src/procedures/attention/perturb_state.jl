@@ -10,8 +10,7 @@ Perturbs velocity based on probs of assignments to observations.
     choices = Gen.get_choices(trace)
 
     # sample a tracker to perturb
-    tracker_ps = softmax(probs)
-    tracker = @trace(Gen.categorical(tracker_ps), :tracker)
+    tracker = @trace(Gen.categorical(probs), :tracker)
     
     # perturb velocity
     addr_vx = :states => t => :dynamics => :brownian => tracker => :vx
@@ -74,7 +73,6 @@ function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
     num_particles = length(state.traces)
     accepted = 0
     attended_trackers = zeros(length(probs))
-
     args = (probs, attended_trackers)
     for i=1:num_particles
         state.traces[i], a = state_move(state.traces[i], args)

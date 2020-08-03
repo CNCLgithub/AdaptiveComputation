@@ -60,8 +60,8 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    # amp = 15.0 / (1.0 + exp(-0.285(x + 14.0)))
-    amp = 15.0 / (1.0 + exp(-0.3(x + 10.0)))
+    amp = 15.0 / (1.0 + exp(-0.5(x + 5.0)))
+    # amp = 15.0 / (1.0 + exp(-0.(x + 35.0)))
 
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
@@ -76,8 +76,10 @@ end
 
 
 function _td(tr::Gen.Trace, t::Int, scale::Float64)
-    ret = Gen.get_retval(tr)[2][t]
-    record = ret.record
+    xs = get_choices(tr)[:states => t => :masks]
+    pmbrfs = Gen.get_retval(tr)[2][t].record
+    record = AssociationRecord(100)
+    Gen.logpdf(rfs, xs, pmbrfs, record)
     poiss_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
     unique_poiss_assocs = unique(poiss_assocs)
     td = Dict{Set{Int64}, Float64}()
@@ -89,26 +91,28 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 75.0)
+                            scale::Float64 = 100.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
-    previous = []
-    for t = max(1, k-w):(k - 1)
-        push!(previous, _td(tr, t, scale))
-    end
-    Base.merge((x,y) -> logsumexp([x,y]) .- log(2), current_td, previous...)
+    # previous = []
+    # for t = max(1, k-w):(k - 1)
+    #     push!(previous, _td(tr, t, scale))
+    # end
+    # Base.merge((x,y) -> logsumexp([x,y]) .- log(2), current_td, previous...)
 end
 
-function _dc(tr::Gen.Trace, t::Int, scale::Float64)
-    ret = Gen.get_retval(tr)[2][t]
-    tds = ret.pmbrfs_params.pmbrfs_stats.assignments
-    lls = ret.pmbrfs_params.pmbrfs_stats.ll_assignments ./ scale
-    Dict(zip(tds, lls))
+function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
+    xs = get_choices(tr)[:states => t => :masks]
+    pmbrfs = Gen.get_retval(tr)[2][t].record
+    record = AssociationRecord(100)
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    Dict{Vector{Vector{Int64}}, Float64}(zip(record.table,
+                                             record.logscores ./ scale))
 end
 
 function data_correspondence(tr::Gen.Trace; scale::Float64 = 100.0)
     k = first(Gen.get_args(tr))
-    d = _td(tr, k, scale)
+    d = _dc(tr, k, scale)
 end
 
 
@@ -168,16 +172,15 @@ function relative_entropy(p::T, q::T) where T<:Dict
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
     # display(p)
-    # display(q)
     # display(probs)
     # display(ms)
-    # error()
     kl = 0
     for i = 1:length(labels)
+        # println("kl => $kl")
         kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
     end
-    # println(kl)
+    # error()
     max(kl, 0)
 end
 

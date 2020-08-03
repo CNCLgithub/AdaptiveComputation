@@ -4,7 +4,7 @@ using LinearAlgebra
 
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
-    record::AssociationRecord
+    record::RFSElements{Array}
 end
 
 @with_kw struct GMMaskParams
@@ -181,7 +181,8 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     trackers = collect(Dot, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
-    return FullState(graph, AssociationRecord(0))
+    pmbrfs = RFSElements{Array}(undef, 0)
+    return FullState(graph, pmbrfs)
 end
 
 
@@ -198,19 +199,19 @@ end
     new_trackers = new_graph.elements
 
     pmbrfs = get_masks_params(new_trackers, params)
-    rfs_rec = AssociationRecord(params.record_size)
-    @trace(rfs(pmbrfs, rfs_rec), :masks)
+    # rfs_rec = AssociationRecord(params.record_size)
+    @trace(rfs(pmbrfs), :masks)
 
     # returning this to get target designation and assignment
     # later (HACKY STUFF) saving as part of state
-    new_state = FullState(new_graph, rfs_rec)
+    new_state = FullState(new_graph, pmbrfs)
 
     return new_state
 end
 
 chain = Gen.Unfold(kernel)
 
-@gen (static, nojuliacache) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen static function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
     init_state = @trace(sample_init_state(params), :init_state)

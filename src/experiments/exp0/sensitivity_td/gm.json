@@ -12,9 +12,9 @@
     "dot_radius": 20.0,
     
     "mask_spread_1": 0.5,
-    "mask_spread_2": 1.5,
+    "mask_spread_2": 1.75,
 
     "exp0": true,
 
-    "record_size": 20
+    "record_size": 10
 }

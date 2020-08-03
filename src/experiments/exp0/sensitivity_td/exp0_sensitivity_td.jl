@@ -14,8 +14,8 @@ get_name(::Exp0SensTD) = "exp0_senstd"
 
 function run_inference(q::Exp0SensTD, path::String; viz::Bool = false)
     attention = load(MapSensitivity, q.attention)
-    _lm = Dict(:tracker_positions => extract_tracker_positions,
-               :assignments => extract_assignments)
+    _lm = Dict(:tracker_positions => extract_tracker_positions)
+               # :assignments => extract_assignments)
     latent_map = LatentMap(_lm)
 
     gm_params = load(GMMaskParams, q.gm)

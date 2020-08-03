@@ -26,19 +26,20 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 
    
     rtrace.stats = get_stats(attention, pf_state)
+    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : softmax(rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
     println("objective: $(rtrace.stats)")
-    println("weights: $(softmax(rtrace.stats))")
+    println("weights: $(weights)")
     println("sweeps: $sweeps")
 
     fails = 0
     # main loop going through rejuvenation
     for sweep = 1:sweeps
-        #println("sweep $sweep")
 
         # making a rejuvenation move (rejuvenating velocity)
-        acceptance, attended_trackers = perturb_state!(pf_state, rtrace.stats)
+        #
+        acceptance, attended_trackers = perturb_state!(pf_state, weights)
         rtrace.acceptance += acceptance
         rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
