@@ -14,7 +14,5 @@
     "mask_spread_1": 0.5,
     "mask_spread_2": 1.75,
 
-    "exp0": true,
-
-    "record_size": 10
+    "exp0": true
 }

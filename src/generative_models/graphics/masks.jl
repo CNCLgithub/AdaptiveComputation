@@ -39,8 +39,10 @@ end
 
 
 # 2d gaussian function
-function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
-    return A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
+function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
+                                  sigma_x::T, sigma_y::T) where
+    {I<:Int64,T<:Float64}
+    A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
 
 
@@ -57,12 +59,12 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
     mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            mask[j,i] += norm([i,j] - center) < r
+            mask[j,i] += sqrt((i - center[1])^2 + (j - center[2])^2) < r
             mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
                                                   gauss_amp, gauss_std, gauss_std)
         end
     end
-    mask = min.(mask, 1.0 - 1e-5)
+    mask = min.(mask, 0.75) # 1.0 - 1e-5)
 end
 
 

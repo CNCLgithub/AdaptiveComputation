@@ -5,12 +5,12 @@ using LinearAlgebra
 
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
-    pmbrfs_params::Union{PMBRFSParams, Nothing}
+    record::RFSElements{Array}
 end
 
 @with_kw struct GMMaskParams
-    n_trackers::Int = 1
-    distractor_rate::Real = 0.0
+    n_trackers::Int = 4
+    distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
     
     # graphics parameters
@@ -24,11 +24,11 @@ end
     mask_spread_1::Float64 = 0.5
     mask_spread_2::Float64 = 2.5
 
+    # rfs parameters
+    record_size::Int = 100 # number of associations
+
     # legacy support for exp0
     exp0::Bool = false
-
-    # number of hypotheses in the stats
-    stats_n_hypotheses::Int = 3
 end
 
 function load(::Type{GMMaskParams}, path::String)
@@ -43,7 +43,7 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
     depth_perm = sortperm(trackers[:, 3])
     trackers = trackers[depth_perm, :]
 
-    rvs_args = Vector{Tuple}(undef, length(trackers))
+    rvs_args = Vector{Tuple}(undef, params.n_trackers)
     
     # initially empty image
     img_so_far = zeros(params.img_height, params.img_width)
@@ -104,49 +104,50 @@ function get_masks_params(trackers, params::GMMaskParams)
     scaling = 5.0 # parameter to tweak how close objects have to be to occlude
     missed_detection = 1e-30 # parameter to tweak probability of missed detection
 
-    if params.n_trackers == 1
-       rs = [1.0 - missed_detection]
-    else
-        for i=1:params.n_trackers
-            j = find_nearest_neighbour(distances, i)
-            
-            # comparing the depth
-            if objects[i,3] > objects[j,3]
-                rs[i] = 1.0 - missed_detection
-            else
-                r = 1.0 - exp(-distances[i,j] * scaling)
-                r -= missed_detection
-                rs[i] = max(r, 0.0) # lower bound 0.0
-            end
-        end
-    end
 
     # legacy support for exp0 - masks always present
     if params.exp0
         rs = ones(params.n_trackers)
+    else
+        if params.n_trackers == 1
+            rs = [1.0 - missed_detection]
+        else
+            for i=1:params.n_trackers
+                j = find_nearest_neighbour(distances, i)
+
+                # comparing the depth
+                if objects[i,3] > objects[j,3]
+                    rs[i] = 1.0 - missed_detection
+                else
+                    r = 1.0 - exp(-distances[i,j] * scaling)
+                    r -= missed_detection
+                    rs[i] = max(r, 0.0) # lower bound 0.0
+                end
+            end
+        end
     end
 
-    rvs = fill(MOT.mask, params.n_trackers)
-    rvs_args, trackers_img = get_masks_rvs_args(objects, params)
-    mbrfs_params = MBRFSParams(rs, rvs, rvs_args)
+    mask_args, trackers_img = get_masks_rvs_args(objects, params)
 
     # explaining distractor with one uniform mask with trackers cutout
     # probability of sampling true on individual pixel given that one distractor is present
     pixel_prob = (params.dot_radius*pi^2)/(params.img_width*params.img_height)
     # getting this in the array with size of the image
     mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
-    #mask_prob[trackers_img] .= 1e-6
-    mask_prob = subtract_images(mask_prob, trackers_img)
-    mask_params = (mask_prob,)
+    clutter_mask = subtract_images(mask_prob, trackers_img)
 
-    ppp_params = PPPParams(params.distractor_rate, mask, mask_params)
-
-    return ppp_params, mbrfs_params
+    pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
+    pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
+    for i = 2:length(pmbrfs)
+        idx = i - 1
+        pmbrfs[i] = BernoulliElement{Array}(rs[idx], mask, mask_args[idx])
+    end
+    pmbrfs
 end
 
 
-##### INIT STATE ######
-#@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
+# ##### INIT STATE ######
+# #@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
 @gen function sample_init_tracker(init_pos_spread::Real, exp0::Bool)::Dot
     
     # legacy support for exp0
@@ -181,41 +182,37 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     trackers = collect(Dot, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
-    return FullState(graph, nothing)
+    pmbrfs = RFSElements{Array}(undef, 0)
+    return FullState(graph, pmbrfs)
 end
 
 
 ##################################
 
-@gen (static) function kernel(t::Int,
-                              prev_state::FullState,
-                              dynamics_model::AbstractDynamicsModel,
-                              params::GMMaskParams)
+@gen static function kernel(t::Int,
+                            prev_state::FullState,
+                            dynamics_model::AbstractDynamicsModel,
+                            params::GMMaskParams)
 
     prev_graph = prev_state.graph
 
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
 
-    # get masks params returns parameters for the poisson multi bernoulli
-    ppp_params, mbrfs_params = get_masks_params(new_trackers, params)
-
-    # initializing the saved state for the target designation
-    pmbrfs_stats = PMBRFSStats(params.stats_n_hypotheses)
-    pmbrfs_params = PMBRFSParams(ppp_params, mbrfs_params, pmbrfs_stats)
-
-    @trace(pmbrfs(pmbrfs_params), :masks)
+    pmbrfs = get_masks_params(new_trackers, params)
+    # rfs_rec = AssociationRecord(params.record_size)
+    @trace(rfs(pmbrfs), :masks)
 
     # returning this to get target designation and assignment
     # later (HACKY STUFF) saving as part of state
-    new_state = FullState(new_graph, pmbrfs_params)
+    new_state = FullState(new_graph, pmbrfs)
 
     return new_state
 end
 
 chain = Gen.Unfold(kernel)
 
-@gen (static) function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen static function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     
     init_state = @trace(sample_init_state(params), :init_state)

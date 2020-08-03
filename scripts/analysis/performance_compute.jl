@@ -16,7 +16,6 @@ results_dir = "exp0_results"
 function performance_compute(experiments)
     for experiment in experiments
         results = load_results(joinpath(results_dir, experiment))
-
         perf_trial = mean(results["performance"], dims=2)[:,1]
         comp_trial = mean(results["compute"], dims=2)[:,1]
         pred_target_trial = mean(results["pred_target"], dims=2)[:,1,:]
@@ -39,7 +38,6 @@ function performance_compute(experiments)
         println("$experiment performance: $(mean(perf_trial))")
     end
 end
-
 
 function confidence_intervals(data; samples=false, n_boot = 100000)
 	cil = 0.95

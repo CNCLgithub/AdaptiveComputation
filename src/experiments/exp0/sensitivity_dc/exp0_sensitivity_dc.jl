@@ -1,6 +1,6 @@
-export Exp0SensTD
+export Exp0SensDC
 
-@with_kw struct Exp0SensTD <: AbstractExperiment
+@with_kw struct Exp0SensDC <: AbstractExperiment
     trial::Int = 1
     dataset_path::String = "datasets/exp_0.h5"
     proc::String = "$(@__DIR__)/proc.json"
@@ -10,10 +10,11 @@ export Exp0SensTD
     k::Int = 120
 end
 
-get_name(::Exp0SensTD) = "exp0_senstd"
+get_name(::Exp0SensDC) = "exp0_sensdc"
 
-function run_inference(q::Exp0SensTD, path::String; viz::Bool = false)
-    attention = load(MapSensitivity, q.attention)
+function run_inference(q::Exp0SensDC, path::String; viz::Bool = false)
+    attention = load(MapSensitivity, q.attention,
+                     objective = data_correspondence)
     _lm = Dict(:tracker_positions => extract_tracker_positions)
                # :assignments => extract_assignments)
     latent_map = LatentMap(_lm)
@@ -87,11 +88,6 @@ function run_inference(q::Exp0SensTD, path::String; viz::Bool = false)
                attended=attended/attention.sweeps,)
 
     end
-    results
 end
 
 
-function run_inference(q::Exp0SensTD, path::String, latent_map::LatentMap,
-                       attention::MapSensitivity)
-    return results
-end

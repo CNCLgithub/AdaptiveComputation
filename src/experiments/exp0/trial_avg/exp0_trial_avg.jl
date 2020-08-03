@@ -2,7 +2,6 @@ export Exp0TrialAvg
 
 @with_kw struct Exp0TrialAvg <: AbstractExperiment
     trial::Int
-    save_path::Union{Nothing,String} = nothing
     dataset_path::String = "datasets/exp_0.h5"
     exp0_results_attention_path = "exp0_results/attention"
     proc::String = "$(@__DIR__)/proc.json"
@@ -27,7 +26,7 @@ function load_uniform_attention(q::Exp0TrialAvg)
 end
 
 
-function run_inference(q::Exp0TrialAvg)
+function run_inference(q::Exp0TrialAvg, path::String)
 
     gm_params = load(GMMaskParams, q.gm)
     
@@ -75,7 +74,7 @@ function run_inference(q::Exp0TrialAvg)
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = q.save_path)
+                                     path = path)
     
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]

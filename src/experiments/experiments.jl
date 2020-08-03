@@ -24,4 +24,5 @@ include("exp0/trial_avg/exp0_trial_avg.jl")
 include("exp0/base/exp0_base.jl")
 
 include("exp0/sensitivity_td/exp0_sensitivity_td.jl")
+include("exp0/sensitivity_dc/exp0_sensitivity_dc.jl")
 # include("exp0/exp0.jl")

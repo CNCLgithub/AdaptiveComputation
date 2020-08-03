@@ -122,6 +122,11 @@ git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
 
+[[Cassette]]
+git-tree-sha1 = "ff6f5109371926beb67ec3101be17d2c211e497d"
+uuid = "7057c7e9-c182-5462-911a-8362d720325c"
+version = "0.3.3"
+
 [[CatIndices]]
 deps = ["CustomUnitRanges", "OffsetArrays"]
 git-tree-sha1 = "0c91e4fcda51bbd881c5d49ef784460750abcac0"
@@ -433,7 +438,7 @@ uuid = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 version = "0.3.5"
 
 [[GenRFS]]
-deps = ["Combinatorics", "Gen"]
+deps = ["Cassette", "Combinatorics", "Gen", "LRUCache", "ProfileView", "Revise", "StatProfilerHTML", "Test"]
 path = "deps/GenRFS"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"
@@ -684,6 +689,11 @@ git-tree-sha1 = "c1048817fe5711f699abc8fabd47b1ac6ba4db04"
 uuid = "5ab0869b-81aa-558d-bb23-cbf5423bbe9b"
 version = "0.5.1"
 
+[[LRUCache]]
+git-tree-sha1 = "788ab2f8a434a63f065ad962368a8cd0f8660a21"
+uuid = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
+version = "1.1.0"
+
 [[LZO_jll]]
 deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "71119990371c93f027bee80547ee908ddfe7c5ca"
@@ -910,6 +920,12 @@ git-tree-sha1 = "72ad6e0a33aa52ff244cc0a79acc7d8d6d5b263d"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 version = "0.2.1"
 
+[[PProf]]
+deps = ["Libdl", "OrderedCollections", "Profile", "ProtoBuf", "pprof_jll"]
+git-tree-sha1 = "a40471569a3b88ea330e9a880c482788808a6af9"
+uuid = "e4faabce-9ead-11e9-39d9-4379958e3056"
+version = "1.1.0"
+
 [[PackageCompiler]]
 deps = ["Libdl", "Pkg", "UUIDs"]
 git-tree-sha1 = "8989a56e4506b7b6a050f2b912e7856742d6998c"
@@ -987,6 +1003,11 @@ deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization
 git-tree-sha1 = "3a3fdb9000d35958c9ba2323ca7c4958901f115d"
 uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 version = "1.91.4"
+
+[[ProtoBuf]]
+git-tree-sha1 = "51b74991da46594fb411a715e7e092bef50b99ff"
+uuid = "3349acd9-ac6a-5e09-bcdb-63829b23a429"
+version = "0.8.0"
 
 [[QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
@@ -1432,6 +1453,12 @@ deps = ["Libdl", "Pkg", "Zlib_jll"]
 git-tree-sha1 = "594cb058723c13941cf463fd09e5859499594f50"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
 version = "1.6.37+3"
+
+[[pprof_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "a744142237713a5a567ef1a7438d4154cb71fd26"
+uuid = "cf2c5f97-e748-59fa-a03f-dda3c62118cb"
+version = "0.0.0-20191205061153+0"
 
 [[xkbcommon_jll]]
 deps = ["Libdl", "Pkg", "Wayland_jll", "Wayland_protocols_jll", "Xorg_libxcb_jll", "Xorg_xkeyboard_config_jll"]
