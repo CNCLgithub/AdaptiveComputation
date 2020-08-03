@@ -1,5 +1,5 @@
-# mot-gm
-Multiple object tracking generative model in Julia
+# mot
+Multiple object tracking repository in Julia
 
 ## Setup and running
 1. Clone repository `git clone https://github.com/CNCLgithub/mot` and `cd mot`
