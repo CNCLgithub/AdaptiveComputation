@@ -12,6 +12,9 @@ end
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
+
+    # in case of BDot and CBM
+    init_vel::Real = 5.0
     
     # graphics parameters
     dot_radius::Real = 20.0
