@@ -24,6 +24,7 @@ function read_json(path)
     return sym_data
 end
 
+
 function load_trial(trial_dir::String)
     runs = readdir(trial_dir)
     n_runs = length(runs)
