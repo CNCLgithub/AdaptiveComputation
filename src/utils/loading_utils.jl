@@ -40,11 +40,12 @@ function load_trial(trial_dir::String)
         
         # getting performance for this run
         final_log_scores = extracted["log_scores"][end,:]
-        final_assignments = extracted["weighted"][:assignments][end,:,:]
+        final_assignments = extracted["weighted"][:assignments][end,:]
         perm = sortperm(final_log_scores, rev=true) # sorting according to log scores
         
-        assignment = final_assignments[perm,:][1,:] # taking max assignment
-        n_trackers = length(assignment)
+        assignment = first(final_assignments[perm]) # taking max assignment
+        assignment = vcat(assignment[2:end]...) # first partition is ppp
+        n_trackers = size(extracted["weighted"][:positions], 3)
         performance[run] = length(intersect(assignment, 1:n_trackers))/n_trackers
 
         # getting pred_target

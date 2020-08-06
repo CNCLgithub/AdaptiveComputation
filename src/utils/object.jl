@@ -8,5 +8,5 @@ abstract type Object end
 mutable struct Dot <: Object
     pos::Vector{Float64}
     vel::Vector{Float64}
-    radius::Float64
+    # radius::Float64
 end
