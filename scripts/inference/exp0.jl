@@ -5,6 +5,16 @@ function parse_commandline()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
+        "--gm"
+        help = "Generative Model params"
+        arg_type = String
+        default = "$(@__DIR__)/exp0/gm.json"
+
+        "--proc"
+        help = "Inference procedure params"
+        arg_type = String
+        default = "$(@__DIR__)/exp0/proc.json"
+
         "--restart", "-r"
         help = "Whether to resume inference"
         action = :store_true
@@ -37,7 +47,6 @@ function parse_commandline()
 
     end
 
-
     @add_arg_table! s["target_designation"] begin
         "--params"
         help = "Attention params"
@@ -45,7 +54,6 @@ function parse_commandline()
         default = "$(@__DIR__)/exp0/td.json"
 
     end
-
     @add_arg_table! s["data_correspondence"] begin
         "--params"
         help = "Attention params"
@@ -65,7 +73,8 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp0(;trial = args["trial"], k = 120)
+    exp = Exp0(;trial = args["trial"], k = 120,
+               gm = args["gm"], proc = args["proc"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, args[att_mode]["params"])
