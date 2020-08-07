@@ -3,8 +3,7 @@ export dgp
 using Setfield
 
 function dgp(k::Int, params::GMMaskParams,
-             motion::AbstractDynamicsModel;
-             dynamics="brownian")
+             motion::AbstractDynamicsModel)
 
     # new params with all dots
     # having state for data generation
@@ -12,14 +11,14 @@ function dgp(k::Int, params::GMMaskParams,
     gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
     
     # running generative model on just positions (no need to go to masks)
-    if dynamics == "brownian"
+    if motion isa BrownianDynamicsModel
         init_state, states = gm_positions_static(k, motion, gm)
-    elseif dynamics == "cbm"
+    elseif motion isa ConstrainedBDM
         init_state, states = gm_positions_cbm_static(k, motion, gm)
-    elseif dynamics == "isr"
+    elseif motion isa ISRDynamics
         init_state, states = gm_positions_isr_static(k, motion, gm)
     else
-        error("unrecognized dynamics model")
+        error("unrecognized motion model")
     end
 
 
