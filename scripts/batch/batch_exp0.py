@@ -1,55 +1,64 @@
 #!/usr/bin/env python
 
 """ Submits sbatch array for rendering stimuli """
+def tavg_tasks(args):
+    tasks = [(t,c) for c in range(1, args.chains + 1) 
+             for t in range(1, args.trials+1)]
+    return (tasks, [], [])
+
+
 import os
 import argparse
 from slurmpy import sbatch
 
+script = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no ' + \
+         '/project/scripts/inference/exp0.jl'
 
-base_func = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no {1!s}'
-
-experiments = {
-    'exp0_sens_td': 'scripts/inference/exp0_sens_td.jl',
-    'exp0_trial_avg': 'scripts/inference/exp0_trial_avg.jl',
-    # 'exp0_sens_dc': '',
-    # 'exp0_entropy_td': ''
-}
-
-default_keys = list(experiments.keys())
+def att_tasks(args):
+    tasks = [(t,c,args.att_key) for c in range(1, args.chains + 1) 
+             for t in range(1, args.trials+1)]
+    return (tasks, [], [])
+    
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Submits batch jobs for in-silico experiment.',
+        description = 'Submits batch jobs for Exp0',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('exp_key', type = str, choices = default_keys,
-                        help = 'Experiment key')
+
     parser.add_argument('--trials', type = int, default = 128,
                         help = 'number of trials')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
+
+    subparsers = parser.add_subparsers(title='Attention models')
+
+    parser_td = subparsers.add_parser('td', help='Using target designation')
+    parser_td.set_defaults(func=att_tasks, att_key = 'T')
+
+    parser_dc = subparsers.add_parser('dc', help='Using data correspondence')
+    parser_dc.set_defaults(func=att_tasks, att_key = 'D')
+
+    parser_ta = subparsers.add_parser('ta', help='Using trial avg')
+    parser_ta.add_argument('model', type = str, help='Exp run for compute')
+    parser_ta.set_defaults(func=att_tasks, att_key = 'A')
+
     args = parser.parse_args()
 
-    script = experiments[args.exp_key]
-
     n = args.trials * args.chains
-    duration = 30 # in minutes
+    duration = 15 # in minutes
+    tasks, kwargs, extras = args.func(args)
 
     interpreter = '#!/bin/bash'
-    tasks = [(t,c) for c in range(1, args.chains + 1) for t in range(1, args.trials+1)]
-    kargs= []
-    extras = []
     resources = {
         'cpus-per-task' : '1',
         'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(duration),
         'partition' : 'short',
         'requeue' : None,
-        # 'output' : os.path.join('/sout',
-        #                        'slurm-%A_%a.out')
     }
-    func = base_func.format(os.getcwd(), script)
+    func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
-                         kargs, extras, resources)
+                         kwargs, extras, resources)
     print("Template Job:")
     print('\n'.join(batch.job_file(chunk=n)))
     batch.run(n = n, check_submission = False)

@@ -87,7 +87,12 @@ function main()
     end
 
     path = "/experiments/$(get_name(exp))_$(att_mode)/$(exp.trial)"
-    isdir(path) || mkpath(path)
+    try 
+        isdir("/experiments/$(get_name(exp))_$(att_mode)") || mkpath("/experiments/$(get_name(exp))_$(att_mode)")
+        isdir(path) || mkpath(path)
+    catch e
+        println("could not make dir $(path)")
+    end
     c = args["chain"]
     out = joinpath(path, "$(c).jld2")
     if isfile(out) && !args["restart"]
