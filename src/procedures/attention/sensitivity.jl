@@ -148,10 +148,10 @@ end
 
 
 function _merge(p::T, q::T) where T<:Dict
-    keys_p, lls_p = zip(p...)
-    reserve_p =  minimum(lls_p) * 1.01
-    keys_q, lls_q = zip(q...)
-    reserve_q = minimum(lls_q) * 1.01
+    keys_p = keys(p)
+    reserve_p =  minimum(values(p)) * 1.01
+    keys_q = keys(q)
+    reserve_q = minimum(values(q)) * 1.01
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))

@@ -68,12 +68,12 @@ function main()
     exp = Exp0(;trial = args["trial"], k = 120)
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
-        att = load(MapSensitivity, args[att_mode]["params"])
+        att = MOT.load(MapSensitivity, args[att_mode]["params"])
     elseif att_mode == "data_correspondence"
-        att = load(MapSensitivity, args[att_mode]["params"];
+        att = MOT.load(MapSensitivity, args[att_mode]["params"];
                    objective = MOT.data_correspondence)
     else
-        att = load(UniformAttention, args[att_mode]["model_path"],
+        att = MOT.load(UniformAttention, args[att_mode]["model_path"],
                    exp.trial, exp.k)
     end
 
