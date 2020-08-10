@@ -69,8 +69,11 @@ end
 function extract_assignments(trace::Gen.Trace)
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
-    record = ret[2][t].record
-    collect(zip(record.table, record.logscores))
+    pmbrfs = ret[2][t].record
+    record = AssociationRecord(1)
+    xs = get_choices(trace)[:states => t => :masks]
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    record.table
 end
 
 function extract_tracker_masks(trace::Gen.Trace)

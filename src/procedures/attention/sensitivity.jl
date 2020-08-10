@@ -9,18 +9,23 @@ function jitter(tr::Gen.Trace, tracker::Int)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :states => t => :dynamics => :brownian => tracker
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
-    # (new_tr, get_score(new_tr))
-    # (new_tr, min(ll, 0))
+end
+
+function retrieve_latents(tr::Gen.Trace)
+    args = Gen.get_args(tr)
+    ntrackers = last(args).n_trackers
+    collect(1:ntrackers)
 end
 
 @with_kw struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
-    latents::Function = t -> extract_tracker_positions(t)[1, 1, :, :]
+    latents::Function = t -> retrieve_latents(t)
     jitter::Function = jitter
     samples::Int = 1
     sweeps::Int = 5
     scale::Float64 = 100.0
-    m::Float64 = 1.04
+    k::Float64 = 0.5
+    x0::Float64 = 5.0
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
@@ -29,18 +34,15 @@ end
 
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     seeds = Gen.sample_unweighted_traces(state, att.samples)
-    latents = map(att.latents, seeds)
-    # seed_obj = map(entropy ∘ att.objective, seeds)
+    latents = att.latents(first(seeds))
     seed_obj = map(att.objective, seeds)
-    n_latents = size(first(latents), 1)
+    n_latents = length(latents)
     kls = zeros(att.samples, n_latents)
     lls = zeros(att.samples, n_latents)
     for i = 1:att.samples
         jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
-                                    1:n_latents)...)
+                               latents)...)
         lls[i, :] = collect(ẟh)
-        # ẟs = seed_obj[i] .- map(entropy ∘ att.objective, jittered)
-        # kls[i, :] = collect(abs.(ẟs))
         jittered_obj = map(att.objective, jittered)
         ẟs = map(j -> relative_entropy(seed_obj[i], j),
                       jittered_obj)
@@ -50,7 +52,6 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     display(kls)
     display(lls)
     for i = 1:n_latents
-        # gs[i] = mean(kls[:, i])
         weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
         gs[i] = sum(kls[:, i] .* weights)
     end
@@ -60,9 +61,7 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = 15.0 / (1.0 + exp(-0.5(x + 5.0)))
-    # amp = 15.0 / (1.0 + exp(-0.(x + 35.0)))
-
+    amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
     println("x: $(x), amp: $(amp)")
     round(Int, min(amp, att.sweeps))
 end
@@ -149,10 +148,10 @@ end
 
 
 function _merge(p::T, q::T) where T<:Dict
-    keys_p, lls_p = zip(p...)
-    reserve_p =  minimum(lls_p) * 1.01
-    keys_q, lls_q = zip(q...)
-    reserve_q = minimum(lls_q) * 1.01
+    keys_p = keys(p)
+    reserve_p =  minimum(values(p)) * 1.01
+    keys_q = keys(q)
+    reserve_q = minimum(values(q)) * 1.01
 
     extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
     extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))

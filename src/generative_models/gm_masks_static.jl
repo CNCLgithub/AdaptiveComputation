@@ -203,11 +203,9 @@ end
     new_trackers = new_graph.elements
 
     pmbrfs = get_masks_params(new_trackers, params)
-    # rfs_rec = AssociationRecord(params.record_size)
     @trace(rfs(pmbrfs), :masks)
 
     # returning this to get target designation and assignment
-    # later (HACKY STUFF) saving as part of state
     new_state = FullState(new_graph, pmbrfs)
 
     return new_state

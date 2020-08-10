@@ -1,22 +1,20 @@
-export Exp0SensDC
+export Exp0
 
-@with_kw struct Exp0SensDC <: AbstractExperiment
-    trial::Int = 1
-    dataset_path::String = "datasets/exp_0.h5"
-    proc::String = "$(@__DIR__)/proc.json"
-    gm::String = "$(@__DIR__)/gm.json"
-    motion::String = "$(@__DIR__)/motion.json"
-    attention::String = "$(@__DIR__)/attention.json"
+@with_kw struct Exp0 <: AbstractExperiment
     k::Int = 120
+    trial::Int = 1
+    gm::String = "$(@__DIR__)/gm.json"
+    proc::String = "$(@__DIR__)/proc.json"
+    dataset_path::String = "datasets/exp_0.h5"
 end
 
-get_name(::Exp0SensDC) = "exp0_sensdc"
+get_name(::Exp0) = "exp0"
 
-function run_inference(q::Exp0SensDC, path::String; viz::Bool = false)
-    attention = load(MapSensitivity, q.attention,
-                     objective = data_correspondence)
-    _lm = Dict(:tracker_positions => extract_tracker_positions)
-               # :assignments => extract_assignments)
+function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) where
+    {T<:AbstractAttentionModel}
+
+    _lm = Dict(:tracker_positions => extract_tracker_positions,
+               :assignments => extract_assignments)
     latent_map = LatentMap(_lm)
 
     gm_params = load(GMMaskParams, q.gm)
@@ -88,6 +86,7 @@ function run_inference(q::Exp0SensDC, path::String; viz::Bool = false)
                attended=attended/attention.sweeps,)
 
     end
+    results
 end
 
 

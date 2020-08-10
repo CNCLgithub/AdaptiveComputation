@@ -1,3 +1,5 @@
-exp = Exp0SensTD(;k = 10)
-path = "/experiments/test.jld2"
-run_inference(exp, path)
+exp = Exp0(;k = 10)
+att = MapSensitivity()
+path = "/experiments/test/test.jld2"
+ispath("/experiments/test") || mkdir("")
+run_inference(exp, att, path; viz = true)
