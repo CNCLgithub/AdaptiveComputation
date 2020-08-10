@@ -1,6 +1,8 @@
 using MOT
 using CSV
 using Statistics
+using LinearAlgebra:norm
+using Base.Iterators:take
 using DataFrames
 using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
@@ -18,7 +20,7 @@ function attention_map(c::Dict)
     attended
 end
 
-function load_attmap(path::String)
+function load_attmap(trial_path::String)
     chain_paths = filter(x -> occursin("jld", x), readdir(trial_path))
     chain_paths = map(x -> joinpath(trial_path, x), chain_paths)
     chains = map(extract_chain, chain_paths)
@@ -37,7 +39,7 @@ function compare_att(a::String, b::String, i::Int64;
     b_i = load_attmap("$b/$i")
     ds = a_i .- b_i
     d = map(norm, eachrow(ds))
-    ps = take(sortperm(d, rev = true), 2)
+    ps = collect(take(sortperm(d, rev = true), 2))
     ds, ps
 end
 
@@ -47,8 +49,8 @@ function compare_experiments(a::String, b::String; n::Int64 = 128)
     a_path = "/experiments/$a"
     b_path = "/experiments/$b"
     for i = 1:n
-        ds, ps = compare_att(a, b, i)
-        plot_attmap(ds, joinpath(out, "$i_att.png"))
+        ds, ps = compare_att(a_path, b_path, i)
+        plot_attmap(ds, joinpath(out, "$(i)_att.png"))
         CSV.write(joinpath(out, "$i.csv"), DataFrame(ds[ps,:]),
                   writeheader=false)
     end
