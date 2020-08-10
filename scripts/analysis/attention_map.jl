@@ -8,8 +8,9 @@ using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 import Cairo
+using ImageTransformations:imresize
 
-function attention_map(c::Dict)
+function attention_map(c::Dict; bin::Int64 = 4)
     aux_state = c["aux_state"]
     k = length(aux_state)
     n = length(first(aux_state).attended_trackers)
@@ -17,7 +18,7 @@ function attention_map(c::Dict)
     for t=1:k
         attended[t, :] = aux_state[t].attended_trackers
     end
-    attended
+    imresize(attended, ratio = (1.0 / bin, 1.0))
 end
 
 function load_attmap(trial_path::String)
@@ -37,21 +38,30 @@ function compare_att(a::String, b::String, i::Int64;
                              k::Int64 = 2)
     a_i = load_attmap("$a/$i")
     b_i = load_attmap("$b/$i")
-    ds = a_i .- b_i
-    d = map(norm, eachrow(ds))
-    ps = collect(take(sortperm(d, rev = true), 2))
-    ds, ps
+    collect((a_i .- b_i)')
 end
 
-function compare_experiments(a::String, b::String; n::Int64 = 128)
+function compare_experiments(a::String, b::String;
+                             n::Int64 = 128,
+                             bin::Int64 = 4)
     out = "/experiments/$(a)_vs_$(b)"
     isdir(out) || mkdir(out)
     a_path = "/experiments/$a"
     b_path = "/experiments/$b"
+    results = []
     for i = 1:n
-        ds, ps = compare_att(a_path, b_path, i)
-        plot_attmap(ds, joinpath(out, "$(i)_att.png"))
-        CSV.write(joinpath(out, "$i.csv"), DataFrame(ds[ps,:]),
-                  writeheader=false)
+        ds = compare_att(a, b, i)
+        df = DataFrame(t = 1:size(ds, 2),
+                       tracker_1 = ds[1, :],
+                       tracker_2 = ds[2, :],
+                       tracker_3 = ds[3, :],
+                       tracker_4 = ds[4, :])
+        df.trial = i
+        push!(results, df)
+        # plot_attmap(ds, joinpath(out, "$i_att.png"))
+        # CSV.write(joinpath(out, "$i.csv"), DataFrame(ds[ps,:]),
+        #           writeheader=false)
     end
+    results = vcat(results...)
+    CSV.write(joinpath(out, "attention.csv"), results)
 end
