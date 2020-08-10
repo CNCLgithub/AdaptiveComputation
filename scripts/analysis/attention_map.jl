@@ -6,8 +6,9 @@ using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 import Cairo
+using ImageTransformations:imresize
 
-function attention_map(c::Dict)
+function attention_map(c::Dict; bin::Int64 = 3)
     aux_state = c["aux_state"]
     k = length(aux_state)
     n = length(first(aux_state).attended_trackers)
@@ -15,7 +16,7 @@ function attention_map(c::Dict)
     for t=1:k
         attended[t, :] = aux_state[t].attended_trackers
     end
-    attended
+    imresize(attended, ratio = (1.0 / bin, 1.0))
 end
 
 function load_attmap(path::String)
