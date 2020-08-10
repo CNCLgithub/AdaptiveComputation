@@ -1,4 +1,5 @@
-export gm_masks_static, GMMaskParams
+export gm_masks_static,
+        GMMaskParams
 
 using LinearAlgebra
 
@@ -10,7 +11,10 @@ end
 @with_kw struct GMMaskParams
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
-    init_pos_spread::Real = 400.0
+    init_pos_spread::Real = 300.0
+
+    # in case of BDot and CBM
+    init_vel::Real = 5.0
     
     # graphics parameters
     dot_radius::Real = 20.0
@@ -27,7 +31,7 @@ end
     record_size::Int = 100 # number of associations
 
     # legacy support for exp0
-    exp0::Bool = true
+    exp0::Bool = false
 end
 
 function load(::Type{GMMaskParams}, path::String)

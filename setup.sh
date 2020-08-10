@@ -8,6 +8,7 @@ supported targets:
     conda : build the conda environment
     julia : build julia environment
     datasets : pull datasets
+    checkpoints : pull checkpoints (NN weights)
 "
 
 [ $# -eq 0 ] || [[ "${@}" =~ "help" ]] && echo "$usage"
@@ -38,7 +39,15 @@ supported targets:
 # datasets
 [[ "${@}" =~ "datasets" ]] || [[ "${@}" =~ "datasets" ]] || echo "Not touching datasets"
 [[ "${@}" =~ "datasets" ]] && echo "pulling datasets" && \
-    mkdir -p datasets && \
+    mkdir -p output/datasets && \
     echo "pulling exp_0 dataset" && \
     wget "https://yale.box.com/shared/static/2kt5psxh7nyb5s3s09g4kwhxnjmigcjs.h5" \
-    -O "datasets/exp_0.h5"
+    -O "output/datasets/exp_0.h5"
+
+# checkpoints
+[[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || echo "Not touching checkpoints"
+[[ "${@}" =~ "checkpoints" ]] && echo "pulling checkpoints" && \
+    mkdir -p checkpoints && \
+    echo "pulling mask_rcnn_weights_0" && \
+    wget "https://yale.box.com/shared/static/85eiwmnthuy93bqrpwb5hwdo70qndmbk.pth" \
+    -O "output/checkpoints/mask_rcnn_weights_0.pth"

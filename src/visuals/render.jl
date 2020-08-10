@@ -1,12 +1,12 @@
 export render
 
-using Luxor
+using Luxor, ImageMagick
 
-function _init_drawing(frame, dir, gm;
+function _init_drawing(frame, path, gm, prefix;
                        background_color="ghostwhite")
-    fname = "$(lpad(frame, 3, "0")).png"
+    fname = prefix * "$(lpad(frame, 3, "0")).png"
     Drawing(gm.area_width, gm.area_height,
-            joinpath(dir, fname))
+            joinpath(path, fname))
     origin()
     background(background_color)
 end
@@ -50,6 +50,19 @@ function _draw_array(array, gm, color; opacity=1.0)
     end
 end
 
+"""
+    helper to draw arrow
+"""
+function _draw_arrow(startpoint, endpoint, color;
+                     opacity=1.0, style=:fill,
+                     linewidth=5.0, arrowheadlength=15.0)
+    setopacity(opacity)
+    sethue(color)
+    p1 = Luxor.Point(startpoint[1], -startpoint[2])
+    p2 = Luxor.Point(endpoint[1], -endpoint[2])
+    Luxor.arrow(p1, p2, linewidth=linewidth, arrowheadlength=arrowheadlength)
+end
+
 function _render_dots(dot_positions_t,
                       gm;
                       show_label=true, 
@@ -80,7 +93,9 @@ function _render_pf(pf_xy_t,
                     pf_color="darkslateblue",
                     attended=nothing,
                     tracker_masks=nothing,
-                    tracker_masks_colors=["indigo", "green", "blue", "yellow"])
+                    tracker_masks_colors=["indigo", "green", "blue", "yellow"],
+                    pf_vel=nothing,
+                    show_label=true)
     
     n_particles, n_trackers, _ = size(pf_xy_t)
 
@@ -90,27 +105,35 @@ function _render_pf(pf_xy_t,
             # drawing the predicted position of this tracker in particle
             pred_position = pf_xy_t[p,i,:]
 
+            bg_visibility = 1.0 - p*(1.0/n_particles)
+            prev_bg_visibility = 1.0 - (p-1)*(1.0/n_particles)
+            opacity = 1.0 - bg_visibility/prev_bg_visibility
+            opacity *= 0.5
+
             # if we don't have tracker masks, then draw the little predicted positions
             if isnothing(tracker_masks)
-                _draw_circle(pred_position, gm.dot_radius/4, pf_color)
+                _draw_circle(pred_position, gm.dot_radius/3, pf_color, opacity=1.0)
             end
 
-            _draw_text("$i", pred_position)
+            if !isnothing(pf_vel)
+                _draw_arrow(pred_position, pred_position + pf_vel[p,i,:], pf_color,
+                            opacity=1.0)
+            end
+            
+            if show_label
+                _draw_text("$i", pred_position)
+            end
             
             # visualizing attention
             if !isnothing(attended)
                 bg_visibility = 1.0 - p*(1.0/n_particles)
                 prev_bg_visibility = 1.0 - (p-1)*(1.0/n_particles)
                 opacity = 1.0 - bg_visibility/prev_bg_visibility
-                opacity *= attended[i]
-                _draw_circle(pred_position, 2*gm.dot_radius, "red", opacity=opacity, style=:stroke)
+                att_opacity = opacity * attended[i]
+                _draw_circle(pred_position, 2.5*gm.dot_radius, "red", opacity=att_opacity, style=:stroke)
             end
 
             if !isnothing(tracker_masks)
-                bg_visibility = 1.0 - p*(1.0/n_particles)
-                prev_bg_visibility = 1.0 - (p-1)*(1.0/n_particles)
-                opacity = 1.0 - bg_visibility/prev_bg_visibility
-                opacity *= 0.5
                 _draw_array(tracker_masks[p,i], gm, tracker_masks_colors[i], opacity=opacity)
             end
         end
@@ -123,59 +146,97 @@ end
     renders detailed information about inference on top of stimuli
 """
 function render(dot_positions,
-                q,
                 gm;
                 stimuli=false,
+                show_dots=true,
+                array=false,
                 pf_xy=nothing,
-                dir="render",
+                pf_vel=nothing,
+                path="render",
+                prefix="",
                 freeze_time=0,
                 highlighted=nothing,
                 attended=nothing,
                 tracker_masks=nothing)
-
-    println("rendering inference info on stimuli...")
-    mkpath(dir)
+    
+    array ? imgs = [] : mkpath(path)
+    
+    # getting number of timesteps
+    k = size(dot_positions, 1)
 
     # stopped at beginning
     for t=1:freeze_time
-        _init_drawing(t, dir, gm)
+        _init_drawing(t, path, gm, prefix)
         
-        _render_dots(dot_positions[1], gm; highlighted=collect(1:gm.n_trackers))
+        if show_dots
+            _render_dots(dot_positions[1], gm;
+                         highlighted=collect(1:gm.n_trackers),
+                         show_label=!stimuli)
+        end
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[1,:,:,:], gm)
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[1,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[1,:,:,:]
+            _render_pf(pf_xy[1,:,:,:], gm,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
         end
-
-        finish()
-
+        
+        array ? push!(imgs, image_as_matrix()) : finish()
     end
     
     # tracking while dots are moving
-    for t=1:q.k
-        println("timestep: $t")
-        _init_drawing(t+freeze_time, dir, gm)
-        _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
+    for t=1:k
+        print("render timestep: $t \r")
+        _init_drawing(t+freeze_time, path, gm, prefix)
 
-        _render_dots(dot_positions[t], gm)
+        if !stimuli
+            _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
+        end
+        
+        if show_dots
+            _render_dots(dot_positions[t], gm, show_label=!stimuli)
+        end
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[t,:,:,:], gm; attended=attended[t])
+            attended_t = isnothing(attended) ? nothing : attended[t]
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[t,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[t,:,:,:]
+            _render_pf(pf_xy[t,:,:,:], gm;
+                       attended=attended_t,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
         end
 
-        finish()
+        array ? push!(imgs, image_as_matrix()) : finish()
     end
     
     # final freeze time showing the answer
     for t=1:freeze_time
-        _init_drawing(t+q.k+freeze_time, dir, gm)
-
-        _render_dots(dot_positions[q.k], gm; highlighted=collect(1:gm.n_trackers))
+        _init_drawing(t+k+freeze_time, path, gm, prefix)
+        
+        if show_dots
+            _render_dots(dot_positions[k], gm;
+                         highlighted=collect(1:gm.n_trackers),
+                         show_label=!stimuli)
+        end
     
         if !isnothing(pf_xy)
-            _render_pf(pf_xy[q.k,:,:,:], gm; attended=attended[q.k])
+            attended_t = isnothing(attended) ? nothing : attended[k]
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[l,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[k,:,:,:]
+            _render_pf(pf_xy[k,:,:,:], gm;
+                       attended=attended_t,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
         end
 
-        finish()
+        array ? push!(imgs, image_as_matrix()) : finish()
     end
+    
+    array && return imgs
 end
 

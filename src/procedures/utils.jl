@@ -1,6 +1,8 @@
 export extract_tracker_positions,
+        extract_tracker_velocities,
         extract_assignments,
         extract_tracker_masks,
+        extract_pmbrfs_params,
         extract_chain
 
 using JLD2, FileIO
@@ -50,6 +52,20 @@ function extract_tracker_positions(trace::Gen.Trace)
     return tracker_positions
 end
 
+function extract_tracker_velocities(trace::Gen.Trace)
+    (init_state, states) = Gen.get_retval(trace)
+
+    trackers = states[end].graph.elements
+
+    tracker_velocities = Array{Float64}(undef, length(trackers), 2)
+    for i=1:length(trackers)
+        tracker_velocities[i,:] = trackers[i].vel
+    end
+
+    tracker_velocities = reshape(tracker_velocities, (1,1,size(tracker_velocities)...))
+    return tracker_velocities
+end
+
 function extract_assignments(trace::Gen.Trace)
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
@@ -74,4 +90,10 @@ function extract_tracker_masks(trace::Gen.Trace)
     tracker_masks = reshape(tracker_masks, (1,1,size(tracker_masks)...))
 
     return tracker_masks
+end
+
+function extract_pmbrfs_params(trace::Gen.Trace)
+    t, motion, gm = Gen.get_args(trace)
+    ret = Gen.get_retval(trace)
+    return ret[2][t].pmbrfs_params
 end
