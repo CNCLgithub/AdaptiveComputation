@@ -39,37 +39,32 @@ end
 
 
 # 2d gaussian function
-function two_dimensional_gaussian(x, y, x_0, y_0, A, sigma_x, sigma_y)
-    return A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
+function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
+                                  sigma_x::T, sigma_y::T) where
+    {I<:Int64,T<:Float64}
+    A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
 
 
 """
-drawing a gaussian dot
-there are two gaussian functions stacked on one another
-    parameters for how spread out the mask is
-    spread_1: local steep gradient
-    spread_2: global gradient
+drawing a gaussian dot with two components:
+1) just a dot at the center with probability 1 and 0 elsewhere
+2) spread out gaussian modelling where the dot is likely to be in some sense
+    and giving some gradient if the tracker is completely off
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
-                                spread_1::Float64, spread_2::Float64)
-    
-    # amplitude of first gaussian
-    A = 0.4999999999
-
-    std_1 = sqrt(spread_1 * r)
-    std_2 = sqrt(spread_2 * r)
-
+                                gauss_amp::Float64, gauss_std::Float64)
+ 
     mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            mask[j,i] = two_dimensional_gaussian(i, j, center[1], center[2], A, std_1, std_1)
-            mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2], (1.0-A), std_2, std_2)
+            mask[j,i] += sqrt((i - center[1])^2 + (j - center[2])^2) < r
+            mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
+                                                  gauss_amp, gauss_std, gauss_std)
         end
     end
-
-    return mask
+    mask = min.(mask, 0.75) # 1.0 - 1e-5)
 end
 
 
@@ -78,13 +73,23 @@ end
     get_masks(positions::Array{Float64})
 
     returns an array of masks
+    args:
+    r - radius of the dot in image size
+    h - image height
+    w - image width
+    ah - area height
+    aw - area width
+    ;
+    background - true if you want background masks
 """
-function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
-    k, num_dots = size(positions)
+function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw;
+                   background=false)
+    k = length(positions)
     masks = Vector{Vector{BitArray{2}}}(undef, k)
     
     for t=1:k
-        pos = positions[t,:,:]
+        print("get_masks timestep: $t \r")
+        pos = positions[t]
 
         # sorting according to depth
         depth_perm = sortperm(pos[:, 3])
@@ -95,12 +100,24 @@ function get_masks(positions::Array{Float64}, r, h, w, ah, aw)
         img_so_far .= false
         
         masks_t = []
-        for i=1:num_dots
+        n_dots = size(pos,1)
+        for i=1:n_dots
             mask = draw_dot_mask(pos[i,:], r, h, w, ah, aw)
             mask[img_so_far] .= false
             push!(masks_t, mask)
             img_so_far .|= mask
         end
+
+        masks_t = masks_t[invperm(depth_perm)]
+    
+        if background
+            # pushing background to the end
+            bg = BitArray{2}(undef, h, w)
+            bg .= true
+            bg -= img_so_far
+            prepend!(masks_t, [bg])
+        end
+
         masks[t] = masks_t
     end
 

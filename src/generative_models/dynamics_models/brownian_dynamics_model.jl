@@ -12,15 +12,18 @@ function load(::Type{BrownianDynamicsModel}, path::String)
 end
 
 @gen function brownian_step(model::BrownianDynamicsModel, dot::Dot)
-    _x,_y,z = dot.pos
-    _vx,_vy = dot.vel
+    _x, _y, _z = dot.pos
+    _vx, _vy = dot.vel
 
     vx = @trace(normal(model.inertia * _vx - model.spring * _x,
                                model.sigma_x), :vx)
     vy = @trace(normal(model.inertia * _vy - model.spring * _y,
                                model.sigma_y), :vy)
-    x = _x + _vx
-    y = _y + _vy
+
+    x = _x + vx
+    y = _y + vy
+    z = @trace(uniform(0, 1), :z)
+
     d = Dot([x,y,z], [vx,vy])
     return d
 end

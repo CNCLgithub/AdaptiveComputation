@@ -12,6 +12,8 @@ function get_name(exp::AbstractExperiment)
     error("Not implemented")
 end
 
-include("example/example.jl")
+# Exp0
 include("exp0/exp0.jl")
-include("sensitivity_td/sensitivity_td.jl")
+
+# ISR dynamics
+include("isr_dynamics/isr_dynamics.jl")

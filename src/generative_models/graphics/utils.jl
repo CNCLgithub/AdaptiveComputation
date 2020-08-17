@@ -19,26 +19,14 @@ function subtract_images(img1, img2)
     return img
 end
 
-# draws a full image from masks of one timestep
-function get_full_img(masks)
-    img_height, img_width = size(first(masks))
-    img = BitArray{2}(undef, img_height, img_width)
-    img .= false
-
-    for mask in collect(masks)
-        img = img .|= mask
-    end
-
-    return img
-end
-
 # get a full sequency of masks added together on images
 function get_full_imgs(masks)
-    T = size(masks, 1)
-    full_imgs = []
-    for t=1:T
-        img = get_full_img(masks[t])
-        push!(full_imgs, img)
+    k = length(masks)
+
+    full_imgs = Vector{BitArray{2}}(undef, k)
+    for t=1:k
+        # convert each mask to Array{Bool} and do an OR operation over all of them
+        full_imgs[t] = mapreduce(x->convert(Array{Bool}, x), (x,y) -> x.|y, masks[t])
     end
     return full_imgs
 end

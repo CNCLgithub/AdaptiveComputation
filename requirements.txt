@@ -5,3 +5,4 @@ scipy
 opencv-python
 fvcore
 Pillow==6.2.2
+-e deps/slurm

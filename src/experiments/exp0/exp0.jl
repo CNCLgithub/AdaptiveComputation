@@ -1,30 +1,29 @@
 export Exp0
 
-
 @with_kw struct Exp0 <: AbstractExperiment
+    k::Int = 120
     trial::Int = 1
-    dataset_path::String = "datasets/exp_0.h5"
-    proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
-    motion::String = "$(@__DIR__)/motion.json"
-    attention::String = "$(@__DIR__)/attention.json"
-    k::Int = 10
+    proc::String = "$(@__DIR__)/proc.json"
+    dataset_path::String = "datasets/exp_0.h5"
 end
 
 get_name(::Exp0) = "exp0"
 
-function run_inference(q::Exp0)
+function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) where
+    {T<:AbstractAttentionModel}
+
+    _lm = Dict(:tracker_positions => extract_tracker_positions,
+               :assignments => extract_assignments)
+    latent_map = LatentMap(_lm)
 
     gm_params = load(GMMaskParams, q.gm)
-    
+
     # generating initial positions and masks (observations)
-    init_positions, masks, motion = load_exp0_trial(q.trial, gm_params, q.dataset_path)
+    init_positions, masks, motion, positions = load_exp0_trial(q.trial,
+                                                               gm_params,
+                                                               q.dataset_path)
 
-    latent_map = LatentMap(Dict(
-                                :tracker_positions => extract_tracker_positions,
-                               ))
-
-    
     # initial observations based on init_positions
     # model knows where trackers start off
     constraints = Gen.choicemap()
@@ -34,7 +33,7 @@ function run_inference(q::Exp0)
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_positions[i,2]
     end
-    
+
     # compiling further observations for the model
     args = [(t, motion, gm_params) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
@@ -43,7 +42,7 @@ function run_inference(q::Exp0)
         cm[:states => t => :masks] = masks[t]
         observations[t] = cm
     end
-    
+
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm_masks_static,
                                         (0, motion, gm_params),
@@ -51,30 +50,43 @@ function run_inference(q::Exp0)
                                         args,
                                         observations)
 
-    attention = load(TDEntropyAttentionModel, q.attention;
-                     perturb_function = perturb_state!)
 
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
-    
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = nothing)
-    
+                                     path = path)
 
-    extracted = extract_chain(results)
-    tracker_positions = extracted["unweighted"][:tracker_positions]
+    if viz
+        extracted = extract_chain(results)
+        tracker_positions = extracted["unweighted"][:tracker_positions]
+        # tracker_masks = get_masks(tracker_positions)
+        aux_state = extracted["aux_state"]
+        attention_weights = [aux_state[t].stats for t = 1:q.k]
+        attention_weights = collect(hcat(attention_weights...)')
 
-    # getting the images
-    full_imgs = get_full_imgs(masks)
+        out = dirname(path)
+        plot_compute_weights(attention_weights, out)
 
-    # this is visualizing what the observations look like (and inferred state too)
-    # you can find images under inference_render
-    #visualize(tracker_positions, full_imgs, gm_params)
+        attempts = Vector{Int}(undef, q.k)
+        attended = Vector{Vector{Float64}}(undef, q.k)
+        for t=1:q.k
+            attempts[t] = aux_state[t].attempts
+            attended[t] = aux_state[t].attended_trackers
+        end
+        MOT.plot_attention(attended, attention.sweeps, out)
+        plot_rejuvenation(attempts, out)
 
-    return results
+        # visualizing inference on stimuli
+        render(positions, q, gm_params;
+               dir = joinpath(out, "render"),
+               pf_xy=tracker_positions[:,:,:,1:2],
+               attended=attended/attention.sweeps,)
+
+    end
+    results
 end
 
 

@@ -5,17 +5,16 @@ export perturb_state!
 
 Perturbs velocity based on probs of assignments to observations.
 """
-@gen function state_perturb_proposal(trace, probs)
+@gen function state_perturb_proposal(trace, probs, attended_trackers)
     t, motion, gm = Gen.get_args(trace)
     choices = Gen.get_choices(trace)
 
     # sample a tracker to perturb
-    tracker_ps = softmax(probs)
-    tracker = @trace(Gen.categorical(tracker_ps), :tracker)
+    tracker = @trace(Gen.categorical(probs), :tracker)
     
     # perturb velocity
-    addr_vx = :states => t => :dynamics => :brownian => tracker => :vx
-    addr_vy = :states => t => :dynamics => :brownian => tracker => :vy
+    addr_vx = :kernel => t => :dynamics => :brownian => tracker => :vx
+    addr_vy = :kernel => t => :dynamics => :brownian => tracker => :vy
     prev_vx = choices[addr_vx]
     prev_vy = choices[addr_vy]
 
@@ -32,19 +31,19 @@ function state_perturb_involution(trace, fwd_choices::ChoiceMap, fwd_ret,
     choices = Gen.get_choices(trace)
     t, motion, gm = Gen.get_args(trace)
     (tracker, prev_v) = fwd_ret
-    
+
     # recording attended tracker in involution
     # (not to count twice)
-    # TODO
-    # push!(gm["attended_trackers"][t], tracker)
+    attended_trackers = proposal_args[2]
+    attended_trackers[tracker] += 1
 
     # constraints for update step
     constraints = choicemap()
 
     # decision over target state
     vx, vy = fwd_choices[:new_vx], fwd_choices[:new_vy]
-    constraints[:states => t => :dynamics => :brownian => tracker => :vx] = vx
-    constraints[:states => t => :dynamics => :brownian => tracker => :vy] = vy
+    constraints[:kernel => t => :dynamics => :brownian => tracker => :vx] = vx
+    constraints[:kernel => t => :dynamics => :brownian => tracker => :vy] = vy
 
     # backward stuffs
     bwd_choices = choicemap()
@@ -73,10 +72,12 @@ function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
     #timestep, motion, gm = Gen.get_args(first(state.traces))
     num_particles = length(state.traces)
     accepted = 0
-    args = (probs,)
+    attended_trackers = zeros(length(probs))
+    args = (probs, attended_trackers)
     for i=1:num_particles
         state.traces[i], a = state_move(state.traces[i], args)
         accepted += a
     end
-    return accepted / num_particles
+    
+    return accepted/num_particles, attended_trackers/num_particles
 end

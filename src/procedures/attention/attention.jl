@@ -22,32 +22,37 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 
     t, motion, gm = get_args(first(pf_state.traces))
 
-    rtrace = RejuvTrace(0, 0, nothing)
+    rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
+   
     rtrace.stats = get_stats(attention, pf_state)
+    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : softmax(rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("stats: $(rtrace.stats)")
+    println("objective: $(rtrace.stats)")
+    println("weights: $(weights)")
     println("sweeps: $sweeps")
 
     fails = 0
     # main loop going through rejuvenation
     for sweep = 1:sweeps
-        #println("sweep $sweep")
 
         # making a rejuvenation move (rejuvenating velocity)
-        rtrace.acceptance += perturb_state!(pf_state, rtrace.stats)
+        #
+        acceptance, attended_trackers = perturb_state!(pf_state, weights)
+        rtrace.acceptance += acceptance
+        rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
 
         # computing new population statistics
-        new_stats = get_stats(attention, pf_state)
+        # new_stats = get_stats(attention, pf_state)
 
-        # early stopping
-        if early_stopping(attention, new_stats, rtrace.stats)
-            break
-        end
+        # # early stopping
+        # if early_stopping(attention, new_stats, rtrace.stats)
+        #     break
+        # end
 
-        rtrace.stats = new_stats
+        # rtrace.stats = new_stats
     end
 
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
@@ -59,4 +64,5 @@ end
 include("perturb_state.jl")
 
 include("td_entropy.jl")
+include("uniform.jl")
 include("sensitivity.jl")

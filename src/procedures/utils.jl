@@ -1,12 +1,28 @@
 export extract_tracker_positions,
+        extract_tracker_velocities,
         extract_assignments,
+        extract_tracker_masks,
+        extract_pmbrfs_params,
         extract_chain
+
+using JLD2, FileIO
+
+function extract_chain(r::String)
+    v = []
+    jldopen(r, "r") do data
+        for i = 1:length(keys(data))
+            push!(v, data["$i"])
+        end
+    end
+    v = collect(Dict, v)
+    extract_chain(v)
+end
 
 function extract_chain(r::Gen_Compose.SequentialChain)
     extract_chain(r.buffer)
 end
 
-function extract_chain(buffer::Vector{T}) where T<:Dict{String, Any}
+function extract_chain(buffer::Array{T}) where T<:Dict
     extracts = T()
     k = length(buffer)
     fields = collect(keys(first(buffer)))
@@ -27,25 +43,57 @@ function extract_tracker_positions(trace::Gen.Trace)
 
     trackers = states[end].graph.elements
 
-    tracker_positions = Array{Float64}(undef, length(trackers), 2)
+    tracker_positions = Array{Float64}(undef, length(trackers), 3)
     for i=1:length(trackers)
-        tracker_positions[i,1] = trackers[i].pos[1]
-        tracker_positions[i,2] = trackers[i].pos[2]
+        tracker_positions[i,:] = trackers[i].pos
     end
 
     tracker_positions = reshape(tracker_positions, (1,1,size(tracker_positions)...))
     return tracker_positions
 end
 
-function extract_assignments(trace::Gen.Trace)
-    t, params = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-     
-    saved_td = ret[2][t].pmbrfs_params.saved_td
-    tds, As, td_weights = saved_td.td, saved_td.A, saved_td.ll
+function extract_tracker_velocities(trace::Gen.Trace)
+    (init_state, states) = Gen.get_retval(trace)
 
-    A = tds[1][invperm(As[1])] # this is to get the old sense of assignment, i.e. mapping from trackers to observations
-    A = reshape(A, (1,1,size(A)...))
+    trackers = states[end].graph.elements
 
-    return A
+    tracker_velocities = Array{Float64}(undef, length(trackers), 2)
+    for i=1:length(trackers)
+        tracker_velocities[i,:] = trackers[i].vel
+    end
+
+    tracker_velocities = reshape(tracker_velocities, (1,1,size(tracker_velocities)...))
+    return tracker_velocities
 end
+
+function extract_assignments(trace::Gen.Trace)
+    t, motion, gm = Gen.get_args(trace)
+    ret = Gen.get_retval(trace)
+    pmbrfs = ret[2][t].record
+    record = AssociationRecord(1)
+    xs = get_choices(trace)[:graphics => t => :masks]
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    record.table
+end
+
+# function extract_tracker_masks(trace::Gen.Trace)
+#     t, motion, gm = Gen.get_args(trace)
+#     ret = Gen.get_retval(trace)
+#     mbrfs_params = ret[2][t].pmbrfs_params.mbrfs_params
+    
+#     tracker_masks = Vector{Array{Float64,2}}(undef, gm.n_trackers)
+
+#     for i=1:gm.n_trackers
+#         tracker_masks[i] = mbrfs_params.rvs_args[i][1]
+#     end
+
+#     tracker_masks = reshape(tracker_masks, (1,1,size(tracker_masks)...))
+
+#     return tracker_masks
+# end
+
+# function extract_pmbrfs_params(trace::Gen.Trace)
+#     t, motion, gm = Gen.get_args(trace)
+#     ret = Gen.get_retval(trace)
+#     return ret[2][t].pmbrfs_params
+# end

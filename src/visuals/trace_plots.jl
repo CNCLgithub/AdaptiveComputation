@@ -1,6 +1,7 @@
 export plot_score,
     heatmap,
     plot_rejuvenation,
+    plot_attention,
     plot_xy,
     plot_compute_weights
 
@@ -41,47 +42,81 @@ end
 
 function plot_compute_weights(weights::Matrix{Float64}, path::String)
     k,n = size(weights)
-    plots = []
-    for i = 1:n
-        plt = plot(x = ts, y = weights[:, i], Geom.line)
-        push!(plots, plt)
+    ts = repeat(1:k, 1, size(weights, 2))
+    data = []
+    for t = 1:k
+        for i = 1:n
+            push!(data,
+                  Dict(:t => t, :tracker => i, :weight => weights[t, i]))
+        end
     end
+    data = DataFrame(data)
+    plt = plot(data,
+               x = :t, y = :weight, color = :tracker,
+               Geom.line,
+               # Scale.y_continuous(minvalue=0, maxvalue=15),
+               Theme(background_color = "white"))
     out = joinpath(path, "compute_weights.png")
-    plots = vstack(plots...)
-    plots |> PNG(out, √200cm, 20cm; dpi=96)
+    plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
 end
 
 """
 Plots rejuvenation steps accross time
 """
-function plot_rejuvenation(rejuvenations; t=nothing)
-    mkpath("rejuvenations")
+function plot_rejuvenation(rejuvenations, path="plots")
+    mkpath(path)
+    k = length(rejuvenations)
+    x = collect(1:k)
+    
+    p = plot(x=x, y=rejuvenations,
+             Geom.bar,
+             Scale.x_continuous(minvalue=0, maxvalue=k),
+             Scale.y_continuous(minvalue=0, maxvalue=20),
+             Guide.xlabel("Time"),
+             Guide.ylabel("Allocated Compute"),
+             Theme(default_color="black",
+                   background_color="white",
+                   minor_label_font_size=20pt,
+                   major_label_font_size=30pt)
+             )
+    Gadfly.draw(PNG(joinpath(path, "rejuvenations.png"), 16Gadfly.inch, 6Gadfly.inch), p)
+end
 
-    rej_new = deepcopy(rejuvenations)
-    file = "rejuvenation_steps"
-    if !isnothing(t)
-        rej_new[t+1:end] .= 0
-        """
-        rej_new = rej_new[51:end]
-        rej_new = rej_new[1:120]
-        if t < 51
-            rej_new .= 0
+"""
+Plots distribution of attention accross time
+"""
+default_colors = ["indigo", "green", "blue", "yellow"]
+function plot_attention(attended, max_sweeps::Int, path::String;
+                        tracker_colors=default_colors)
+    mkpath(path)
+
+    k = length(attended)
+    x = collect(1:k)
+    
+    n_trackers = length(first(attended))
+    
+    plots = []
+
+    for i = 1:n_trackers
+
+        att_tracker = Vector{Float64}(undef, k)
+        for t=1:k
+            att_tracker[t] = attended[t][i]
         end
-        """
 
-        file = "$(lpad(t, 3, "0"))"
+        p = plot(x=x, y=att_tracker,
+                 Geom.bar,
+                 Scale.y_continuous(minvalue=0, maxvalue=max_sweeps),
+                 Theme(default_color=tracker_colors[i],
+                       background_color="white")
+                 )
+
+        push!(plots, p)
     end
 
-    T = size(rej_new, 1)
-    x = collect(1:T)
+    p = vstack(Tuple(plots)...)
 
-    p = plot(x=x, y=rej_new,
-             Geom.bar,
-             Scale.y_continuous(minvalue=0, maxvalue=20),
-             Theme(default_color="black",
-                   background_color="white")
-             )
-    Gadfly.draw(SVG("rejuvenations/$file.svg", 8Gadfly.inch, 3Gadfly.inch), p)
+    Gadfly.draw(PNG(joinpath(path, "attention.png"), 4Gadfly.inch, 8Gadfly.inch), p)
 end
 
 """

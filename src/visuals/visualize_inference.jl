@@ -1,5 +1,4 @@
-export visualize,
-        get_full_imgs
+export visualize
 
 function visualize(xy, full_imgs, params, folder)
     k, n, _, _ = size(xy)
@@ -15,8 +14,9 @@ function visualize(xy, full_imgs, params, folder)
                 y = xy[t,p,i,2]
                 x, y = translate_area_to_img(x, y, h, w, ah, aw)
 
-                draw_circle!(img, [x,y], 5.0, false)
-                draw_circle!(img, [x,y], 3.0, true)
+                # particle positions
+                draw_circle!(img, [x,y], 3.0, false)
+                draw_circle!(img, [x,y], 2.0, true)
                 draw_circle!(img, [x,y], 1.0, false)
             end
         end
@@ -25,25 +25,4 @@ function visualize(xy, full_imgs, params, folder)
         filename = "$(lpad(t, 3, "0")).png"
         save(joinpath(folder, filename), img)
     end
-
 end
-
-function get_full_imgs(T, choices, params, folder)
-    full_imgs = []
-    for t=1:T
-        masks = choices[:states => t => :masks]
-
-        for m=1:length(masks)
-            filename = "$(lpad(t, 3, "0"))_$(lpad(m, 3,"0")).png"
-            mkpath(folder)
-            save(joinpath(folder, filename), masks[m]) 
-        end
-
-        img = reduce(|, masks)  # enjoy, mario
-
-        push!(full_imgs, img)
-    end
-
-    return full_imgs
-end
-

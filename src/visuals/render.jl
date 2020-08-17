@@ -1,226 +1,242 @@
-export overlay
+export render
 
-using Luxor
-# using Printf
+using Luxor, ImageMagick
 
-# creating directory if it doesn't exist
-if !ispath("render") mkdir("render") end
-
-scale = 2
-
-obs_size = 10 * scale
-target_size = 5 * scale
-pf_size = 1 * scale
-
-font_size = 20 * scale
-
-
-function _render_masks(obs, timestep)
-    num_observations = size(obs, 1)
-    setopacity(1.0)
-    for o=1:num_observations
-        point_ob = Luxor.Point(obs[o,1], -obs[o,2])
-        sethue("black")
-        Luxor.circle(point_ob, obs_size, :fill)
-    end
-end
-
-
-
-function _render_observations(obs, timestep; show_label=true, 
-                              highlighted::Union{Nothing,Vector{Int}} = nothing, hue="lightsalmon2")
-    #println(obs)
-    num_observations = size(obs, 1)
-    setopacity(1.0)
-    for (o,ob) in enumerate(obs)
-        point_ob = Luxor.Point(ob[1], -ob[2])
-        sethue(hue)
-        Luxor.circle(point_ob, obs_size, :fill)
-        if show_label
-            sethue("black")
-            Luxor.text(string(o), point_ob, halign=:right, valign=:bottom)
-        end
-    end
-
-    if typeof(highlighted) != Nothing
-        for t in highlighted
-            point_ob = Luxor.Point(obs[t][1], -obs[t][2])
-            sethue("red")
-            Luxor.circle(point_ob, target_size, :fill)
-        end
-    end
-end
-
-function _render_pf(pf_xy, timestep; color="darkslateblue", assignments=nothing, attended=nothing)
-    (_, num_particles, num_targets, _) = size(pf_xy)
-
-    #opc = 10.0/num_particles
-    opc = 1.0
-
-    for t=1:num_targets
-        mu_pos = mean(pf_xy[timestep,:,t,:], dims = 1)
-        std_pos = std(pf_xy[timestep,:,t,:], dims = 1)
-
-        mu_pos[2] *= -1
-        setopacity(opc)
-        #Luxor.ellipse(mu_pos..., std_pos..., :stroke)
-        for p=1:num_particles
-            if !isnothing(assignments)
-                sethue(assignments[timestep,p,t] <= num_targets ? "blue" : "red" )
-            end
-            point_pred = Luxor.Point(pf_xy[timestep,p,t,1], -pf_xy[timestep,p,t,2])
-            if !isnothing(attended)
-                bg_visibility = 1.0 - p*(1.0/num_particles)
-                prev_bg_visibility = 1.0 - (p-1)*(1.0/num_particles)
-                opacity = 1.0 - bg_visibility/prev_bg_visibility
-                opacity *= attended[timestep,t]
-
-                setopacity(opacity)
-                sethue("red")
-                Luxor.circle(point_pred, pf_size*3, :fill)
-                     
-                # setting things back
-                setopacity(1.0)
-            end
-            sethue(color)
-            #setopacity(opc)
-            Luxor.circle(point_pred, pf_size, :fill)
-            Luxor.text(string(t), point_pred, halign=:left, valign=:bottom)
-            #=
-            if p == num_particles
-                sethue("blue")
-                setopacity(1.0)
-                Luxor.text(string(t), point_pred, halign=:left, valign=:top)
-            end
-            =#
-        end
-    end
-end
-
-function _init_drawing(number; background_color="ghostwhite", folder_name="", obs_id="")
-        # obs_id only used in rendering the mask
-    Drawing(800, 800, "render/"*folder_name*lpad(number, 3, "0")*obs_id*".png")
+function _init_drawing(frame, path, gm, prefix;
+                       background_color="ghostwhite")
+    fname = prefix * "$(lpad(frame, 3, "0")).png"
+    Drawing(gm.area_width, gm.area_height,
+            joinpath(path, fname))
     origin()
     background(background_color)
-    Luxor.fontsize(font_size)
-    point = Luxor.Point(300, 380)
-    sethue("black")
-    Luxor.text(string(number), point)
 end
 
+"""
+    helper to draw text
+"""
+function _draw_text(text, position; opacity=1.0, color="black", size=30)
+    setopacity(opacity)
+    sethue(color)
+    Luxor.fontsize(size)
+    point = Luxor.Point(position[1], -position[2])
+    Luxor.text(text, point, halign=:right, valign=:bottom)
+end
 
-# renders the observations and optionally the particle filter infered positions
-function overlay(optics, num_targets; pf_xy=nothing, pf_dxy=nothing,
-                 folder_name="", run=nothing,
-                 stimuli=false, freeze_time=50,
-                 highlighted=nothing, render_masks=0,
-                assignments=nothing, attended=nothing)
-    println("rendering the images...")
+"""
+    helper to draw circle
+"""
+function _draw_circle(position, radius, color; opacity=1.0, style=:fill)
+    setopacity(opacity)
+    sethue(color)
+    point = Luxor.Point(position[1], -position[2])
+    Luxor.circle(point, radius, style)
+end
 
-    # if creating stimuli, then should stop before and after the dots moving
-    time_stopped = stimuli ? freeze_time : 0
+function _draw_array(array, gm, color; opacity=1.0)
+    sethue(color)
 
-    # creating specific directory if specified
-    if folder_name != ""
-        if !ispath("render/"*folder_name) mkdir("render/"*folder_name) end
-        folder_name *= "/"
-        if typeof(run) != Nothing
-            folder_name *= "run_"*string(run)*"/"
-            if !ispath("render/"*folder_name) mkdir("render/"*folder_name) end
-        end
-    end
+    tiles = Tiler(gm.area_width, gm.area_height, gm.img_width, gm.img_height, margin=0)
 
-
-    T = length(optics)
+    for (pos, n) in tiles
+        # reading value from the array
+        row = tiles.currentrow
+        col = tiles.currentcol
+        value = array[row, col]
         
-    # stopped at beginning
-    for timestep=1:time_stopped
-        obs = optics[1]
-        N = size(obs, 1)
+        # scaling opacity according to the value
+        setopacity(opacity*value)
 
-        _init_drawing(timestep, folder_name=folder_name)
-
-        # rendering observations
-        if stimuli
-            _render_observations(obs, 1; show_label=false, highlighted=collect(1:num_targets))
-        else
-            _render_observations(obs, 1)
-        end
-
-        if typeof(pf_xy) == Nothing
-            finish()
-            continue
-        end
-
-        # rendering xs and ys from the particles
-        if !stimuli
-            _render_pf(pf_xy, 1)
-        end
-
-        finish()
-    end
-
-    for timestep=1:T
-        obs = optics[timestep]
-        _init_drawing(timestep+time_stopped+render_masks, folder_name=folder_name)
-
-        # rendering observations with numbers if it is not for stimuli
-        if stimuli
-            _render_observations(obs, timestep; show_label=false)
-        else
-            _render_observations(obs, timestep; show_label=true)
-        end
-
-        # if there are no particle estimates then save to png and continue
-        if typeof(pf_xy) == Nothing
-            finish()
-        end
-
-                if render_masks > 0
-                    for i=1:N
-                        _init_drawing(timestep+time_stopped+render_masks, background_color="white", obs_id="_$(i)", folder_name=folder_name)
-                        _render_observations(reshape(obs[i,:], (T, 1, 2)), timestep; show_label=false, hue="black")
-                        finish()
-                    end
-                end
-
-        # if there are no particle estimates then save to png and continue
-        if typeof(pf_xy) == Nothing
-            continue
-        end
-
-
-        # rendering xs and ys from the particles
-        if !stimuli
-            _render_pf(pf_xy, timestep, color="blue", assignments=assignments, attended=attended)
-        end
-
-        finish()
-    end
-
-    for timestep=T+1:T+time_stopped
-        _init_drawing(timestep+time_stopped, folder_name=folder_name)
-
-        obs = optics[T]
-
-        # rendering observations
-        if stimuli
-            _render_observations(obs, T; show_label=false, highlighted=highlighted)
-        else
-            _render_observations(obs, T)
-        end
-
-        # if there are no particle estimates then save to png and continue
-        if typeof(pf_xy) == Nothing
-            finish()
-            continue
-        end
-
-        # rendering xs and ys from the particles
-        if !stimuli
-            _render_pf(pf_xy, T)
-        end
-
-        finish()
+        box(pos, tiles.tilewidth, tiles.tileheight, :fill)
     end
 end
+
+"""
+    helper to draw arrow
+"""
+function _draw_arrow(startpoint, endpoint, color;
+                     opacity=1.0, style=:fill,
+                     linewidth=5.0, arrowheadlength=15.0)
+    setopacity(opacity)
+    sethue(color)
+    p1 = Luxor.Point(startpoint[1], -startpoint[2])
+    p2 = Luxor.Point(endpoint[1], -endpoint[2])
+    Luxor.arrow(p1, p2, linewidth=linewidth, arrowheadlength=arrowheadlength)
+end
+
+function _render_dots(dot_positions_t,
+                      gm;
+                      show_label=true, 
+                      dot_color="lightsalmon2",
+                      highlighted::Union{Nothing,Vector{Int}} = nothing,
+                      highlighted_color = "red")
+    
+    for i=1:size(dot_positions_t, 1)
+        _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, dot_color)
+
+        if show_label
+            _draw_text("$i", dot_positions_t[i,1:2] .+ gm.dot_radius)
+        end
+    end
+
+    if !isnothing(highlighted)
+        for i in highlighted
+            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius/2.0, highlighted_color)
+        end
+    end
+end
+
+"""
+    renders particle filter inferred positions of the tracked objects
+"""
+function _render_pf(pf_xy_t,
+                    gm;
+                    pf_color="darkslateblue",
+                    attended=nothing,
+                    tracker_masks=nothing,
+                    tracker_masks_colors=["indigo", "green", "blue", "yellow"],
+                    pf_vel=nothing,
+                    show_label=true)
+    
+    n_particles, n_trackers, _ = size(pf_xy_t)
+
+    for p=1:n_particles
+        for i=1:n_trackers
+
+            # drawing the predicted position of this tracker in particle
+            pred_position = pf_xy_t[p,i,:]
+
+            bg_visibility = 1.0 - p*(1.0/n_particles)
+            prev_bg_visibility = 1.0 - (p-1)*(1.0/n_particles)
+            opacity = 1.0 - bg_visibility/prev_bg_visibility
+            opacity *= 0.5
+
+            # if we don't have tracker masks, then draw the little predicted positions
+            if isnothing(tracker_masks)
+                _draw_circle(pred_position, gm.dot_radius/3, pf_color, opacity=1.0)
+            end
+
+            if !isnothing(pf_vel)
+                _draw_arrow(pred_position, pred_position + pf_vel[p,i,:], pf_color,
+                            opacity=1.0)
+            end
+            
+            if show_label
+                _draw_text("$i", pred_position)
+            end
+            
+            # visualizing attention
+            if !isnothing(attended)
+                bg_visibility = 1.0 - p*(1.0/n_particles)
+                prev_bg_visibility = 1.0 - (p-1)*(1.0/n_particles)
+                opacity = 1.0 - bg_visibility/prev_bg_visibility
+                att_opacity = opacity * attended[i]
+                _draw_circle(pred_position, 2.5*gm.dot_radius, "red", opacity=att_opacity, style=:stroke)
+            end
+
+            if !isnothing(tracker_masks)
+                _draw_array(tracker_masks[p,i], gm, tracker_masks_colors[i], opacity=opacity)
+            end
+        end
+    end
+
+end
+
+
+"""
+    renders detailed information about inference on top of stimuli
+"""
+function render(dot_positions,
+                gm;
+                stimuli=false,
+                show_dots=true,
+                array=false,
+                pf_xy=nothing,
+                pf_vel=nothing,
+                path="render",
+                prefix="",
+                freeze_time=0,
+                highlighted=nothing,
+                attended=nothing,
+                tracker_masks=nothing)
+    
+    array ? imgs = [] : mkpath(path)
+    
+    # getting number of timesteps
+    k = size(dot_positions, 1)
+
+    # stopped at beginning
+    for t=1:freeze_time
+        _init_drawing(t, path, gm, prefix)
+        
+        if show_dots
+            _render_dots(dot_positions[1], gm;
+                         highlighted=collect(1:gm.n_trackers),
+                         show_label=!stimuli)
+        end
+    
+        if !isnothing(pf_xy)
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[1,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[1,:,:,:]
+            _render_pf(pf_xy[1,:,:,:], gm,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
+        end
+        
+        array ? push!(imgs, image_as_matrix()) : finish()
+    end
+    
+    # tracking while dots are moving
+    for t=1:k
+        print("render timestep: $t \r")
+        _init_drawing(t+freeze_time, path, gm, prefix)
+
+        if !stimuli
+            _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
+        end
+        
+        if show_dots
+            _render_dots(dot_positions[t], gm, show_label=!stimuli)
+        end
+    
+        if !isnothing(pf_xy)
+            attended_t = isnothing(attended) ? nothing : attended[t]
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[t,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[t,:,:,:]
+            _render_pf(pf_xy[t,:,:,:], gm;
+                       attended=attended_t,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
+        end
+
+        array ? push!(imgs, image_as_matrix()) : finish()
+    end
+    
+    # final freeze time showing the answer
+    for t=1:freeze_time
+        _init_drawing(t+k+freeze_time, path, gm, prefix)
+        
+        if show_dots
+            _render_dots(dot_positions[k], gm;
+                         highlighted=collect(1:gm.n_trackers),
+                         show_label=!stimuli)
+        end
+    
+        if !isnothing(pf_xy)
+            attended_t = isnothing(attended) ? nothing : attended[k]
+            tracker_masks_t = isnothing(tracker_masks) ? nothing : tracker_masks[l,:,:]
+            pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[k,:,:,:]
+            _render_pf(pf_xy[k,:,:,:], gm;
+                       attended=attended_t,
+                       tracker_masks=tracker_masks_t,
+                       pf_vel=pf_vel_t,
+                       show_label=!stimuli)
+        end
+
+        array ? push!(imgs, image_as_matrix()) : finish()
+    end
+    
+    array && return imgs
+end
+
