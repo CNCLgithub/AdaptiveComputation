@@ -2,6 +2,12 @@ export dgp
 
 using Setfield
 
+_dgp(k::Int, gm::GMMaskParams, motion::AbstractDynamicsModel) = error("not implemented")
+_dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel) = gm_brownian_pos(k, motion, gm)
+# TODO : implement gm_cbm_pos
+# _dgp(k::Int, gm::GMMaskParams, motion::ConstrainedBDM) = ...
+_dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics) = gm_isr_pos(k, motion, gm)
+
 function dgp(k::Int, params::GMMaskParams,
              motion::AbstractDynamicsModel)
 
@@ -11,16 +17,7 @@ function dgp(k::Int, params::GMMaskParams,
     gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
     
     # running generative model on just positions (no need to go to masks)
-    if motion isa BrownianDynamicsModel
-        init_state, states = gm_positions_static(k, motion, gm)
-    elseif motion isa ConstrainedBDM
-        init_state, states = gm_positions_cbm_static(k, motion, gm)
-    elseif motion isa ISRDynamics
-        init_state, states = gm_positions_isr_static(k, motion, gm)
-    else
-        error("unrecognized motion model")
-    end
-
+    init_state, states = _dgp(k, gm, motion)
 
     num_dots = gm.n_trackers
 

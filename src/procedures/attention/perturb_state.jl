@@ -13,8 +13,8 @@ Perturbs velocity based on probs of assignments to observations.
     tracker = @trace(Gen.categorical(probs), :tracker)
     
     # perturb velocity
-    addr_vx = :states => t => :dynamics => :brownian => tracker => :vx
-    addr_vy = :states => t => :dynamics => :brownian => tracker => :vy
+    addr_vx = :kernel => t => :dynamics => :brownian => tracker => :vx
+    addr_vy = :kernel => t => :dynamics => :brownian => tracker => :vy
     prev_vx = choices[addr_vx]
     prev_vy = choices[addr_vy]
 
@@ -42,8 +42,8 @@ function state_perturb_involution(trace, fwd_choices::ChoiceMap, fwd_ret,
 
     # decision over target state
     vx, vy = fwd_choices[:new_vx], fwd_choices[:new_vy]
-    constraints[:states => t => :dynamics => :brownian => tracker => :vx] = vx
-    constraints[:states => t => :dynamics => :brownian => tracker => :vy] = vy
+    constraints[:kernel => t => :dynamics => :brownian => tracker => :vx] = vx
+    constraints[:kernel => t => :dynamics => :brownian => tracker => :vy] = vy
 
     # backward stuffs
     bwd_choices = choicemap()

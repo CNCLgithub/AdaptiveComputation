@@ -71,29 +71,29 @@ function extract_assignments(trace::Gen.Trace)
     ret = Gen.get_retval(trace)
     pmbrfs = ret[2][t].record
     record = AssociationRecord(1)
-    xs = get_choices(trace)[:states => t => :masks]
+    xs = get_choices(trace)[:graphics => t => :masks]
     Gen.logpdf(rfs, xs, pmbrfs, record)
     record.table
 end
 
-function extract_tracker_masks(trace::Gen.Trace)
-    t, motion, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    mbrfs_params = ret[2][t].pmbrfs_params.mbrfs_params
+# function extract_tracker_masks(trace::Gen.Trace)
+#     t, motion, gm = Gen.get_args(trace)
+#     ret = Gen.get_retval(trace)
+#     mbrfs_params = ret[2][t].pmbrfs_params.mbrfs_params
     
-    tracker_masks = Vector{Array{Float64,2}}(undef, gm.n_trackers)
+#     tracker_masks = Vector{Array{Float64,2}}(undef, gm.n_trackers)
 
-    for i=1:gm.n_trackers
-        tracker_masks[i] = mbrfs_params.rvs_args[i][1]
-    end
+#     for i=1:gm.n_trackers
+#         tracker_masks[i] = mbrfs_params.rvs_args[i][1]
+#     end
 
-    tracker_masks = reshape(tracker_masks, (1,1,size(tracker_masks)...))
+#     tracker_masks = reshape(tracker_masks, (1,1,size(tracker_masks)...))
 
-    return tracker_masks
-end
+#     return tracker_masks
+# end
 
-function extract_pmbrfs_params(trace::Gen.Trace)
-    t, motion, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    return ret[2][t].pmbrfs_params
-end
+# function extract_pmbrfs_params(trace::Gen.Trace)
+#     t, motion, gm = Gen.get_args(trace)
+#     ret = Gen.get_retval(trace)
+#     return ret[2][t].pmbrfs_params
+# end

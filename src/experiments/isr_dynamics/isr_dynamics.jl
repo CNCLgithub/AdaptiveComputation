@@ -10,20 +10,21 @@ end
 
 get_name(::ISRDynamicsExperiment) = "example"
 
-function run_inference(q::ISRDynamicsExperiment, path::String; viz::Bool=false)
+function run_inference(q::ISRDynamicsExperiment, attention::T, path::String; viz::Bool=false) where
+    {T<:AbstractAttentionModel}
 
     gm_params = load(GMMaskParams, q.gm)
-    motion_data = ISRDynamics()
+    motion = load(ISRDynamics, q.motion)
+    # motion_data = ISRDynamics()
     
     # generating initial positions and masks (observations)
-    init_positions, masks, positions = dgp(q.k, gm_params, motion_data)
+    init_positions, masks, positions = dgp(q.k, gm_params, motion)
 
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions
                                ))
 
-    motion = load(ISRDynamics, q.motion)
-    
+
     # initial observations based on init_positions
     # model knows where trackers start off
     constraints = Gen.choicemap()
@@ -39,21 +40,19 @@ function run_inference(q::ISRDynamicsExperiment, path::String; viz::Bool=false)
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
-        cm[:states => t => :masks] = masks[t]
+        cm[:kernel => t => :masks] = masks[t]
         observations[t] = cm
     end
     
 
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        gm_masks_isr_static,
+                                        gm_isr_mask,
                                         (0, motion, gm_params),
                                         constraints,
                                         args,
                                         observations)
 
     
-    attention = load(MapSensitivity, q.attention)
-
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))

@@ -1,11 +1,8 @@
-export gm_masks_static,
-        GMMaskParams
-
 using LinearAlgebra
 
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
-    record::RFSElements{Array}
+    rfs::RFSElements{Array}
 end
 
 @with_kw struct GMMaskParams
@@ -191,8 +188,29 @@ end
 
 
 ##################################
+@gen static function pos_kernel(t::Int,
+                            prev_state::FullState,
+                            dynamics_model::AbstractDynamicsModel,
+                            params::GMMaskParams)
+    prev_graph = prev_state.graph
+    new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
+    new_trackers = new_graph.elements
+    pmbrfs = prev_state.rfs # pass along this reference for effeciency
+    new_state = FullState(new_graph, pmbrfs)
+    return new_state
+end
 
-@gen static function kernel(t::Int,
+pos_chain = Gen.Unfold(pos_kernel)
+
+@gen static function gm_brownian_pos(T::Int, motion::AbstractDynamicsModel,
+                                       params::GMMaskParams)
+    init_state = @trace(sample_init_state(params), :init_state)
+    states = @trace(pos_chain(T, init_state, motion, params), :states)
+    result = (init_state, states)
+    return result
+end
+
+@gen static function mask_kernel(t::Int,
                             prev_state::FullState,
                             dynamics_model::AbstractDynamicsModel,
                             params::GMMaskParams)
@@ -211,15 +229,16 @@ end
     return new_state
 end
 
-chain = Gen.Unfold(kernel)
+mask_chain = Gen.Unfold(mask_kernel)
 
-@gen static function gm_masks_static(T::Int, motion::AbstractDynamicsModel,
+@gen static function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
-    
     init_state = @trace(sample_init_state(params), :init_state)
-    states = @trace(chain(T, init_state, motion, params), :states)
+    states = @trace(mask_chain(T, init_state, motion, params), :states)
 
     result = (init_state, states)
 
     return result
 end
+
+export GMMaskParams, gm_brownian_pos, gm_brownian_mask

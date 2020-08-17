@@ -7,7 +7,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     args = Gen.get_args(tr)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
-    addr = :states => t => :dynamics => :brownian => tracker
+    addr = :kernel => t => :dynamics => :brownian => tracker
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
 end
 
@@ -63,7 +63,7 @@ function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
     amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
     println("x: $(x), amp: $(amp)")
-    round(Int, min(amp, att.sweeps))
+    Int64(round(clamp(amp, 1.0, att.sweeps)))
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -75,8 +75,8 @@ end
 
 
 function _td(tr::Gen.Trace, t::Int, scale::Float64)
-    xs = get_choices(tr)[:states => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].record
+    xs = get_choices(tr)[:kernel => t => :masks]
+    pmbrfs = Gen.get_retval(tr)[2][t].rfs
     record = AssociationRecord(100)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     poiss_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
@@ -101,7 +101,7 @@ function target_designation(tr::Gen.Trace; w::Int = 0,
 end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
-    xs = get_choices(tr)[:states => t => :masks]
+    xs = get_choices(tr)[:kernel => t => :masks]
     pmbrfs = Gen.get_retval(tr)[2][t].record
     record = AssociationRecord(100)
     Gen.logpdf(rfs, xs, pmbrfs, record)
