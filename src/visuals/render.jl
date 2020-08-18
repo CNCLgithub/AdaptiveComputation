@@ -251,17 +251,15 @@ function render(gm;
 
         array ? push!(imgs, image_as_matrix()) : finish()
     end
-    
     # final freeze time showing the answer
     for t=1:freeze_time
         _init_drawing(t+k+freeze_time, path, gm, prefix)
-        
         if !isnothing(dot_positions)
             _render_dots(dot_positions[k], gm;
-                         highlighted=collect(1:gm.n_trackers),
+                         highlighted=highlighted,
+                         highlighted_color="blue",
                          show_label=!stimuli)
         end
-    
         if !isnothing(pf_xy)
             attended_t = isnothing(attended) ? nothing : attended[k]
             pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[k,:,:,:]
@@ -270,14 +268,10 @@ function render(gm;
                        pf_vel=pf_vel_t,
                        show_label=!stimuli)
         end
-
         if !isnothing(tracker_masks)
             _render_tracker_masks(tracker_masks[t])
         end
-
         array ? push!(imgs, image_as_matrix()) : finish()
     end
-    
     array && return imgs
 end
-
