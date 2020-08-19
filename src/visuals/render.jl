@@ -74,10 +74,10 @@ end
 function _render_probes(dot_positions_t,
                         probes_t,
                         gm;
-                        probe_color="black")
+                        probe_color="coral1")
     for i=1:size(dot_positions_t, 1)
         if probes_t[i]
-            _draw_circle(dot_positions_t[i,1:2], 0.5 * gm.dot_radius, probe_color, opacity = 0.3)
+            _draw_circle(dot_positions_t[i,1:2], 0.5 * gm.dot_radius, probe_color, opacity = 0.8)
         end
     end
 end
