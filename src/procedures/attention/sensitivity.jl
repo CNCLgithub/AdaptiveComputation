@@ -109,7 +109,7 @@ end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
     xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].record
+    pmbrfs = Gen.get_retval(tr)[2][t].rfs
     record = AssociationRecord(100)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     Dict{Vector{Vector{Int64}}, Float64}(zip(record.table,
