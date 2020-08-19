@@ -1,5 +1,8 @@
-exp = Exp0(;k = 10)
-att = MapSensitivity()
+exp = Exp0(;k = 60, trial = 124)
+att = MapSensitivity(samples = 5,
+                     sweeps = 15,
+                     k = 1.16,
+                     x0 = 3.0)
 path = "/experiments/test/test.jld2"
 ispath("/experiments/test") || mkdir("/experiments/test")
 run_inference(exp, att, path; viz = true)

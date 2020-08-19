@@ -39,12 +39,12 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
-        cm[:states => t => :masks] = masks[t]
+        cm[:kernel => t => :masks] = masks[t]
         observations[t] = cm
     end
 
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        gm_masks_static,
+                                        gm_brownian_mask,
                                         (0, motion, gm_params),
                                         constraints,
                                         args,
@@ -80,8 +80,9 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
         plot_rejuvenation(attempts, out)
 
         # visualizing inference on stimuli
-        render(positions, q, gm_params;
-               dir = joinpath(out, "render"),
+        render(gm_params;
+               dot_positions = positions[1:q.k],
+               path = joinpath(out, "render"),
                pf_xy=tracker_positions[:,:,:,1:2],
                attended=attended/attention.sweeps,)
 

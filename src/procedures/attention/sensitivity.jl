@@ -9,6 +9,12 @@ function jitter(tr::Gen.Trace, tracker::Int)
     diffs = Tuple(fill(NoChange(), length(args)))
     addr = :kernel => t => :dynamics => :brownian => tracker
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
+    if isnan(ll)
+        display(get_submap(get_choices(tr), addr))
+        display(get_submap(get_choices(new_tr), addr))
+    end
+    (new_tr, ll)
+
 end
 
 function retrieve_latents(tr::Gen.Trace)
@@ -49,8 +55,8 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         kls[i, :] = collect(ẟs)
     end
     gs = Vector{Float64}(undef, n_latents)
-    display(kls)
-    display(lls)
+    # display(kls)
+    # display(lls)
     for i = 1:n_latents
         weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
         gs[i] = sum(kls[:, i] .* weights)
@@ -61,7 +67,8 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    # amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    amp = att.k*(x - att.x0) + att.sweeps
     println("x: $(x), amp: $(amp)")
     Int64(round(clamp(amp, 1.0, att.sweeps)))
 end

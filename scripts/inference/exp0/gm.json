@@ -3,8 +3,8 @@
     "distractor_rate": 4.0,
     "init_pos_spread": 400.0,
 
-    "img_width": 200,
-    "img_height": 200,
+    "img_width": 100,
+    "img_height": 100,
 
     "area_width": 800,
     "area_height": 800,
