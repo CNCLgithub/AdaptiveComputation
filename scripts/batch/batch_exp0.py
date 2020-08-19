@@ -11,7 +11,7 @@ import os
 import argparse
 from slurmpy import sbatch
 
-script = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no ' + \
+script = 'bash {0!s}/run.sh julia -J /project/mot.so ' + \
          '/project/scripts/inference/exp0/exp0.jl'
 
 def att_tasks(args):
