@@ -12,7 +12,7 @@ import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/run.sh julia -J /project/mot.so --compiled-modules=no ' + \
-         '/project/scripts/inference/exp0.jl'
+         '/project/scripts/inference/exp0/exp0.jl'
 
 def att_tasks(args):
     tasks = [(t,c,args.att_key) for c in range(1, args.chains + 1) 

@@ -45,7 +45,7 @@ function load_trial(trial_dir::String)
         
         assignment = first(final_assignments[perm]) # taking max assignment
         assignment = vcat(assignment[2:end]...) # first partition is ppp
-        n_trackers = size(extracted["weighted"][:positions], 3)
+        n_trackers = size(extracted["weighted"][:tracker_positions], 3)
         performance[run] = length(intersect(assignment, 1:n_trackers))/n_trackers
 
         # getting pred_target
