@@ -61,6 +61,19 @@ state_move(trace, args) = Gen.mh(trace, state_perturb_proposal, args, state_pert
 
 rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
 
+function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T) where
+    {T<:Vector{Float64}}
+
+    t = first(Gen.get_args(trace))
+    tracker = Gen.categorical(probs)
+    attended_trackers[tracker] += 1
+    addrs = []
+    for i = max(1, t-4):t
+        addr = :kernel => i => :dynamics => :brownian => tracker
+        push!(addrs, addr)
+    end
+    mh(trace, Gen.select(addrs...))
+end
 
 """
     rejuvenate_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
@@ -75,7 +88,8 @@ function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
     attended_trackers = zeros(length(probs))
     args = (probs, attended_trackers)
     for i=1:num_particles
-        state.traces[i], a = state_move(state.traces[i], args)
+        # state.traces[i], a = state_move(state.traces[i], args)
+        state.traces[i], a = ancestral_kernel_move!(attended_trackers, state.traces[i], probs)
         accepted += a
     end
     
