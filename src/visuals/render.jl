@@ -30,7 +30,11 @@ end
 """
     helper to draw circle
 """
-function _draw_circle(position, radius, color; opacity=1.0, style=:fill)
+function _draw_circle(position, radius, color;
+                      opacity=1.0, style=:fill)
+    if style==:stroke
+        setline(5)
+    end
     setopacity(opacity)
     sethue(color)
     point = Luxor.Point(position[1], -position[2])
@@ -77,7 +81,7 @@ function _render_probes(dot_positions_t,
                         probe_color="coral1")
     for i=1:size(dot_positions_t, 1)
         if probes_t[i]
-            _draw_circle(dot_positions_t[i,1:2], 0.5 * gm.dot_radius, probe_color, opacity = 0.8)
+            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, "darkslateblue", style=:stroke)
         end
     end
 end
@@ -87,13 +91,18 @@ end
 """
 function _render_dots(dot_positions_t,
                       gm;
+                      leading_edges=true,
                       show_label=true, 
                       dot_color="lightsalmon2",
+                      leading_edge_color="black",
                       highlighted::Union{Nothing,Vector{Int}} = nothing,
                       highlighted_color = "red")
     
     for i=1:size(dot_positions_t, 1)
         _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, dot_color)
+        if leading_edges
+            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, leading_edge_color, style=:stroke)
+        end
 
         if show_label
             _draw_text("$i", dot_positions_t[i,1:2] .+ gm.dot_radius)
