@@ -33,7 +33,7 @@ end
 function _draw_circle(position, radius, color;
                       opacity=1.0, style=:fill)
     if style==:stroke
-        setline(5)
+        setline(3)
     end
     setopacity(opacity)
     sethue(color)

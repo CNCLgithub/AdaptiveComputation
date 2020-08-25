@@ -1,10 +1,10 @@
 export BrownianDynamicsModel
 
 @with_kw struct BrownianDynamicsModel <: AbstractDynamicsModel
-    inertia::Float64 = 0.8
+    inertia::Float64 = 0.9
     spring::Float64 = 0.002
-    sigma_x::Float64 = 1.5
-    sigma_y::Float64 = 1.5
+    sigma_x::Float64 = 3.5
+    sigma_y::Float64 = 3.5
 end
 
 function load(::Type{BrownianDynamicsModel}, path::String)

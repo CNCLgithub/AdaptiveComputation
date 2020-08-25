@@ -23,13 +23,19 @@ function run_inference(q::ISRDynamicsExperiment,
     att = MapSensitivity()
     
     if isnothing(q.trial)
-        init_positions, masks, positions = dgp(q.k, gm, motion)
+        init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
     else
         init_positions, masks, motion, positions = load_trial(q.trial, q.dataset_path, gm)
     end
 
+    # motion = BrownianDynamicsModel()
+    # TODO change file path
+    motion = load(ISRDynamics, "motion.json")
+
     latent_map = LatentMap(Dict(
-                                :tracker_positions => extract_tracker_positions
+                                :tracker_positions => extract_tracker_positions,
+                                :tracker_masks => extract_tracker_masks,
+                                :assignments => extract_assignments
                                ))
 
     # initial observations based on init_positions
@@ -53,7 +59,8 @@ function run_inference(q::ISRDynamicsExperiment,
     
 
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        gm_isr_mask,
+                                        #gm_isr_mask,
+                                        gm_brownian_mask,
                                         (0, motion, gm),
                                         constraints,
                                         args,
