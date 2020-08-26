@@ -1,20 +1,16 @@
 using MOT
 using Random
 
-Random.seed!(1234)
+Random.seed!(3)
 
-q = ISRDynamicsExperiment(k=30)
+q = ISRDynamicsExperiment(k=60, trial=1)
 
-path = "/experiments/test/test.jld2"
-ispath("/experiments/test") || mkdir("/experiments/test")
+path = "/experiments/test"
+mkpath(path)
 
-att = MapSensitivity()
-gm_params = MOT.load(GMMaskParams, q.gm)
-motion = MOT.load(ISRDynamics, q.motion)
-
-# generating initial positions and masks (observations)
-init_positions, masks, positions = dgp(q.k, gm_params, motion)
-render(positions, gm_params;
-        path = joinpath(path, "render"))
-
-run_inference(q, att, path; viz = true)
+att = MapSensitivity(samples=1,
+                     sweeps=0,
+                     k = 0.05,
+                     x0 = 17.8)
+results = run_inference(q, att, path)
+println("final assignment: $(extract_chain(results)["unweighted"][:assignments][end,1])")

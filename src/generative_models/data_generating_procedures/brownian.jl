@@ -11,8 +11,7 @@ _dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics) = gm_isr_pos(k, motion, gm)
 function dgp(k::Int, params::GMMaskParams,
              motion::AbstractDynamicsModel)
 
-    # new params with all dots
-    # having state for data generation
+    # new params with all dots having state for data generation
     gm = deepcopy(params)
     gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
     
@@ -24,12 +23,12 @@ function dgp(k::Int, params::GMMaskParams,
     # initial positions and positions over time will be returned
     # from this generative process
     init_positions = Array{Float64}(undef, num_dots, 3)
-    #init_vels = Array{Float64}(undef, num_dots, 2)
+    init_vels = Array{Float64}(undef, num_dots, 2)
     positions = Vector{Array{Float64}}(undef, k)
 
     for i=1:num_dots
         init_positions[i,:] = init_state.graph.elements[i].pos
-        #init_vels[i,:] = init_state.graph.elements[i].vel
+        init_vels[i,:] = init_state.graph.elements[i].vel
     end
     
     for t=1:k
@@ -44,5 +43,5 @@ function dgp(k::Int, params::GMMaskParams,
     masks = get_masks(positions, params.dot_radius, params.img_height,
                       params.img_width, params.area_height, params.area_width)
 
-    return init_positions, masks, positions
+    return init_positions, init_vels, masks, positions
 end
