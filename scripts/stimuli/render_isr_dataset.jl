@@ -1,7 +1,7 @@
 using MOT
 
-dataset_path = "output/datasets/isr_dataset.jld2"
-render_path = "output/renders/isr_dataset/test/"
+dataset_path = "/datasets/isr_dataset.jld2"
+render_path = "/renders/isr_dataset"
 jldopen(dataset_path, "r") do file
     n_trials = file["n_trials"]
     for i=1:n_trials

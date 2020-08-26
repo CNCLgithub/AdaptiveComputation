@@ -6,9 +6,7 @@ n_trials = 20
 
 k = 120
 Random.seed!(4)
-datasets_folder = joinpath("output", "datasets")
-ispath(datasets_folder) || mkpath("datasets_folder")
-dataset_path = joinpath(datasets_folder, "isr_dataset.jld2")
+dataset_path = "/datasets/isr_dataset.jld2"
 
 q = ISRDynamicsExperiment(k=k)
 gm = MOT.load(GMMaskParams, q.gm)
@@ -30,7 +28,7 @@ jldopen(dataset_path, "w") do file
     end
 end
 
-q = ISRDynamicsExperiment(k=k, trial=1, motion="motion.json")
-att = MapSensitivity(samples=5)
-path = "/experiments/test"
-run_inference(q, att, path)
+# q = ISRDynamicsExperiment(k=k, trial=1, motion="motion.json")
+# att = MapSensitivity(samples=5)
+# path = "/experiments/test"
+# run_inference(q, att, path)
