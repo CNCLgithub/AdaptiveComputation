@@ -14,7 +14,7 @@ function render_dataset(dataset_path, render_path)
     end
 end
 
-dataset_path = "output/datasets/brownian_dataset.jld2"
-render_path = "output/renders/brownian_dataset/"
+dataset_path = "output/datasets/exp1.jld2"
+render_path = "output/renders/exp1/"
 
 render_dataset(dataset_path, render_path)

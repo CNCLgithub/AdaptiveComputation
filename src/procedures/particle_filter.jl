@@ -69,18 +69,7 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     order = sortperm(state.log_weights, rev=true)
     order = [order[1]]
     for i in order
-        trace = state.traces[i]
-        weight = state.log_weights[i]
-
-        # pmbrfs_stats = Gen.get_retval(trace)[2][t].pmbrfs_params.pmbrfs_stats
-        # td, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.ll_partitions
-        # A, A_weights = pmbrfs_stats.assignments, pmbrfs_stats.ll_assignments
-
-        # println("particle weight $weight")
-        # for j=1:length(td)
-        #     println("TD: $(td[j][1]) \t A: $(td[j][2]) \t td weight: $(td_weights[j])")
-        # end
-        # println()
+        println("best assignment $(extract_assignments(state.traces[i]))")
     end
 
     aux_contex = Gen_Compose.rejuvenate!(proc, state)

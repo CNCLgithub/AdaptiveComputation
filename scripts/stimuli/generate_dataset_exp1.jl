@@ -2,16 +2,16 @@ using MOT
 using Random
 Random.seed!(4)
 
-n_trials = 2
+n_trials = 10
 k = 120
 
-dataset_file = "brownian_dataset.jld2"
+dataset_file = "exp1.jld2"
 datasets_folder = joinpath("output", "datasets")
 ispath(datasets_folder) || mkpath("datasets_folder")
 dataset_path = joinpath(datasets_folder, dataset_file)
 
-gm_path = "$(@__DIR__)/brownian_dataset/gm.json"
-motion_path = "$(@__DIR__)/brownian_dataset/motion.json"
+gm_path = "$(@__DIR__)/dataset_exp1/gm.json"
+motion_path = "$(@__DIR__)/dataset_exp1/motion.json"
 
 gm = MOT.load(GMMaskParams, gm_path)
 motion = MOT.load(BrownianDynamicsModel, motion_path)
