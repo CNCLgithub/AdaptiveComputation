@@ -4,7 +4,8 @@ function generate_dataset(dataset_path, n_trials, k, gm, motion)
     jldopen(dataset_path, "w") do file 
         file["n_trials"] = n_trials
         for i=1:n_trials
-            init_positions, init_vels, masks, positions = dgp(k, gm, motion)
+            init_positions, init_vels, _, positions = dgp(k, gm, motion;
+                                                          generate_masks=false)
 
             trial = JLD2.Group(file, "$i")
             trial["gm"] = gm

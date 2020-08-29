@@ -16,7 +16,7 @@ end
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
-
+    
     # in case of BDot and CBM
     init_vel::Real = 5.0
     
@@ -27,9 +27,10 @@ end
     area_height::Int = 800
     area_width::Int = 800
 
-    # parameters for the double gaussian mask
-    mask_spread_1::Float64 = 0.5
-    mask_spread_2::Float64 = 2.5
+    # parameters for the drawing the mask random variable arguments
+    dot_p::Float64 = 0.5 # prob of pixel on in the dot region
+    gauss_amp::Float64 = 0.5 # gaussian amplitude for the gaussian component of the mask
+    gauss_std::Float64 = 2.5 # standard deviation --||--
 
     # rfs parameters
     record_size::Int = 100 # number of associations
@@ -71,7 +72,8 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
         
         mask = draw_gaussian_dot_mask([x,y], r,
                                  params.img_height, params.img_width,
-                                 params.mask_spread_1, params.mask_spread_2)
+                                 params.dot_p,
+                                 params.gauss_amp, params.gauss_std)
         
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
@@ -121,7 +123,6 @@ function get_masks_params(trackers, params::GMMaskParams;
     scaling = 5.0 # parameter to tweak how close objects have to be to occlude
     missed_detection = 1e-30 # parameter to tweak probability of missed detection
 
-
     # legacy support for exp0 - masks always present
     if params.exp0
         rs = ones(params.n_trackers)
@@ -143,6 +144,8 @@ function get_masks_params(trackers, params::GMMaskParams;
             end
         end
     end
+    
+    rs = ones(params.n_trackers) # CHANGED
 
     mask_args, trackers_img = get_masks_rvs_args(objects, params)
 

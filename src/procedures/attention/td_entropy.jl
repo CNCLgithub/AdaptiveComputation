@@ -28,7 +28,7 @@ function get_stats(attention::TDEntropyAttentionModel, state::Gen.ParticleFilter
         # from saved state in pmbrfs_params (Gen hack)
         pmbrfs_stats = Gen.get_retval(samples[i])[2][t].pmbrfs_params.pmbrfs_stats
         tds, td_weights = pmbrfs_stats.partitions, pmbrfs_stats.ll_partitions
-        
+         
         # saving main TD and assignment hypothesis
         main_td = tds[1][1]
         main_A = tds[1][2]

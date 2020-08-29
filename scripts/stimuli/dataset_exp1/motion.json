@@ -1,6 +1,6 @@
 {
-  "inertia": 0.95,
-  "spring": 0.002,
+  "inertia": 0.8,
+  "spring": 0.0007,
   "sigma_x": 2.0,
   "sigma_y": 2.0
 }

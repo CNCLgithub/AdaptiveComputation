@@ -25,9 +25,10 @@ function run_inference(q::Exp1,
     else
         init_positions, masks, motion, positions = load_trial(q.trial, q.dataset_path, gm)
     end
-
+    
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
+                                # :tracker_masks => extract_tracker_masks,
                                 :assignments => extract_assignments
                                ))
 
@@ -39,6 +40,8 @@ function run_inference(q::Exp1,
         constraints[addr] = init_positions[i,1]
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_positions[i,2]
+        # addr = :init_state => :trackers => i => :z
+        # constraints[addr] = init_positions[i,3]
     end
     
     # compiling further observations for the model
@@ -65,10 +68,10 @@ function run_inference(q::Exp1,
     
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = path)
+                                     path = joinpath(path, "results.jld2"))
     
     if viz
-        visualize_inference(results, positions, gm, att, joinpath(path, "render"))
+        visualize_inference(results, positions, gm, attention, joinpath(path, "render"))
     end
 
     return results

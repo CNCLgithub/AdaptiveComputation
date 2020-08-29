@@ -54,17 +54,20 @@ drawing a gaussian dot with two components:
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
+                                dot_p::Float64,
                                 gauss_amp::Float64, gauss_std::Float64)
  
     mask = zeros(h, w)
     for i=1:h
         for j=1:w
-            mask[j,i] += sqrt((i - center[1])^2 + (j - center[2])^2) < r
+            mask[j,i] += sqrt((i - center[1])^2 + (j - center[2])^2) < r ? dot_p : 1e-5
             mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
                                                   gauss_amp, gauss_std, gauss_std)
         end
     end
-    mask = min.(mask, 0.75) # 1.0 - 1e-5)
+    mask = clamp.(mask, 1e-5, 1.0 - 1e-5)
+    # mask = min.(mask, 0.75) # 1.0 - 1e-5)
+    return mask
 end
 
 

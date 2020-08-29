@@ -98,14 +98,17 @@ function _render_dots(dot_positions_t,
                       highlighted::Union{Nothing,Vector{Int}} = nothing,
                       highlighted_color = "red")
     
-    for i=1:size(dot_positions_t, 1)
-        _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, dot_color)
+    # furthest (highest z) comes first in depth_perm
+    depth_perm = sortperm(dot_positions_t[:,3], rev=true)
+
+    for (i, j) in enumerate(depth_perm)
+        _draw_circle(dot_positions_t[j,1:2], gm.dot_radius, dot_color)
         if leading_edges
-            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, leading_edge_color, style=:stroke)
+            _draw_circle(dot_positions_t[j,1:2], gm.dot_radius, leading_edge_color, style=:stroke)
         end
 
         if show_label
-            _draw_text("$i", dot_positions_t[i,1:2] .+ gm.dot_radius)
+            _draw_text("$j", dot_positions_t[j,1:2] .+ gm.dot_radius)
         end
     end
 
@@ -129,10 +132,10 @@ end
 """
     helper function to draw the tracker masks on top of the image
 """
-function _render_tracker_masks(tracker_masks;
+function _render_tracker_masks(tracker_masks, gm;
                                tracker_masks_colors=["indigo", "green", "blue", "yellow"])
 
-    n_particles, n_trackers, _ = size(tracker_masks)
+    n_particles, n_trackers = size(tracker_masks)
 
     for p=1:n_particles
         for i=1:n_trackers
@@ -223,7 +226,7 @@ function render(gm;
         end
 
         if !isnothing(tracker_masks)
-            _render_tracker_masks(tracker_masks[t])
+            _render_tracker_masks(tracker_masks[1,:,:], gm)
         end
         
         array ? push!(imgs, image_as_matrix()) : finish()
@@ -255,7 +258,7 @@ function render(gm;
         end
 
         if !isnothing(tracker_masks)
-            _render_tracker_masks(tracker_masks[t])
+            _render_tracker_masks(tracker_masks[t,:,:], gm)
         end
 
         array ? push!(imgs, image_as_matrix()) : finish()
@@ -278,7 +281,7 @@ function render(gm;
                        show_label=!stimuli)
         end
         if !isnothing(tracker_masks)
-            _render_tracker_masks(tracker_masks[t])
+            _render_tracker_masks(tracker_masks[t,:,:], gm)
         end
         array ? push!(imgs, image_as_matrix()) : finish()
     end
