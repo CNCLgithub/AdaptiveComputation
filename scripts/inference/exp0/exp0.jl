@@ -8,12 +8,12 @@ function parse_commandline()
         "--gm"
         help = "Generative Model params"
         arg_type = String
-        default = "$(@__DIR__)/exp0/gm.json"
+        default = "$(@__DIR__)/gm.json"
 
         "--proc"
         help = "Inference procedure params"
         arg_type = String
-        default = "$(@__DIR__)/exp0/proc.json"
+        default = "$(@__DIR__)/proc.json"
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -51,14 +51,14 @@ function parse_commandline()
         "--params"
         help = "Attention params"
         arg_type = String
-        default = "$(@__DIR__)/exp0/td.json"
+        default = "$(@__DIR__)/td.json"
 
     end
     @add_arg_table! s["data_correspondence"] begin
         "--params"
         help = "Attention params"
         arg_type = String
-        default = "$(@__DIR__)/exp0/dc.json"
+        default = "$(@__DIR__)/dc.json"
     end
     @add_arg_table! s["trial_avg"] begin
         "model_path"

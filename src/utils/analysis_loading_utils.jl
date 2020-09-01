@@ -1,6 +1,6 @@
 export read_json,
-        load_trial,
-        load_results
+        analysis_load_trial,
+        analysis_load_results
 
 using JSON
 
@@ -25,7 +25,7 @@ function read_json(path)
 end
 
 
-function load_trial(trial_dir::String)
+function analysis_load_trial(trial_dir::String)
     runs = readdir(trial_dir)
     n_runs = length(runs)
 
@@ -45,7 +45,7 @@ function load_trial(trial_dir::String)
         
         assignment = first(final_assignments[perm]) # taking max assignment
         assignment = vcat(assignment[2:end]...) # first partition is ppp
-        n_trackers = size(extracted["weighted"][:positions], 3)
+        n_trackers = size(extracted["weighted"][:tracker_positions], 3)
         performance[run] = length(intersect(assignment, 1:n_trackers))/n_trackers
 
         # getting pred_target
@@ -65,7 +65,7 @@ function load_trial(trial_dir::String)
 end
 
 
-function load_results(dir::String)
+function analysis_load_results(dir::String)
     println("reading the trial files from $dir...")
 	trials = readdir(dir)
 

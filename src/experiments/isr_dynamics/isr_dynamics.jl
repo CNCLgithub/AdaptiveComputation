@@ -1,6 +1,8 @@
 export ISRDynamicsExperiment
 
 @with_kw struct ISRDynamicsExperiment <: AbstractExperiment
+    trial::Union{Nothing, Int} = nothing
+    dataset_path::String = "output/datasets/isr_dataset.jld2"
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
@@ -10,20 +12,31 @@ end
 
 get_name(::ISRDynamicsExperiment) = "example"
 
-function run_inference(q::ISRDynamicsExperiment, attention::T, path::String; viz::Bool=false) where
-    {T<:AbstractAttentionModel}
 
-    gm_params = load(GMMaskParams, q.gm)
-    motion = load(ISRDynamics, q.motion)
-    # motion_data = ISRDynamics()
+function run_inference(q::ISRDynamicsExperiment,
+                       attention::T,
+                       path::String;
+                      viz::Bool=true) where {T<:AbstractAttentionModel}
     
-    # generating initial positions and masks (observations)
-    init_positions, masks, positions = dgp(q.k, gm_params, motion)
+    gm = load(GMMaskParams, q.gm)
+    motion = load(ISRDynamics, q.motion)
+    att = MapSensitivity()
+    
+    if isnothing(q.trial)
+        init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
+    else
+        init_positions, masks, motion, positions = load_trial(q.trial, q.dataset_path, gm)
+    end
+
+    # motion = BrownianDynamicsModel()
+    # TODO change file path
+    motion = load(ISRDynamics, "motion.json")
 
     latent_map = LatentMap(Dict(
-                                :tracker_positions => extract_tracker_positions
+                                :tracker_positions => extract_tracker_positions,
+                                :tracker_masks => extract_tracker_masks,
+                                :assignments => extract_assignments
                                ))
-
 
     # initial observations based on init_positions
     # model knows where trackers start off
@@ -36,7 +49,7 @@ function run_inference(q::ISRDynamicsExperiment, attention::T, path::String; viz
     end
     
     # compiling further observations for the model
-    args = [(t, motion, gm_params) for t in 1:q.k]
+    args = [(t, motion, gm) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
@@ -46,13 +59,13 @@ function run_inference(q::ISRDynamicsExperiment, attention::T, path::String; viz
     
 
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        gm_isr_mask,
-                                        (0, motion, gm_params),
+                                        #gm_isr_mask,
+                                        gm_brownian_mask,
+                                        (0, motion, gm),
                                         constraints,
                                         args,
                                         observations)
 
-    
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
@@ -61,38 +74,11 @@ function run_inference(q::ISRDynamicsExperiment, attention::T, path::String; viz
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
                                      path = nothing)
+    
     if viz
-        extracted = extract_chain(results)
-        tracker_positions = extracted["unweighted"][:tracker_positions]
-        # tracker_masks = get_masks(tracker_positions)
-        aux_state = extracted["aux_state"]
-        attention_weights = [aux_state[t].stats for t = 1:q.k]
-        attention_weights = collect(hcat(attention_weights...)')
-
-        out = dirname(path)
-        plot_compute_weights(attention_weights, out)
-
-        attempts = Vector{Int}(undef, q.k)
-        attended = Vector{Vector{Float64}}(undef, q.k)
-        for t=1:q.k
-            attempts[t] = aux_state[t].attempts
-            attended[t] = aux_state[t].attended_trackers
-        end
-        MOT.plot_attention(attended, attention.sweeps, out)
-        plot_rejuvenation(attempts, out)
-
-        # visualizing inference on stimuli
-        render(positions, gm_params;
-               path = joinpath(out, "render"),
-               pf_xy=tracker_positions[:,:,:,1:2],
-               attended=attended/attention.sweeps,)
-
+        visualize_inference(results, positions, gm, att, joinpath(path, "render"))
     end
-
-    #full_imgs = get_full_imgs(masks)
-    #visualize(tracker_positions, full_imgs, gm_params)
 
     return results
 end
-
 

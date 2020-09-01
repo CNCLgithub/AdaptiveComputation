@@ -46,7 +46,7 @@ function isr_repulsion_step(model, dots, gm_params)
         for j = 1:n
             i == j && continue
             v = dots[i].pos - dots[j].pos
-            (norm(v) - 2*gm_params.dot_radius > model.distance) && continue
+            (norm(v) > model.distance) && continue
             force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.dot_repulsion^2)) * v / norm(v)
         end
         dot_applied_force = force
@@ -61,7 +61,7 @@ function isr_repulsion_step(model, dots, gm_params)
         force = zeros(3)
         for j = 1:4
             v = dots[i].pos - walls[j,:]
-            (norm(v)  - gm_params.dot_radius > model.distance) && continue
+            (norm(v) > model.distance) && continue
             force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.wall_repulsion^2)) * v / norm(v)
         end
         wall_applied_force = force

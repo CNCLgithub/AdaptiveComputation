@@ -188,7 +188,7 @@ end
 
 
 ##################################
-@gen static function pos_kernel(t::Int,
+@gen static function br_pos_kernel(t::Int,
                             prev_state::FullState,
                             dynamics_model::AbstractDynamicsModel,
                             params::GMMaskParams)
@@ -200,17 +200,17 @@ end
     return new_state
 end
 
-pos_chain = Gen.Unfold(pos_kernel)
+br_pos_chain = Gen.Unfold(br_pos_kernel)
 
 @gen static function gm_brownian_pos(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     init_state = @trace(sample_init_state(params), :init_state)
-    states = @trace(pos_chain(T, init_state, motion, params), :states)
+    states = @trace(br_pos_chain(T, init_state, motion, params), :kernel)
     result = (init_state, states)
     return result
 end
 
-@gen static function mask_kernel(t::Int,
+@gen static function br_mask_kernel(t::Int,
                             prev_state::FullState,
                             dynamics_model::AbstractDynamicsModel,
                             params::GMMaskParams)
@@ -229,12 +229,12 @@ end
     return new_state
 end
 
-mask_chain = Gen.Unfold(mask_kernel)
+br_mask_chain = Gen.Unfold(br_mask_kernel)
 
 @gen static function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     init_state = @trace(sample_init_state(params), :init_state)
-    states = @trace(mask_chain(T, init_state, motion, params), :states)
+    states = @trace(br_mask_chain(T, init_state, motion, params), :kernel)
 
     result = (init_state, states)
 

@@ -11,3 +11,6 @@ htmlcov
 .julia/
 mot.sif
 mot_env/
+
+*.png
+*.gif

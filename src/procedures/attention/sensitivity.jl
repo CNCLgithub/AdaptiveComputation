@@ -7,8 +7,13 @@ function jitter(tr::Gen.Trace, tracker::Int)
     args = Gen.get_args(tr)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
-    addr = :kernel => t => :dynamics => :brownian => tracker
-    (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addr)), 2)
+    addrs = []
+    for i = max(1, t-2):t
+        addr = :kernel => i => :dynamics => :brownian => tracker
+        push!(addrs, addr)
+    end
+    (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addrs...)), 2)
+
 end
 
 function retrieve_latents(tr::Gen.Trace)
@@ -52,6 +57,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     display(kls)
     display(lls)
     for i = 1:n_latents
+        # gs[i] = mean(kls[:, i])
         weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
         gs[i] = sum(kls[:, i] .* weights)
     end
@@ -61,7 +67,9 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    # amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    # amp = att.k*(x - att.x0) + att.sweeps
+    amp = att.k*x + att.x0
     println("x: $(x), amp: $(amp)")
     Int64(round(clamp(amp, 1.0, att.sweeps)))
 end
@@ -90,26 +98,21 @@ function _td(tr::Gen.Trace, t::Int, scale::Float64)
 end
 
 function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 100.0)
+                            scale::Float64 = 1.0)
     k = first(Gen.get_args(tr))
     current_td = _td(tr, k, scale)
-    # previous = []
-    # for t = max(1, k-w):(k - 1)
-    #     push!(previous, _td(tr, t, scale))
-    # end
-    # Base.merge((x,y) -> logsumexp([x,y]) .- log(2), current_td, previous...)
 end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
     xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].record
+    pmbrfs = Gen.get_retval(tr)[2][t].rfs
     record = AssociationRecord(100)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     Dict{Vector{Vector{Int64}}, Float64}(zip(record.table,
                                              record.logscores ./ scale))
 end
 
-function data_correspondence(tr::Gen.Trace; scale::Float64 = 100.0)
+function data_correspondence(tr::Gen.Trace; scale::Float64 = 1.0)
     k = first(Gen.get_args(tr))
     d = _dc(tr, k, scale)
 end
@@ -146,6 +149,16 @@ function extend(as, bs, reserve)
     return Dict(es)
 end
 
+function resolve_correspondence(p::T, q::T) where T<:Dict
+    s = collect(intersect(keys(p), keys(q)))
+    vals = Matrix{Float64}(undef, length(s), 2)
+    for (i,k) in enumerate(s)
+        vals[i, 1] = p[k]
+        vals[i, 2] = q[k]
+    end
+    (s, vals)
+end
+
 
 function _merge(p::T, q::T) where T<:Dict
     keys_p = keys(p)
@@ -166,7 +179,8 @@ function _merge(p::T, q::T) where T<:Dict
 end
 
 function relative_entropy(p::T, q::T) where T<:Dict
-    labels, probs = _merge(p, q)
+    # labels, probs = _merge(p, q)
+    labels, probs = resolve_correspondence(p, q)
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
@@ -179,7 +193,6 @@ function relative_entropy(p::T, q::T) where T<:Dict
         kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
     end
-    # error()
     max(kl, 0)
 end
 
