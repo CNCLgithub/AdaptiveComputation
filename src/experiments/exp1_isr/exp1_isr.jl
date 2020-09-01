@@ -1,6 +1,6 @@
-export Exp1
+export Exp1ISR
 
-@with_kw struct Exp1 <: AbstractExperiment
+@with_kw struct Exp1ISR <: AbstractExperiment
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
@@ -10,9 +10,9 @@ export Exp1
     dataset_path::String = "/datasets/exp1.jld2"
 end
 
-get_name(::Exp1) = "exp1"
+get_name(::Exp1ISR) = "exp1_isr"
 
-function run_inference(q::Exp1,
+function run_inference(q::Exp1ISR,
                        attention::T,
                        path::String;
                        viz::Bool=true) where {T<:AbstractAttentionModel}
@@ -26,8 +26,6 @@ function run_inference(q::Exp1,
         init_positions, masks, motion, positions = load_trial(q.trial, q.dataset_path, gm)
     end
     
-    motion = MOT.load(ISRDynamics, "motion.json") # CHANGE
-
     latent_map = LatentMap(Dict(
                                 :tracker_positions => extract_tracker_positions,
                                 # :tracker_masks => extract_tracker_masks,

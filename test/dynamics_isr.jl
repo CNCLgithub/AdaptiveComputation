@@ -3,14 +3,15 @@ using Random
 
 Random.seed!(3)
 
-q = ISRDynamicsExperiment(k=60, trial=1)
+q = Exp1(k=120, trial=1,
+         gm="scripts/inference/exp1/gm.json",
+         proc="scripts/inference/exp1/proc.json",
+         dataset_path="output/datasets/exp1_isr.jld2")
+
 
 path = "/experiments/test"
 mkpath(path)
 
-att = MapSensitivity(samples=1,
-                     sweeps=0,
-                     k = 0.05,
-                     x0 = 17.8)
+att = MOT.load(MapSensitivity, "scripts/inference/exp1/td.json")
 results = run_inference(q, att, path)
 println("final assignment: $(extract_chain(results)["unweighted"][:assignments][end,1])")

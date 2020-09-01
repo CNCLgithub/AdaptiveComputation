@@ -9,8 +9,10 @@ Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 import Cairo
 using ImageTransformations:imresize
+using Statistics
+using StatsBase
 
-function attention_map(c::Dict; bin::Int64 = 4)
+function attention_map(c::Dict, bin::Int64)
     aux_state = c["aux_state"]
     k = length(aux_state)
     n = length(first(aux_state).attended_trackers)
@@ -21,13 +23,49 @@ function attention_map(c::Dict; bin::Int64 = 4)
     imresize(attended, ratio = (1.0 / bin, 1.0))
 end
 
-function load_attmap(trial_path::String)
+function load_attmap(trial_path::String; bin::Int64 = 4)
     chain_paths = filter(x -> occursin("jld", x), readdir(trial_path))
     chain_paths = map(x -> joinpath(trial_path, x), chain_paths)
     chains = map(extract_chain, chain_paths)
-    atts = map(attention_map, chains)
+    atts = map(attention_map, chains, fill(bin, length(chains)))
     sum(atts) ./ length(chain_paths)
 end
+
+"""
+    z scored attention maps from an experiment results folder
+"""
+function load_attmaps(exp_path::String; bin::Int64 = 4)
+    trials = readdir(exp_path)
+    attmap = load_attmap(joinpath(exp_path, first(trials)), bin=bin)
+    attmaps = Array{Float64}(undef, length(trials), size(attmap)...)
+    for (i, trial) in enumerate(trials)
+        print("getting attmap for trial $i \r")
+        attmaps[i,:,:] = load_attmap(joinpath(exp_path, trial))
+    end
+    print("done                               \n")
+    mu = mean(attmaps)
+    std = Statistics.std(attmaps)
+    attmaps = (attmaps .- mu)/std
+end
+
+"""
+    returns boolean attention maps for probe placement
+    n - number of difficulty levels (quantiles)
+"""
+function bool_attmaps(attmaps::Array{Float64}, n_quantiles::Int)
+    n_trials = size(attmaps, 1)
+    quantiles = nquantile(collect(Iterators.flatten(attmaps)), n_quantiles)
+    b_ams = Array{Array{Bool}}(undef, n_trials, n_quantiles)
+    for i=1:n_trials
+        for j=1:n_quantiles
+            b_ams[i,j] = (quantiles[j] .< attmaps[i,:,:]) .& (attmaps[i,:,:] .< quantiles[j+1])
+            # b_ams[i,j][1:2,:] .= false
+            # b_ams[i,j][end-1:end,:] .= false
+        end
+    end
+    b_ams
+end
+
 
 function plot_attmap(att::Matrix{Float64}, path::String)
     p = Gadfly.spy(att', Guide.xlabel("Time"), Guide.ylabel("Tracker"))

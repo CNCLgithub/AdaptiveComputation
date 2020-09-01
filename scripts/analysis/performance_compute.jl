@@ -7,7 +7,7 @@ using DataFrames
 using CSV
 
 function performance_compute(src::String)
-    results = load_results(src)
+    results = analysis_load_results(src)
     perf_trial = mean(results["performance"], dims=2)[:,1]
     comp_trial = mean(results["compute"], dims=2)[:,1]
     pred_target_trial = mean(results["pred_target"], dims=2)[:,1,:]
@@ -26,4 +26,5 @@ function performance_compute(src::String)
 
     CSV.write("$(src)/performance_compute.csv", df)
     println(df)
+    return df
 end
