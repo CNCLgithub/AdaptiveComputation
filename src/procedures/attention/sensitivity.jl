@@ -8,12 +8,11 @@ function jitter(tr::Gen.Trace, tracker::Int)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
-    for i = max(1, t-2):t
+    for i = max(1, t-3):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
     (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addrs...)), 2)
-
 end
 
 function retrieve_latents(tr::Gen.Trace)
@@ -28,6 +27,7 @@ end
     jitter::Function = jitter
     samples::Int = 1
     sweeps::Int = 5
+    smoothness::Float64 = 1.003
     scale::Float64 = 100.0
     k::Float64 = 0.5
     x0::Float64 = 5.0
@@ -55,23 +55,29 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     end
     gs = Vector{Float64}(undef, n_latents)
     display(kls)
-    display(lls)
+    display(min.(exp.(lls), 1.0))
     for i = 1:n_latents
-        # gs[i] = mean(kls[:, i])
-        weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
+        #weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
+        weights = min.(exp.(lls[:, i]), 1.0) # CHANGED no need to normalize
         gs[i] = sum(kls[:, i] .* weights)
     end
-    println("kl per tracker: $(gs)")
-    log.(gs)
+    gs = log.(gs)
+    println("weights: $(gs)")
+    # making it smoother
+    gs = att.sweeps/n_latents * att.smoothness.^gs
+    println("smoothed weights: $(gs)")
+    return gs
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = logsumexp(stats)
-    # amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
-    # amp = att.k*(x - att.x0) + att.sweeps
-    amp = att.k*x + att.x0
-    println("x: $(x), amp: $(amp)")
-    Int64(round(clamp(amp, 1.0, att.sweeps)))
+    # x = logsumexp(stats)
+    ## amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    ## amp = att.k*(x - att.x0) + att.sweeps
+    # amp = att.k*x + att.x0
+    # println("x: $(x), amp: $(amp)")
+    # Int64(round(clamp(amp, 0.0, att.sweeps)))
+    sweeps = min(att.sweeps, sum(stats))
+    round(Int, sweeps)
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -82,25 +88,24 @@ end
 # Objectives
 
 
-function _td(tr::Gen.Trace, t::Int, scale::Float64)
+function _td(tr::Gen.Trace, t::Int)
     xs = get_choices(tr)[:kernel => t => :masks]
     pmbrfs = Gen.get_retval(tr)[2][t].rfs
     record = AssociationRecord(100)
     Gen.logpdf(rfs, xs, pmbrfs, record)
-    poiss_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
-    unique_poiss_assocs = unique(poiss_assocs)
+    tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
+    unique_tracker_assocs = unique(tracker_assocs)
     td = Dict{Set{Int64}, Float64}()
-    for ppp_assoc in unique_poiss_assocs
-        idxs = findall(map(x -> x == ppp_assoc, poiss_assocs))
-        td[ppp_assoc] = logsumexp(record.logscores[idxs]) / scale
+    for tracker_assoc in unique_tracker_assocs
+        idxs = findall(map(x -> x == tracker_assoc, tracker_assocs))
+        td[tracker_assoc] = logsumexp(record.logscores[idxs])
     end
     td
 end
 
-function target_designation(tr::Gen.Trace; w::Int = 0,
-                            scale::Float64 = 1.0)
+function target_designation(tr::Gen.Trace)
     k = first(Gen.get_args(tr))
-    current_td = _td(tr, k, scale)
+    current_td = _td(tr, k)
 end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
@@ -138,17 +143,6 @@ function entropy(pd::Dict)
     log(entropy(lls))
 end
 
-function extend(as, bs, reserve)
-    not_in_p = setdiff(bs, as)
-    nn = length(not_in_p)
-    per_missing = reserve - log(nn)
-    es = []
-    for k in not_in_p
-        push!(es, (k, per_missing))
-    end
-    return Dict(es)
-end
-
 function resolve_correspondence(p::T, q::T) where T<:Dict
     s = collect(intersect(keys(p), keys(q)))
     vals = Matrix{Float64}(undef, length(s), 2)
@@ -160,38 +154,18 @@ function resolve_correspondence(p::T, q::T) where T<:Dict
 end
 
 
-function _merge(p::T, q::T) where T<:Dict
-    keys_p = keys(p)
-    reserve_p =  minimum(values(p)) * 1.01
-    keys_q = keys(q)
-    reserve_q = minimum(values(q)) * 1.01
-
-    extended_p = Base.merge(p, extend(keys_p, keys_q, reserve_p))
-    extended_q = Base.merge(q, extend(keys_q, keys_p, reserve_q))
-    vals = Matrix{Float64}(undef, length(extended_p), 2)
-    # println(extended_p)
-    # println(extended_q)
-    for (i,k) in enumerate(keys(extended_p))
-        vals[i, 1] = extended_p[k]
-        vals[i, 2] = extended_q[k]
-    end
-    (keys(extended_p), vals)
-end
-
 function relative_entropy(p::T, q::T) where T<:Dict
-    # labels, probs = _merge(p, q)
     labels, probs = resolve_correspondence(p, q)
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
-    # display(p)
-    # display(probs)
-    # display(ms)
     kl = 0
     for i = 1:length(labels)
-        # println("kl => $kl")
         kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
+    end
+    if kl < 0
+        println("WATCH OUT!!!! kl $kl below 0")
     end
     max(kl, 0)
 end

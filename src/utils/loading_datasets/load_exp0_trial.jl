@@ -1,5 +1,6 @@
 export load_exp0_trial
 
+using HDF5
 
 """
 loads init_positions, masks and the motion model from exp0 dataset

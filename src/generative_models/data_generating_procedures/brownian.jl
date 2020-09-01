@@ -9,7 +9,8 @@ _dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel) = gm_brownian_pos(
 _dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics) = gm_isr_pos(k, motion, gm)
 
 function dgp(k::Int, params::GMMaskParams,
-             motion::AbstractDynamicsModel)
+             motion::AbstractDynamicsModel;
+             generate_masks=true)
 
     # new params with all dots having state for data generation
     gm = deepcopy(params)
@@ -39,9 +40,13 @@ function dgp(k::Int, params::GMMaskParams,
         end
         positions[t] = pos_t
     end
-
-    masks = get_masks(positions, params.dot_radius, params.img_height,
-                      params.img_width, params.area_height, params.area_width)
+    
+    if generate_masks
+        masks = get_masks(positions, params.dot_radius, params.img_height,
+                          params.img_width, params.area_height, params.area_width)
+    else
+        masks = nothing
+    end
 
     return init_positions, init_vels, masks, positions
 end
