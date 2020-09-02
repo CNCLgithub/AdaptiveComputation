@@ -1,15 +1,22 @@
 using LinearAlgebra
 
+struct FlowMasks
+    masks::Matrix{BitArray{2}}
+    decay_function::Function
+    n_steps::Int
+end
+
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
     rfs::RFSElements{Array}
+    flow_masks::Union{Nothing, FlowMasks}
 end
 
 @with_kw struct GMMaskParams
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
-
+    
     # in case of BDot and CBM
     init_vel::Real = 5.0
     
@@ -20,15 +27,21 @@ end
     area_height::Int = 800
     area_width::Int = 800
 
-    # parameters for the double gaussian mask
-    mask_spread_1::Float64 = 0.5
-    mask_spread_2::Float64 = 2.5
+    # parameters for the drawing the mask random variable arguments
+    dot_p::Float64 = 0.5 # prob of pixel on in the dot region
+    gauss_amp::Float64 = 0.5 # gaussian amplitude for the gaussian component of the mask
+    gauss_std::Float64 = 2.5 # standard deviation --||--
 
     # rfs parameters
     record_size::Int = 100 # number of associations
 
     # legacy support for exp0
     exp0::Bool = false
+
+    # flow masks
+    flow_masks::Bool = false
+    flow_masks_function::Union{Nothing, Function} = nothing
+    flow_masks_n_steps = 5
 end
 
 function load(::Type{GMMaskParams}, path::String)
@@ -59,7 +72,8 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
         
         mask = draw_gaussian_dot_mask([x,y], r,
                                  params.img_height, params.img_width,
-                                 params.mask_spread_1, params.mask_spread_2)
+                                 params.dot_p,
+                                 params.gauss_amp, params.gauss_std)
         
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
@@ -86,13 +100,18 @@ function find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
     return argmin(d)
 end
 
+function add_flow_masks!(flow_masks::FlowMasks, masks)
+    return nothing
+end
+
 """
     get_masks_params(trackers, params::Params)
 
 Returns the masks parameters (for PMBRFS) - ppp_params, mbrfs_params
 i.e. parameters for the pmbrfs random variable describing the masks
 """
-function get_masks_params(trackers, params::GMMaskParams)
+function get_masks_params(trackers, params::GMMaskParams;
+                          flow_masks=nothing)
 
     # compiling list of x,y,z coordinates of all objects
     objects = [trackers[i].pos[j] for i=1:params.n_trackers, j=1:3]
@@ -103,7 +122,6 @@ function get_masks_params(trackers, params::GMMaskParams)
     rs = zeros(params.n_trackers)
     scaling = 5.0 # parameter to tweak how close objects have to be to occlude
     missed_detection = 1e-30 # parameter to tweak probability of missed detection
-
 
     # legacy support for exp0 - masks always present
     if params.exp0
@@ -126,6 +144,8 @@ function get_masks_params(trackers, params::GMMaskParams)
             end
         end
     end
+    
+    rs = ones(params.n_trackers) # CHANGED
 
     mask_args, trackers_img = get_masks_rvs_args(objects, params)
 
@@ -135,6 +155,10 @@ function get_masks_params(trackers, params::GMMaskParams)
     # getting this in the array with size of the image
     mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
     clutter_mask = subtract_images(mask_prob, trackers_img)
+    
+    if !isnothing(flow_masks)
+        add_flow_masks!(flow_masks, mask_args)
+    end
 
     pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
     pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
@@ -142,7 +166,7 @@ function get_masks_params(trackers, params::GMMaskParams)
         idx = i - 1
         pmbrfs[i] = BernoulliElement{Array}(rs[idx], mask, mask_args[idx])
     end
-    pmbrfs
+    pmbrfs, flow_masks
 end
 
 
@@ -183,7 +207,18 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
     pmbrfs = RFSElements{Array}(undef, 0)
-    return FullState(graph, pmbrfs)
+
+    if params.flow_masks
+        flow_masks = FlowMasks(zeros(params.flow_masks_n_steps,
+                                     params.img_height,
+                                     params.img_width),
+                               params.flow_masks_function,
+                               params.flow_masks_n_steps)
+    else
+        flow_masks = nothing
+    end
+
+    FullState(graph, pmbrfs, flow_masks)
 end
 
 
@@ -196,7 +231,7 @@ end
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
     pmbrfs = prev_state.rfs # pass along this reference for effeciency
-    new_state = FullState(new_graph, pmbrfs)
+    new_state = FullState(new_graph, pmbrfs, nothing)
     return new_state
 end
 
@@ -220,11 +255,11 @@ end
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
 
-    pmbrfs = get_masks_params(new_trackers, params)
+    pmbrfs, flow_masks = get_masks_params(new_trackers, params, flow_masks=prev_state.flow_masks)
     @trace(rfs(pmbrfs), :masks)
 
     # returning this to get target designation and assignment
-    new_state = FullState(new_graph, pmbrfs)
+    new_state = FullState(new_graph, pmbrfs, flow_masks)
 
     return new_state
 end

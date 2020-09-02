@@ -81,7 +81,7 @@ function analysis_load_results(dir::String)
         print("trial $trial / $(length(trials))\r")
 
         trial_dir=joinpath(dir, "$trial")
-        trial_results = load_trial(trial_dir)
+        trial_results = analysis_load_trial(trial_dir)
         performance[trial,:] = trial_results["performance"]
         compute[trial,:] = trial_results["compute"]
         pred_target[trial,:,:] = trial_results["pred_target"]

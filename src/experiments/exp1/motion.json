@@ -1,0 +1,6 @@
+{
+  "inertia": 0.5,
+  "spring": 0.001,
+  "sigma_x": 1.5,
+  "sigma_y": 1.5
+}

@@ -5,7 +5,7 @@ export Exp0
     trial::Int = 1
     gm::String = "$(@__DIR__)/gm.json"
     proc::String = "$(@__DIR__)/proc.json"
-    dataset_path::String = "datasets/exp_0.h5"
+    dataset_path::String = "/datasets/exp_0.h5"
 end
 
 get_name(::Exp0) = "exp0"

@@ -1,10 +1,14 @@
 export visualize_inference
 
-function visualize_inference(results, positions, gm, attention, path)
+function visualize_inference(results, positions, gm, attention, path;
+                             render_tracker_masks=false,
+                             render_model=false)
     extracted = extract_chain(results)
     tracker_positions = extracted["unweighted"][:tracker_positions]
     k = size(tracker_positions, 1)
     # tracker_masks = get_masks(tracker_positions)
+    tracker_masks = render_tracker_masks ? extracted["unweighted"][:tracker_masks] : nothing
+    
     aux_state = extracted["aux_state"]
     attention_weights = [aux_state[t].stats for t = 1:k]
     attention_weights = collect(hcat(attention_weights...)')
@@ -26,13 +30,13 @@ function visualize_inference(results, positions, gm, attention, path)
            dot_positions = positions[1:k],
            path = joinpath(out, "render"),
            pf_xy=tracker_positions[:,:,:,1:2],
-           attended=attended/attention.sweeps,)
-   
+           attended=attended/attention.sweeps,
+           tracker_masks=tracker_masks)
+    
+    render_model || return
+
     # also rendering from the perspective of the model
     tracker_masks = extracted["unweighted"][:tracker_masks]
-    println()
-    println(size(tracker_masks))
-    println()
     masks = []
     for i=1:k
         push!(masks,[])
