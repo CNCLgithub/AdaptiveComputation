@@ -6,9 +6,10 @@ export Object,
 # work over (e.g. Dot)
 abstract type Object end
 
-mutable struct Dot <: Object
-    pos::Vector{Float64}
-    vel::Vector{Float64}
+@with_kw mutable struct Dot <: Object
+    pos::Vector{Float64} = zeros(3)
+    vel::Vector{Float64} = zeros(3)
+    probe::Bool = false
 end
 
 

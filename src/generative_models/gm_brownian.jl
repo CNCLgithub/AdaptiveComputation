@@ -42,6 +42,9 @@ end
     flow_masks::Bool = false
     flow_masks_function::Union{Nothing, Function} = nothing
     flow_masks_n_steps = 5
+
+    # probes
+    probe_flip::Float64 = 0.0
 end
 
 function load(::Type{GMMaskParams}, path::String)
