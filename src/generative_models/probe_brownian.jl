@@ -14,7 +14,7 @@ map_probe_placement = Gen.Map(probe_placement)
     prev_graph = prev_state.graph
     t_graph = @trace(brownian_update(dynamics_model, prev_graph, params), :dynamics)
     pparams = fill(params, params.n_trackers)
-    p_trackers = @trace(map_probe_placement(t_graph.elements, pparams))
+    p_trackers = @trace(map_probe_placement(t_graph.elements, pparams), :probes)
     new_graph = update(t_graph, p_trackers)
     pmbrfs = get_masks_params(p_trackers, params)
     @trace(rfs(pmbrfs), :masks)

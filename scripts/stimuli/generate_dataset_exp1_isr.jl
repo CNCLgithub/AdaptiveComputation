@@ -7,7 +7,7 @@ k = 120
 
 dataset_file = "exp1_isr.jld2"
 datasets_folder = joinpath("output", "datasets")
-ispath(datasets_folder) || mkpath("datasets_folder")
+ispath(datasets_folder) || mkpath(datasets_folder)
 dataset_path = joinpath(datasets_folder, dataset_file)
 
 gm_path = "$(@__DIR__)/dataset_exp1_isr/gm.json"

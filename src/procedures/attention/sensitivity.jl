@@ -55,29 +55,33 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     end
     gs = Vector{Float64}(undef, n_latents)
     display(kls)
-    display(min.(exp.(lls), 1.0))
+    display(lls)
     for i = 1:n_latents
-        #weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
-        weights = min.(exp.(lls[:, i]), 1.0) # CHANGED no need to normalize
+        weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
+        # weights = min.(exp.(lls[:, i]), 1.0) # CHANGED no need to normalize
         gs[i] = sum(kls[:, i] .* weights)
     end
     gs = log.(gs)
     println("weights: $(gs)")
-    # making it smoother
-    gs = att.sweeps/n_latents * att.smoothness.^gs
-    println("smoothed weights: $(gs)")
     return gs
 end
 
+function get_weights(att::MapSensitivity, stats)
+    # # making it smoother
+    gs = att.smoothness.*stats
+    println("smoothed weights: $(gs)")
+    softmax(gs)
+end
+
 function get_sweeps(att::MapSensitivity, stats)
-    # x = logsumexp(stats)
-    ## amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
-    ## amp = att.k*(x - att.x0) + att.sweeps
-    # amp = att.k*x + att.x0
-    # println("x: $(x), amp: $(amp)")
-    # Int64(round(clamp(amp, 0.0, att.sweeps)))
-    sweeps = min(att.sweeps, sum(stats))
-    round(Int, sweeps)
+    x = logsumexp(stats)
+    # amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
+    # amp = att.k*(x - att.x0) + att.sweeps
+    amp = att.k*x + att.x0
+    println("x: $(x), amp: $(amp)")
+    Int64(round(clamp(amp, 0.0, att.sweeps)))
+    # sweeps = min(att.sweeps, sum(stats))
+    # round(Int, sweeps)
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -156,6 +160,10 @@ end
 
 function relative_entropy(p::T, q::T) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
+    if isempty(labels)
+        display(p); display(q)
+        error("empty intersect")
+    end
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)

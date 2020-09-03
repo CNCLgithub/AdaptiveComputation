@@ -197,7 +197,7 @@ end
     z = @trace(uniform(0, 1), :z)
 
     # initial velocity is zero
-    return Dot([x,y,z], [0,0])
+    return Dot([x,y,z], [vx, vy])
 end
 
 init_trackers_map = Gen.Map(sample_init_tracker)
