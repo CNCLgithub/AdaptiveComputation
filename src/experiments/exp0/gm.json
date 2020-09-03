@@ -11,8 +11,8 @@
 
     "dot_radius": 20.0,
     
-    "mask_spread_1": 0.05,
-    "mask_spread_2": 3.5,
+    "gauss_amp": 0.05,
+    "gauss_std": 3.5,
 
     "exp0": true
 }
