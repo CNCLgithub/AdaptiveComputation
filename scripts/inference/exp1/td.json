@@ -1,6 +1,7 @@
 {
     "samples": 5,
     "sweeps": 15,
+    "smoothness": 1.005,
     "k": 1.16,
     "x0": 3.0
 }

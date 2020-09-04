@@ -42,6 +42,9 @@ end
     flow_masks::Bool = false
     flow_masks_function::Union{Nothing, Function} = nothing
     flow_masks_n_steps = 5
+
+    # probes
+    probe_flip::Float64 = 0.0
 end
 
 function load(::Type{GMMaskParams}, path::String)
@@ -194,7 +197,7 @@ end
     z = @trace(uniform(0, 1), :z)
 
     # initial velocity is zero
-    return Dot([x,y,z], [0,0])
+    return Dot([x,y,z], [vx, vy])
 end
 
 init_trackers_map = Gen.Map(sample_init_tracker)
@@ -252,6 +255,7 @@ end
 
     prev_graph = prev_state.graph
 
+    # new_graph = @trace(inertial_update(dynamics_model, prev_graph), :dynamics)
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
 
