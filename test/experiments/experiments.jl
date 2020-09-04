@@ -1,4 +1,6 @@
-exp = Exp0(;k = 20, trial = 124)
+
+exp = Exp0(;k = 3, trial = 92)
+
 att = MapSensitivity(samples = 5,
                      smoothness=0.01,
                      k = 1.01,
