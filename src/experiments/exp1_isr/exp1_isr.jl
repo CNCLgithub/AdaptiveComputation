@@ -18,7 +18,7 @@ function run_inference(q::Exp1ISR,
                        viz::Bool=true) where {T<:AbstractAttentionModel}
     
     gm = load(GMMaskParams, q.gm)
-    motion = load(BrownianDynamicsModel, q.motion)
+    motion = load(InertiaModel, q.motion)
     
     if isnothing(q.trial)
         init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
@@ -56,7 +56,7 @@ function run_inference(q::Exp1ISR,
 
     query = Gen_Compose.SequentialQuery(latent_map,
                                         #gm_isr_mask,
-                                        gm_brownian_mask,
+                                        gm_inertia_mask,
                                         (0, motion, gm),
                                         constraints,
                                         args,

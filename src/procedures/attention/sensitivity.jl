@@ -57,11 +57,10 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     display(kls)
     display(lls)
     for i = 1:n_latents
-        weights = exp.((lls[:, i] .- logsumexp(lls[:, i])))
-        # weights = min.(exp.(lls[:, i]), 1.0) # CHANGED no need to normalize
-        gs[i] = sum(kls[:, i] .* weights)
+        lse = logsumexp(lls[:, i])
+        weights = exp.((lls[:, i] .- lse))
+        gs[i] = log(sum(kls[:, i] .* weights)) # + lse
     end
-    gs = log.(gs)
     println("weights: $(gs)")
     return gs
 end
@@ -75,9 +74,9 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    # amp = att.sweeps / (1.0 + exp(-att.k*(x + att.x0)))
-    # amp = att.k*(x - att.x0) + att.sweeps
-    amp = att.k*x + att.x0
+    amp = att.x0 * exp(-(x - att.k)^2 / (2*att.scale^2))
+    # amp = att.x0 - att.k*(1 - exp(att.scale*x))
+    # amp = att.scale*att.k^(x - att.x0)
     println("x: $(x), amp: $(amp)")
     Int64(round(clamp(amp, 0.0, att.sweeps)))
     # sweeps = min(att.sweeps, sum(stats))
@@ -95,7 +94,7 @@ end
 function _td(tr::Gen.Trace, t::Int)
     xs = get_choices(tr)[:kernel => t => :masks]
     pmbrfs = Gen.get_retval(tr)[2][t].rfs
-    record = AssociationRecord(100)
+    record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
     unique_tracker_assocs = unique(tracker_assocs)

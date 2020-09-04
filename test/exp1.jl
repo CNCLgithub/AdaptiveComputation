@@ -8,12 +8,16 @@ Random.seed!(1)
 # error()
 
 q = Exp1ISR(trial=5,
-            k=60)
+            k= 60)
 attention = MapSensitivity(samples=5,
                            sweeps=20,
                            smoothness=0.01,
-                           k = 0.075,
-                           x0 = 7.5,
+                           k = 3350.,
+                           x0 = 1.68E11,
+                           scale = 495.,
+                           # k = 1.0009,
+                           # x0 = 1200.0,
+                           # scale = 20.0,
                            objective=MOT.target_designation)
 path = "/experiments/test"
 mkpath(path)

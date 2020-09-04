@@ -9,6 +9,7 @@ abstract type Object end
 @with_kw struct Dot <: Object
     pos::Vector{Float64} = zeros(3)
     vel::Vector{Float64} = zeros(3)
+    acc::Vector{Float64} = zeros(3)
     probe::Bool = false
 end
 
