@@ -77,7 +77,7 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp1(;trial = args["trial"], k = 120,
+    exp = Exp1ISR(;trial = args["trial"], k = 120,
                gm = args["gm"], proc = args["proc"],
                dataset_path = args["dataset_path"])
     att_mode = args["%COMMAND%"]
