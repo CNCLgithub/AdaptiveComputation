@@ -42,7 +42,7 @@ function render_strobe_trials(dataset::String)
     out = "/renders/strobe"
     ispath(out) || mkpath(out)
     jldopen(dataset, "r") do file
-        n_trials = min(file["n_trials"], 1)
+        n_trials = min(file["n_trials"], 5)
 
         for k = 1:3, x = 1:3
             for i=1:n_trials

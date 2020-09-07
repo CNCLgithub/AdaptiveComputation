@@ -35,17 +35,29 @@ end
     z scored attention maps from an experiment results folder
 """
 function load_attmaps(exp_path::String; bin::Int64 = 4)
-    trials = readdir(exp_path)
-    attmap = load_attmap(joinpath(exp_path, first(trials)), bin=bin)
+    trials = filter(isdir, readdir(exp_path; join = true))
+    attmap = load_attmap(first(trials), bin=bin)
     attmaps = Array{Float64}(undef, length(trials), size(attmap)...)
+    ts = 1:size(attmap, 1)
+    results = []
     for (i, trial) in enumerate(trials)
         print("getting attmap for trial $i \r")
-        attmaps[i,:,:] = load_attmap(joinpath(exp_path, trial))
+        attmaps[i,:,:] = load_attmap(trial)
+        df = DataFrame(t = ts,
+                       tracker_1 = attmaps[i, :, 1],
+                       tracker_2 = attmaps[i, :, 2],
+                       tracker_3 = attmaps[i, :, 3],
+                       tracker_4 = attmaps[i, :, 4])
+        df[!, :trial] .= i
+        push!(results, df)
     end
     print("done                               \n")
     mu = mean(attmaps)
     std = Statistics.std(attmaps)
     attmaps = (attmaps .- mu)/std
+    results = vcat(results...)
+    CSV.write(joinpath(exp_path, "attention.csv"), results)
+    return attmaps
 end
 
 """
