@@ -8,7 +8,8 @@ using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 import Cairo
-using ImageTransformations:imresize
+# using ImageFiltering
+# using ImageTransformations:imresize, imfilter
 using Statistics
 using StatsBase
 
@@ -20,10 +21,14 @@ function attention_map(c::Dict, bin::Int64)
     for t=1:k
         attended[t, :] = aux_state[t].attended_trackers
     end
-    imresize(attended, ratio = (1.0 / bin, 1.0))
+    smoothed = Matrix{Float64}(undef, k-2*bin, n)
+    for (i,t) in  enumerate(bin+1:k-bin)
+       smoothed[i,:] = mean(attended[t-bin:t+bin, :], dims = 1)
+    end
+    smoothed
 end
 
-function load_attmap(trial_path::String; bin::Int64 = 4)
+function load_attmap(trial_path::String; bin::Int64 = 2)
     chain_paths = filter(x -> occursin("jld", x), readdir(trial_path))
     chain_paths = map(x -> joinpath(trial_path, x), chain_paths)
     chains = map(extract_chain, chain_paths)
@@ -34,13 +39,14 @@ end
 """
     z scored attention maps from an experiment results folder
 """
-function load_attmaps(exp_path::String; bin::Int64 = 4)
+function load_attmaps(exp_path::String; bin::Int64 = 2)
     trials = filter(isdir, readdir(exp_path; join = true))
     attmap = load_attmap(first(trials), bin=bin)
     attmaps = Array{Float64}(undef, length(trials), size(attmap)...)
     ts = 1:size(attmap, 1)
     results = []
-    for (i, trial) in enumerate(trials)
+    for trial in trials
+        i = parse(Int64, basename(trial))
         print("getting attmap for trial $i \r")
         attmaps[i,:,:] = load_attmap(trial)
         df = DataFrame(t = ts,
