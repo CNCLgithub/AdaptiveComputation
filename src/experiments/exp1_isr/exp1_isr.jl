@@ -71,7 +71,8 @@ function run_inference(q::Exp1ISR,
                                      path = path)
     
     if viz
-        visualize_inference(results, positions, gm, attention, joinpath(path, "render"))
+        println(path)
+        visualize_inference(results, positions, gm, attention, path)
     end
 
     return results

@@ -73,7 +73,7 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp0(;trial = args["trial"], k = 120,
+    exp = Exp0(;trial = args["trial"], k = 60,
                gm = args["gm"], proc = args["proc"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
