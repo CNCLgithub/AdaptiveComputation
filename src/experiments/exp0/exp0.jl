@@ -14,15 +14,20 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
     {T<:AbstractAttentionModel}
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
-               :assignments => extract_assignments)
+               :assignments => extract_assignments,
+               :causal_graph => extract_causal_graph)
     latent_map = LatentMap(_lm)
 
-    gm_params = load(GMMaskParams, q.gm)
+    gm = load(GMMaskParams, q.gm)
 
-    # generating initial positions and masks (observations)
-    init_positions, masks, motion, positions = load_exp0_trial(q.trial,
-                                                               gm_params,
-                                                               q.dataset_path)
+    # getting some trial data (initial positions, ground truth causal graphs,
+    # masks for observations, motion model/parameters) from the dataset
+    trial_data = load_exp0_trial(q.trial, gm, q.dataset_path;
+                                 generate_masks=true)
+    motion = trial_data[:motion]
+    masks = trial_data[:masks]
+    gt_causal_graphs = trial_data[:gt_causal_graphs]
+    init_positions = trial_data[:init_positions]
 
     # initial observations based on init_positions
     # model knows where trackers start off
@@ -35,7 +40,7 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
     end
 
     # compiling further observations for the model
-    args = [(t, motion, gm_params) for t in 1:q.k]
+    args = [(t, motion, gm) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
     for t = 1:q.k
         cm = Gen.choicemap()
@@ -45,11 +50,10 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
 
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm_brownian_mask,
-                                        (0, motion, gm_params),
+                                        (0, motion, gm),
                                         constraints,
                                         args,
                                         observations)
-
 
     proc = load(PopParticleFilter, q.proc;
                 rejuvenation = rejuvenate_attention!,
@@ -60,7 +64,8 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
                                      path = path)
 
     if viz
-        visualize_inference(results, positions, gm_params, attention, dirname(path))
+        visualize_inference(results, gt_causal_graphs,
+                            gm, attention, dirname(path))
     end
     results
 end

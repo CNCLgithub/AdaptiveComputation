@@ -128,3 +128,61 @@ function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw;
     return masks
 end
 
+"""
+    get_masks(cgs::Vector{CausalGraph})
+
+    returns an array of masks
+
+    args:
+    cgs::Vector{CausalGraph} - causal graphs describing the scene
+    gm - generative model parameters
+    gm has to include:
+    area_width, area_height, img_width, img_height
+    ;
+    background - true if you want background masks
+"""
+# TODO make it draw more general objects
+function get_masks(cgs::Vector{CausalGraph}, gm;
+                   background=false)
+    k = length(cgs)
+    masks = Vector{Vector{BitArray{2}}}(undef, k)
+    
+    for t=1:k
+        print("get_masks timestep: $t \r")
+        positions = map(x->x.pos, cgs[t].elements)
+
+        # sorting according to depth
+        depth_perm = sortperm(map(x->x[3], positions))
+        positions = positions[depth_perm]
+
+        # initially empty image
+        img_so_far = BitArray{2}(undef, gm.img_height, gm.img_width)
+        img_so_far .= false
+        
+        masks_t = []
+        n_objects = size(positions,1)
+        for i=1:n_objects
+            mask = draw_dot_mask(positions[i], gm.dot_radius,
+                                 gm.img_height, gm.img_width,
+                                 gm.area_height, gm.area_width)
+            mask[img_so_far] .= false
+            push!(masks_t, mask)
+            img_so_far .|= mask
+        end
+
+        masks_t = masks_t[invperm(depth_perm)]
+    
+        if background
+            # pushing background to the end
+            bg = BitArray{2}(undef, h, w)
+            bg .= true
+            bg -= img_so_far
+            prepend!(masks_t, [bg])
+        end
+
+        masks[t] = masks_t
+    end
+
+    return masks
+end
+

@@ -1,20 +1,21 @@
 export visualize_inference
 
-function visualize_inference(results, positions, gm, attention, path;
+function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              render_tracker_masks=false,
                              render_model=false)
     extracted = extract_chain(results)
-    tracker_positions = extracted["unweighted"][:tracker_positions]
-    k = size(tracker_positions, 1)
+    # tracker_positions = extracted["unweighted"][:tracker_positions]
+    # k = size(tracker_positions, 1)
     # tracker_masks = get_masks(tracker_positions)
+    causal_graphs = extracted["unweighted"][:causal_graph]
+    k = size(causal_graphs, 1)
     tracker_masks = render_tracker_masks ? extracted["unweighted"][:tracker_masks] : nothing
     
     aux_state = extracted["aux_state"]
     attention_weights = [aux_state[t].stats for t = 1:k]
     attention_weights = collect(hcat(attention_weights...)')
 
-    out = dirname(path)
-    plot_compute_weights(attention_weights, out)
+    plot_compute_weights(attention_weights, path)
 
     attempts = Vector{Int}(undef, k)
     attended = Vector{Vector{Float64}}(undef, k)
@@ -22,14 +23,16 @@ function visualize_inference(results, positions, gm, attention, path;
         attempts[t] = aux_state[t].attempts
         attended[t] = aux_state[t].attended_trackers
     end
-    MOT.plot_attention(attended, attention.sweeps, out)
-    plot_rejuvenation(attempts, out)
+    MOT.plot_attention(attended, attention.sweeps, path)
+    plot_rejuvenation(attempts, path)
 
     # visualizing inference on stimuli
     render(gm;
-           dot_positions = positions[1:k],
-           path = joinpath(out, "render"),
-           pf_xy=tracker_positions[:,:,:,1:2],
+           gt_causal_graphs = gt_causal_graphs[1:k],
+           causal_graphs = causal_graphs,
+           # dot_positions = positions[1:k],
+           path = joinpath(path, "render"),
+           # pf_xy=tracker_positions[:,:,:,1:2],
            attended=attended/attention.sweeps,
            tracker_masks=tracker_masks)
     
