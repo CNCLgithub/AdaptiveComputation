@@ -78,10 +78,10 @@ end
 function _render_probes(dot_positions_t,
                         probes_t,
                         gm;
-                        probe_color="coral1")
+                        probe_color="blue")
     for i=1:size(dot_positions_t, 1)
         if probes_t[i]
-            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, "darkslateblue", style=:stroke)
+            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, probe_color, style = :stroke)
         end
     end
 end

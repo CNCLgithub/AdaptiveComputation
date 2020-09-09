@@ -60,32 +60,7 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
                                      path = path)
 
     if viz
-        extracted = extract_chain(results)
-        tracker_positions = extracted["unweighted"][:tracker_positions]
-        # tracker_masks = get_masks(tracker_positions)
-        aux_state = extracted["aux_state"]
-        attention_weights = [aux_state[t].stats for t = 1:q.k]
-        attention_weights = collect(hcat(attention_weights...)')
-
-        out = dirname(path)
-        plot_compute_weights(attention_weights, out)
-
-        attempts = Vector{Int}(undef, q.k)
-        attended = Vector{Vector{Float64}}(undef, q.k)
-        for t=1:q.k
-            attempts[t] = aux_state[t].attempts
-            attended[t] = aux_state[t].attended_trackers
-        end
-        MOT.plot_attention(attended, attention.sweeps, out)
-        plot_rejuvenation(attempts, out)
-
-        # visualizing inference on stimuli
-        render(gm_params;
-               dot_positions = positions[1:q.k],
-               path = joinpath(out, "render"),
-               pf_xy=tracker_positions[:,:,:,1:2],
-               attended=attended/attention.sweeps,)
-
+        visualize_inference(results, positions, gm_params, attention, dirname(path))
     end
     results
 end

@@ -68,10 +68,11 @@ function run_inference(q::Exp1ISR,
     
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     path = joinpath(path, "results.jld2"))
+                                     path = path)
     
     if viz
-        visualize_inference(results, positions, gm, attention, joinpath(path, "render"))
+        println(path)
+        visualize_inference(results, positions, gm, attention, path)
     end
 
     return results

@@ -1,6 +1,6 @@
 using MOT
 using Random
-Random.seed!(1)
+# Random.seed!(2)
 
 # gm = GMMaskParams()
 # init_positions, masks, motion, positions = load_trial(1, "/datasets/exp1.jld2", gm)

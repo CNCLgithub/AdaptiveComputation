@@ -55,6 +55,7 @@ def main():
         'time' : '{0:d}'.format(duration),
         'partition' : 'short',
         'requeue' : None,
+        'output' : os.path.join(os.getcwd(), 'slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
