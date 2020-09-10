@@ -5,7 +5,8 @@ export Exp0
     trial::Int = 1
     gm::String = "$(@__DIR__)/gm.json"
     proc::String = "$(@__DIR__)/proc.json"
-    dataset_path::String = "/datasets/exp_0.h5"
+    dataset_path::String = "/datasets/exp0.jld2"
+    #dataset_path::String = "/datasets/exp_0.h5"
 end
 
 get_name(::Exp0) = "exp0"
@@ -22,21 +23,24 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
 
     # getting some trial data (initial positions, ground truth causal graphs,
     # masks for observations, motion model/parameters) from the dataset
-    trial_data = load_exp0_trial(q.trial, gm, q.dataset_path;
-                                 generate_masks=true)
+    # trial_data = load_exp0_trial(q.trial, gm, q.dataset_path;
+                                 # generate_masks=true)
+    trial_data = load_trial(q.trial, q.dataset_path, gm;
+                            generate_masks=true)
     motion = trial_data[:motion]
     masks = trial_data[:masks]
     gt_causal_graphs = trial_data[:gt_causal_graphs]
-    init_positions = trial_data[:init_positions]
+    # init_positions = trial_data[:init_positions]
 
     # initial observations based on init_positions
     # model knows where trackers start off
     constraints = Gen.choicemap()
-    for i=1:size(init_positions, 1)
+    init_dots = gt_causal_graphs[1].elements
+    for i=1:gm.n_trackers
         addr = :init_state => :trackers => i => :x
-        constraints[addr] = init_positions[i,1]
+        constraints[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
-        constraints[addr] = init_positions[i,2]
+        constraints[addr] = init_dots[i].pos[2]
     end
 
     # compiling further observations for the model

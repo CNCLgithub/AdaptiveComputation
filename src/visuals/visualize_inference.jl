@@ -27,14 +27,12 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     plot_rejuvenation(attempts, path)
 
     # visualizing inference on stimuli
-    render(gm;
-           gt_causal_graphs = gt_causal_graphs[1:k],
-           causal_graphs = causal_graphs,
-           # dot_positions = positions[1:k],
-           path = joinpath(path, "render"),
-           # pf_xy=tracker_positions[:,:,:,1:2],
+    render(gm, k;
+           gt_causal_graphs=gt_causal_graphs,
+           causal_graphs=causal_graphs,
            attended=attended/attention.sweeps,
-           tracker_masks=tracker_masks)
+           tracker_masks=tracker_masks,
+           path = joinpath(path, "render"))
     
     render_model || return
 
@@ -51,11 +49,11 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                       # gm.img_height, gm.img_width,
                       # gm.area_height, gm.area_width)
     full_imgs = get_full_imgs(masks)
-    visualize(tracker_positions, full_imgs, gm, path=joinpath(out, "model_render"))
+    model_render(tracker_positions, full_imgs, gm, path=joinpath(path, "model_render"))
 end
 
 
-function visualize(xy, full_imgs, params; path="model_render")
+function model_render(xy, full_imgs, params; path="model_render")
     k, n, _, _ = size(xy)
 
     h, w, ah, aw = params.img_height, params.img_width, params.area_height, params.area_width

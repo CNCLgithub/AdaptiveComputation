@@ -2,7 +2,6 @@ export render
 
 using Luxor, ImageMagick
 
-
 """
     initialize the drawing file according to the frame number,
     position at (0,0) and set background color
@@ -86,37 +85,6 @@ function _render_probes(dot_positions_t,
     end
 end
 
-"""
-    helper to draw the dots
-"""
-function _render_dots(dot_positions_t,
-                      gm;
-                      leading_edges=true,
-                      show_label=true, 
-                      dot_color="lightsalmon2",
-                      leading_edge_color="black",
-                      highlighted::Vector{Int},
-                      highlighted_color = "red")
-    
-    # furthest (highest z) comes first in depth_perm
-    depth_perm = sortperm(dot_positions_t[:,3], rev=true)
-
-    for (i, j) in enumerate(depth_perm)
-        _draw_circle(dot_positions_t[j,1:2], gm.dot_radius, dot_color)
-        if leading_edges
-            _draw_circle(dot_positions_t[j,1:2], gm.dot_radius, leading_edge_color, style=:stroke)
-        end
-
-        if show_label
-            _draw_text("$j", dot_positions_t[j,1:2] .+ gm.dot_radius)
-        end
-    end
-
-    for i in highlighted
-        _draw_circle(dot_positions_t[i,1:2], gm.dot_radius/2.0, highlighted_color)
-    end
-end
-
 function render_object(object::Object)
     error("not defined")
 end
@@ -147,7 +115,7 @@ function render_cg(cg::CausalGraph, gm;
     objects = cg.elements
 
     # furthest (highest z) comes first in depth_perm
-    depth_perm = sortperm(map(x -> x.pos[3], objects), rev=true) # master Mario
+    depth_perm = sortperm(map(x -> x.pos[3], objects), rev=true)
     
     for i in depth_perm
         render_object(objects[i])
@@ -157,7 +125,7 @@ function render_cg(cg::CausalGraph, gm;
     end
 
     for i in highlighted
-        _draw_circle(objects[i].pos[1:2], objects[i].width * 1.5, highlighted_color, style=:stroke)
+        _draw_circle(objects[i].pos[1:2], objects[i].width*0.75, highlighted_color, style=:stroke)
     end
     
     # TODO render edges potentially
@@ -192,50 +160,14 @@ end
 
 """
     renders particle filter inferred positions (and velocities) of the tracked objects
-"""
-function _render_pf(pf_xy_t,
-                    gm;
-                    pf_color="darkslateblue",
-                    attended=nothing,
-                    pf_vel=nothing,
-                    show_label=true)
-    
-    n_particles, n_trackers, _ = size(pf_xy_t)
-
-    for p=1:n_particles
-        for i=1:n_trackers
-
-            # drawing the predicted position of this tracker in particle
-            pred_position = pf_xy_t[p,i,:]
-
-            _draw_circle(pred_position, gm.dot_radius/3, pf_color, opacity=1.0)
-
-            if !isnothing(pf_vel)
-                _draw_arrow(pred_position, pred_position + pf_vel[p,i,:], pf_color,
-                            opacity=1.0)
-            end
-            
-            if show_label
-                _draw_text("$i", pred_position)
-            end
-            
-            # visualizing attention
-            if !isnothing(attended)
-                att_opacity = attended[i] * _get_opacity(p, n_particles)
-                _draw_circle(pred_position, 2.5*gm.dot_radius, "red", opacity=att_opacity, style=:stroke)
-            end
-        end
-    end
-
-end
-
-"""
-    renders particle filter inferred positions (and velocities) of the tracked objects
+    from the causal graph
 """
 function render_pf(causal_graph, gm;
                    attended=nothing,
                    pf_color="darkslateblue",
-                   show_label=true)
+                   show_label=true,
+                   render_pos=true,
+                   render_vel=false)
     
     n_particles = length(causal_graph)
 
@@ -244,13 +176,16 @@ function render_pf(causal_graph, gm;
 
         for i=1:length(objects)
             # drawing the predicted position of this tracker in particle
-            pred_pos = objects[i].pos
-            pred_vel = objects[i].vel
-
-            _draw_circle(pred_pos, gm.dot_radius/3, pf_color, opacity=1.0)
-
-            _draw_arrow(pred_pos, pred_pos[1:2] + pred_vel*5, pf_color,
-                        opacity=1.0)
+            if render_pos
+                pred_pos = objects[i].pos
+                _draw_circle(pred_pos, gm.dot_radius/3, pf_color, opacity=1.0)
+            end
+            
+            if render_vel
+                pred_vel = objects[i].vel
+                _draw_arrow(pred_pos, pred_pos[1:2] + pred_vel*5, pf_color,
+                            opacity=1.0)
+            end
             
             if show_label
                 _draw_text("$i", pred_pos)
@@ -263,7 +198,6 @@ function render_pf(causal_graph, gm;
             end
         end
     end
-
 end
 
 
@@ -279,7 +213,7 @@ end
     freeze_time - time before and after movement (for highlighting targets and querying)
     highlighted - array 
 """
-function render(gm;
+function render(gm, k;
                 gt_causal_graphs=nothing,
                 dot_positions=nothing,
                 probes=nothing,
@@ -287,17 +221,13 @@ function render(gm;
                 freeze_time=0,
                 highlighted=Int[],
                 causal_graphs=nothing,
-                latents_to_render=["position"],
-                path="render",
                 attended=nothing,
                 array=false,
-                tracker_masks=nothing)
+                tracker_masks=nothing,
+                path="render")
     
     # if returning array of images as matrices, then make vector
     array ? imgs = [] : mkpath(path)
-    
-    # getting number of timesteps
-    k = length(gt_causal_graphs)
 
     # stopped at beginning
     for t=1:freeze_time
@@ -305,22 +235,14 @@ function render(gm;
         
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[1], gm;
-                       highlighted=collect(1:gm.n_trackers),
-                       show_label=!stimuli)
+                      highlighted=collect(1:gm.n_trackers),
+                      show_label=!stimuli)
         end
-        
-        if !isnothing(causal_graphs)
-            render_pf(causal_graphs[1,:], gm)
-        end
-
-        if !isnothing(tracker_masks)
-            _render_tracker_masks(tracker_masks[1,:,:], gm)
-        end
-        
-        array ? push!(imgs, image_as_matrix()) : finish()
+        finish()
     end
     
     # tracking while dots are moving
+    # TODO change with good init causal graphs
     for t=1:k
         print("render timestep: $t \r")
         _init_drawing(t+freeze_time, path, gm)
@@ -330,22 +252,14 @@ function render(gm;
         end
         
         if !isnothing(gt_causal_graphs)
-            render_cg(gt_causal_graphs[t], gm;
+            render_cg(gt_causal_graphs[t+1], gm;
                       show_label=!stimuli)
         end
 
         if !isnothing(causal_graphs)
-            render_pf(causal_graphs[t,:], gm)
+            render_pf(causal_graphs[t,:], gm;
+                      attended = isnothing(attended) ? nothing : attended[t])
         end
-    
-        # if !isnothing(pf_xy)
-            # attended_t = isnothing(attended) ? nothing : attended[t]
-            # pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[t,:,:,:]
-            # _render_pf(pf_xy[t,:,:,:], gm;
-                       # attended=attended_t,
-                       # pf_vel=pf_vel_t,
-                       # show_label=!stimuli)
-        # end
 
         if !isnothing(tracker_masks)
             _render_tracker_masks(tracker_masks[t,:,:], gm)
@@ -356,27 +270,14 @@ function render(gm;
     # final freeze time showing the answer
     for t=1:freeze_time
         _init_drawing(t+k+freeze_time, path, gm)
-        if !isnothing(dot_positions)
-            render_cg(gt_causal_graphs[k], gm;
+        if !isnothing(gt_causal_graphs)
+            render_cg(gt_causal_graphs[k+1], gm;
                        highlighted=highlighted,
                        highlighted_color="blue",
                        show_label=!stimuli)
         end
-        # if !isnothing(pf_xy)
-            # attended_t = isnothing(attended) ? nothing : attended[k]
-            # pf_vel_t = isnothing(pf_vel) ? nothing : pf_vel[k,:,:,:]
-            # _render_pf(pf_xy[k,:,:,:], gm;
-                       # attended=attended_t,
-                       # pf_vel=pf_vel_t,
-                       # show_label=!stimuli)
-        # end
-        if !isnothing(causal_graphs)
-            render_pf(causal_graphs[k,:], gm)
-        end
-        if !isnothing(tracker_masks)
-            _render_tracker_masks(tracker_masks[t,:,:], gm)
-        end
-        array ? push!(imgs, image_as_matrix()) : finish()
+
+        finish()
     end
     array && return imgs
 end
