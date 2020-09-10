@@ -46,8 +46,7 @@ function analysis_load_trial(trial_dir::String)
         final_log_scores = extracted["log_scores"][end,:]
         final_assignments = extracted["weighted"][:assignments][end,:]
         perm = sortperm(final_log_scores, rev=true) # sorting according to log scores
-        
-        assocs, ls = zip(first(final_assignments[perm])...)
+        assocs, ls = final_assignments[first(perm)]
         assocs = map(x -> vcat(x[2:end]...), assocs)
         weights = exp.(ls .- logsumexp(ls))
         performance[run] = sum(map(x -> td_accuracy(x, 4), assocs) .* weights)
