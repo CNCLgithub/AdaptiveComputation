@@ -4,14 +4,17 @@ using FileIO
 using VideoIO
 using MOT
 
-function place_probes(q::Exp0, tracker::T, t::T, pad::T) where {T<:Int}
-    gm = MOT.load(GMMaskParams, q.gm)
-    positions = last(load_exp0_trial(q.trial, gm, q.dataset_path))
-    n_dots = round(Int, gm.n_trackers + gm.distractor_rate)
-    probes = zeros(Bool, q.k, n_dots)
-    t_end = min(q.k, t + pad)
-    probes[t:t_end, tracker] .= true
-    (gm, positions, probes)
+function place_probes!(cgs, tracker::T, t::T, pad::T) where {T<:Int}
+    t_end = min(length(cgs), t + pad)
+    for i = t:t_end
+        dot = cgs[i].elements[tracker]
+        cgs[i].elements[tracker] = Dot(pos = dot.pos,
+                                       vel = dot.vel,
+                                       probe = true,
+                                       radius = dot.radius,
+                                       width = dot.width,
+                                       height = dot.height)
+    end
 end
 
 function render_probe_trial(trial_row::DataFrameRow, out::String;
@@ -21,14 +24,19 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
     trial = trial_row.scene + 1
     q = Exp0(k=120, trial = trial)
 
-    args = Tuple(trial_row[[:tracker, :frame]])
-    gm, pos, probes = place_probes(q, args..., pad)
-    if !probe
-        probes = nothing
+    tracker, t = Tuple(trial_row[[:tracker, :frame]])
+    gm = MOT.load(GMMaskParams, q.gm)
+    trial_data = load_trial(q.trial, q.dataset_path, gm)
+    cgs = trial_data[:gt_causal_graphs]
+    n_dots = round(Int, gm.n_trackers + gm.distractor_rate)
+    if probe
+        place_probes!(cgs, tracker, t, pad)
     end
-    render(gm, dot_positions = pos, probes = probes, path = out,
+    render(gm, q.k;
+           gt_causal_graphs = cgs,
+           path = out,
            stimuli = true, highlighted = collect(1:4), freeze_time = 24)
-    compile_video(out)
+    # compile_video(out)
 
     return nothing
 end
