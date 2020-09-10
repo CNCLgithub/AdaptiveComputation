@@ -43,6 +43,8 @@ supported targets:
     echo "pulling exp_0 dataset" && \
     wget "https://yale.box.com/shared/static/2kt5psxh7nyb5s3s09g4kwhxnjmigcjs.h5" \
         -O "output/datasets/exp_0.h5" && \
+    wget "https://yale.box.com/shared/static/0jeyo01zkm4viwmqsm9qzdy3uatbd755.jld2" \
+        -O "output/datasets/exp0.jld2" && \
     wget "https://yale.box.com/shared/static/ikq1e26l8xbhrac8x3cxwei972g0judo.jld2" \
         -O "output/datasets/exp1.jld2" && \
     wget "https://yale.box.com/shared/static/75accvgspil2sr34tg2g3e37uvhjkxz6.jld2" \

@@ -73,15 +73,37 @@ end
 function bool_attmaps(attmaps::Array{Float64}, n_quantiles::Int)
     n_trials = size(attmaps, 1)
     quantiles = nquantile(collect(Iterators.flatten(attmaps)), n_quantiles)
+    println(quantiles)
     b_ams = Array{Array{Bool}}(undef, n_trials, n_quantiles)
     for i=1:n_trials
         for j=1:n_quantiles
+            println("$i $j")
+            println(quantiles[j], " ", quantiles[j+1])
             b_ams[i,j] = (quantiles[j] .< attmaps[i,:,:]) .& (attmaps[i,:,:] .< quantiles[j+1])
             # b_ams[i,j][1:2,:] .= false
             # b_ams[i,j][end-1:end,:] .= false
         end
     end
     b_ams
+end
+
+
+function csv_attmaps(exp_path::String, out_path::String, z_scored::Bool)
+    mkpath(out_path)
+    attmaps = load_attmaps(exp_path, z_scored=z_scored)
+    results = []
+    for i = 1:size(attmaps,1)
+        df = DataFrame(trial=fill(i,size(attmaps,2)),
+                       t=1:size(attmaps,2),
+                       tracker_1=attmaps[i,:,1],
+                       tracker_2=attmaps[i,:,2],
+                       tracker_3=attmaps[i,:,3],
+                       tracker_4=attmaps[i,:,4])
+        push!(results, df)
+    end
+    results = vcat(results...)
+    display(results)
+    CSV.write(joinpath(out_path, "attention.csv"), results)
 end
 
 

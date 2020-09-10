@@ -76,7 +76,7 @@ function extract_assignments(trace::Gen.Trace)
     record.table
 end
 
-function extract_tracker_masks(trace::Gen.Trace) #::Gen.trace)
+function extract_tracker_masks(trace::Gen.Trace)
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
     pmbrfs = ret[2][t].rfs
@@ -92,8 +92,9 @@ function extract_tracker_masks(trace::Gen.Trace) #::Gen.trace)
     return tracker_masks
 end
 
-# function extract_pmbrfs_params(trace::Gen.Trace)
-#     t, motion, gm = Gen.get_args(trace)
-#     ret = Gen.get_retval(trace)
-#     return ret[2][t].pmbrfs_params
-# end
+function extract_causal_graph(trace::Gen.Trace)
+    t, motion, gm = Gen.get_args(trace)
+    ret = Gen.get_retval(trace)
+    causal_graph = [ret[2][t].graph]
+    causal_graph = reshape(causal_graph, (1,1,size(causal_graph)...))
+end
