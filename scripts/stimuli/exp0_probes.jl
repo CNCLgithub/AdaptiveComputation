@@ -15,13 +15,17 @@ function place_probes(q::Exp0, tracker::T, t::T, pad::T) where {T<:Int}
 end
 
 function render_probe_trial(trial_row::DataFrameRow, out::String;
-                            pad::Int64 = 4)
+                            pad::Int64 = 4,
+                            probe::Bool = false)
 
     trial = trial_row.scene + 1
     q = Exp0(k=120, trial = trial)
 
     args = Tuple(trial_row[[:tracker, :frame]])
     gm, pos, probes = place_probes(q, args..., pad)
+    if !probe
+        probes = nothing
+    end
     render(gm, dot_positions = pos, probes = probes, path = out,
            stimuli = true, highlighted = collect(1:4), freeze_time = 24)
     compile_video(out)
@@ -40,16 +44,16 @@ function compile_video(render_path::String)
     encodevideo("$(render_path).mp4", imgstack)
 end
 
-function render_probe_trials(att_tps::String)
+function render_probe_trials(att_tps::String; pct_control::Float64 = 0.5)
     out = "/renders/probes"
     ispath(out) || mkpath(out)
-
     df = DataFrame(CSV.File(att_tps))
+    max_probes = Int64(pct_control * nrow(df))
     display(df)
     for (i, trial_row) in enumerate(eachrow(df))
         trial = trial_row.scene
         trial_out = "$(out)/$i"
         ispath(trial_out) || mkpath(trial_out)
-        render_probe_trial(trial_row, trial_out)
+        render_probe_trial(trial_row, trial_out; probe = i <= max_probes)
     end
 end

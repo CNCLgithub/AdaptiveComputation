@@ -6,7 +6,6 @@ export Exp0
     gm::String = "$(@__DIR__)/gm.json"
     proc::String = "$(@__DIR__)/proc.json"
     dataset_path::String = "/datasets/exp0.jld2"
-    #dataset_path::String = "/datasets/exp_0.h5"
 end
 
 get_name(::Exp0) = "exp0"

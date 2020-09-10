@@ -15,6 +15,11 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/proc.json"
 
+        "--time", "-t"
+        help = "How many frames"
+        arg_type = Int64
+        default = 120
+
         "--restart", "-r"
         help = "Whether to resume inference"
         action = :store_true
@@ -73,7 +78,7 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp0(;trial = args["trial"], k = 120,
+    exp = Exp0(;trial = args["trial"], k = args["time"],
                gm = args["gm"], proc = args["proc"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
