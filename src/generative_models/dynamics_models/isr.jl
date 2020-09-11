@@ -73,7 +73,7 @@ function isr_repulsion_step(model, dots, gm_params)
         end
         vel *= model.rep_inertia
         vel += (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
-        dots[i] = Dot(dot.pos, dot.vel, dot.probe)
+        dots[i] = Dot(dot.pos, dot.vel)
     end
     
     return dots

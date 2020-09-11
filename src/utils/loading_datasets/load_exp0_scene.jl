@@ -1,17 +1,17 @@
-export load_exp0_trial
+export load_exp0_scene
 
 using HDF5
 
 """
 loads init_positions, masks and the motion model from exp0 dataset
 """
-function load_exp0_trial(trial, gm, dataset_path;
+function load_exp0_scene(scene, gm, dataset_path;
                          generate_masks=true,
                          from_mask_rcnn=false)
 
 	file = h5open(dataset_path, "r")
 	dataset = read(file, "dataset")
-	data = dataset["$(trial-1)"]
+	data = dataset["$(scene-1)"]
 
     n_dots = Int(gm.n_trackers + gm.distractor_rate)
     zs = [uniform(0,1) for i=1:n_dots] # sampling zs at the beginning
@@ -62,7 +62,7 @@ function load_exp0_trial(trial, gm, dataset_path;
 	sigma_w = data["sigma_w"]
     motion = BrownianDynamicsModel(inertia, spring, sigma_w, sigma_w)
     
-    trial_data = Dict([:init_positions => init_positions,
+    scene_data = Dict([:init_positions => init_positions,
                        :motion => motion,
                        :masks => masks,
                        :gt_causal_graphs => gt_causal_graphs])
