@@ -72,6 +72,14 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
     println("acceptance: $(rtrace.acceptance)")
     println("attended_trackers: $(rtrace.attended_trackers)")
+    # just getting the MAP TD and A
+    t, gm = Gen.get_args(first(pf_state.traces))
+    println("timestep: $t")
+
+    order = sortperm(pf_state.log_weights, rev=true)
+    assocs = extract_assignments(pf_state.traces[first(order)])
+    println("top assocs")
+    display(Dict(zip(assocs...)))
     return rtrace
 end
 

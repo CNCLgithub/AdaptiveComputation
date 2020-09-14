@@ -99,7 +99,7 @@ function render_object(dot::Dot;
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
     if dot.probe
-        _draw_circle(dot_positions_t[i,1:2], dot.radius, probe_color, style=:stroke)
+        _draw_circle(dot.pos[1:2], dot.radius, probe_color, style=:stroke)
     end
 end
 
