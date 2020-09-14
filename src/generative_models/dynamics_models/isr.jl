@@ -2,13 +2,13 @@ export ISRDynamics
 
 @with_kw struct ISRDynamics <: AbstractDynamicsModel
     repulsion::Bool = true
-    dot_repulsion::Float64 = 100.4
-    wall_repulsion::Float64 = 110.9
-    distance::Float64 = 40.0
+    dot_repulsion::Float64 = 100.0
+    wall_repulsion::Float64 = 50.0
+    distance::Float64 = 60.0
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
 
-    brownian::Bool = false
+    brownian::Bool = true
     inertia::Float64 = 0.8
     spring::Float64 = 0.002
     sigma_x::Float64 = 1.0
@@ -32,7 +32,7 @@ end
 
     x = _x + vx
     y = _y + vy
-
+    
     return Dot([x,y,_z], [vx,vy])
 end
 
@@ -73,7 +73,7 @@ function isr_repulsion_step(model, dots, gm_params)
         end
         vel *= model.rep_inertia
         vel += (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
-        dots[i] = Dot(dot.pos, dot.vel)
+        dots[i] = Dot(dot.pos, vel)
     end
     
     return dots
