@@ -4,6 +4,8 @@ using FileIO
 using VideoIO
 using MOT
 
+
+# TODO: place padding to the left and righj of probe
 function place_probes!(cgs, tracker::T, t::T, pad::T) where {T<:Int}
     t_end = min(length(cgs), t + pad)
     for i = t:t_end
@@ -18,7 +20,7 @@ function place_probes!(cgs, tracker::T, t::T, pad::T) where {T<:Int}
 end
 
 function render_probe_trial(trial_row::DataFrameRow, out::String;
-                            pad::Int64 = 4,
+                            pad::Int64 = 2,
                             probe::Bool = false)
 
     trial = trial_row.scene + 1
