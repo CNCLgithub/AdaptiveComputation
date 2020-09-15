@@ -56,7 +56,7 @@ function render_probe_trials(att_tps::String; pct_control::Float64 = 0.5)
     out = "/renders/probes"
     ispath(out) || mkpath(out)
     df = DataFrame(CSV.File(att_tps))
-    max_probes = Int64(pct_control * nrow(df))
+    max_probes = Int64((1.0-pct_control) * nrow(df))
     display(df)
     for (i, trial_row) in enumerate(eachrow(df))
         trial = trial_row.scene

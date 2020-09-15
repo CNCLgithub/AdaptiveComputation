@@ -32,7 +32,7 @@ end
 function _draw_circle(position, radius, color;
                       opacity=1.0, style=:fill)
     if style==:stroke
-        setline(3)
+        setline(5)
     end
     setopacity(opacity)
     sethue(color)
@@ -91,16 +91,18 @@ end
 
 function render_object(dot::Dot;
                        leading_edges=true,
-                       dot_color="lightsalmon2",
-                       leading_edge_color="black",
-                       probe_color="blue")
-    _draw_circle(dot.pos[1:2], dot.radius, dot_color)
+                       dot_color="#e0b388",
+                       leading_edge_color="#ee70f2",
+                       probe_color="#e6a160")
+                       # probe_color="#f6d6bc")
+    color = dot.probe ? probe_color : dot_color
+    _draw_circle(dot.pos[1:2], dot.radius, color)
     if leading_edges
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
-    if dot.probe
-        _draw_circle(dot.pos[1:2], dot.radius, probe_color, style=:stroke)
-    end
+    # if dot.probe
+    #     _draw_circle(dot.pos[1:2], dot.radius, probe_color)
+    # end
 end
 
 """
@@ -109,7 +111,7 @@ end
 function render_cg(cg::CausalGraph, gm;
                    show_label=true,
                    highlighted::Vector{Int}=Int[],
-                   highlighted_color="red",
+                   highlighted_color="blue",
                    render_edges=false)
     
     objects = cg.elements
@@ -122,12 +124,11 @@ function render_cg(cg::CausalGraph, gm;
         if show_label
             _draw_text("$i", objects[i].pos[1:2] .+ [objects[i].width/2, objects[i].height/2])
         end
+        if i in highlighted
+            _draw_circle(objects[i].pos[1:2], objects[i].width*0.5, highlighted_color)
+        end
     end
 
-    for i in highlighted
-        _draw_circle(objects[i].pos[1:2], objects[i].width*0.75, highlighted_color, style=:stroke)
-    end
-    
     # TODO render edges potentially
 end
 
@@ -224,6 +225,7 @@ function render(gm, k;
                 attended=nothing,
                 array=false,
                 tracker_masks=nothing,
+                background_color="#7079f2",
                 path="render")
     
     # if returning array of images as matrices, then make vector
@@ -231,7 +233,7 @@ function render(gm, k;
 
     # stopped at beginning
     for t=1:freeze_time
-        _init_drawing(t, path, gm)
+        _init_drawing(t, path, gm, background_color = background_color)
         
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[1], gm;
@@ -245,7 +247,8 @@ function render(gm, k;
     # TODO change with good init causal graphs
     for t=1:k
         print("render timestep: $t \r")
-        _init_drawing(t+freeze_time, path, gm)
+        _init_drawing(t+freeze_time, path, gm,
+                      background_color = background_color)
 
         if !stimuli
             _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
@@ -269,11 +272,11 @@ function render(gm, k;
     end
     # final freeze time showing the answer
     for t=1:freeze_time
-        _init_drawing(t+k+freeze_time, path, gm)
+        _init_drawing(t+k+freeze_time, path, gm,
+                      background_color = background_color)
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[k+1], gm;
                        highlighted=highlighted,
-                       highlighted_color="blue",
                        show_label=!stimuli)
         end
 
