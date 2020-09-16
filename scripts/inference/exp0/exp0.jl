@@ -78,7 +78,7 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp0(;trial = args["trial"], k = args["time"],
+    exp = Exp0(;scene = args["trial"], k = args["time"],
                gm = args["gm"], proc = args["proc"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
@@ -88,10 +88,10 @@ function main()
                    objective = MOT.data_correspondence)
     else
         att = MOT.load(UniformAttention, args[att_mode]["model_path"],
-                   exp.trial, exp.k)
+                   exp.scene, exp.k)
     end
 
-    path = "/experiments/$(get_name(exp))_$(att_mode)/$(exp.trial)"
+    path = "/experiments/$(get_name(exp))_$(att_mode)/$(exp.scene)"
     try 
         isdir("/experiments/$(get_name(exp))_$(att_mode)") || mkpath("/experiments/$(get_name(exp))_$(att_mode)")
         isdir(path) || mkpath(path)

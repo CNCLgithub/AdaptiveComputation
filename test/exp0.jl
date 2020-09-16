@@ -1,17 +1,7 @@
 using MOT
-using Random
-Random.seed!(2)
 
-q = Exp0(trial=124,
-         k=5)
-attention = MapSensitivity(samples=5,
-                           sweeps=20,
-                           smoothness=0.01,
-                           k = 3350.,
-                           x0 = 1.68E11,
-                           scale = 495.,
-                           objective=MOT.target_designation)
+q = Exp0(k=5)
+attention = MapSensitivity()
 path = "/experiments/test"
 mkpath(path)
-
 results = run_inference(q, attention, joinpath(path, "results.jld2"), viz=true)
