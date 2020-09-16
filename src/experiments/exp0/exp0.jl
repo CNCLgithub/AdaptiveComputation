@@ -2,7 +2,7 @@ export Exp0
 
 @with_kw struct Exp0 <: AbstractExperiment
     k::Int = 120
-    trial::Int = 1
+    scene::Int = 1
     gm::String = "$(@__DIR__)/gm.json"
     proc::String = "$(@__DIR__)/proc.json"
     dataset_path::String = "/datasets/exp0.jld2"
@@ -20,11 +20,11 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
 
     gm = load(GMMaskParams, q.gm)
 
-    trial_data = load_trial(q.trial, q.dataset_path, gm;
+    scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=true)
-    motion = trial_data[:motion]
-    masks = trial_data[:masks]
-    gt_causal_graphs = trial_data[:gt_causal_graphs]
+    motion = scene_data[:motion]
+    masks = scene_data[:masks]
+    gt_causal_graphs = scene_data[:gt_causal_graphs]
 
     # initial observations based on init_positions
     # model knows where trackers start off
