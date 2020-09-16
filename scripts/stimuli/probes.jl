@@ -4,7 +4,7 @@ using ImageTransformations:imresize
 Random.seed!(1)
 
 include("../analysis/attention_map.jl")
-include("exp0_probes.jl")
+include("compile_videos.jl")
 
 function get_probe_placement(exp_path::String, n_quantiles::Int; bin::Int=4)
     attmaps = load_attmaps(exp_path, bin=bin)
@@ -15,6 +15,8 @@ function get_probe_placement(exp_path::String, n_quantiles::Int; bin::Int=4)
     for i=1:n_trials
         for j=1:n_quantiles
             probes_trial_quant = zeros(Bool, size(b_ams[i,j]))
+            b_ams[i,j][1:3,:] .= false
+            b_ams[i,j][end-2:end,:] .= false
             idx = rand(1:count(b_ams[i,j]))
             coordinates = findall(x->x==true, b_ams[i,j])
             probes_trial_quant[coordinates[idx]] = true
@@ -55,44 +57,23 @@ function render_probes(q::AbstractExperiment,
     end
 end
 
-function compile_videos(img_out_path::String, videos_out_path::String)
-    mkpath(videos_out_path)
-
-    trials = readdir(img_out_path)
-    for trial in trials
-        quantiles = readdir(joinpath(img_out_path, trial))
-        for quantile in quantiles
-            path = joinpath(img_out_path, trial, quantile)
-            imgnames = filter(x->occursin(".png",x), readdir(path))
-            intstrings =  map(x->split(x,".")[1],imgnames)
-            p = sortperm(parse.(Int,intstrings))
-            imgstack = []
-            for imgname in imgnames[p]
-                push!(imgstack, load(joinpath(path, imgname)))
-            end
-            video_dir = joinpath(videos_out_path, trial)
-            mkpath(video_dir)
-            encodevideo(joinpath(video_dir, "$quantile.mp4"), imgstack)
-        end
-    end
-end
-
 function main()
-    q = Exp1(gm="scripts/inference/exp1/gm.json")
+    q = Exp1(gm="scripts/inference/exp1/gm.json",
+             dataset_path="/datasets/exp1_isr.jld2")
     n_quantiles = 5
     
     println("rendering probes for target_designation")
-    exp_path = "/experiments/exp1_target_designation" # CHANGE
-    out_path = "/renders/exp1_target_designation"
+    exp_path = "/experiments/exp1_isr/exp1_target_designation" # CHANGE
+    out_path = "/renders/exp1_isr/exp1_target_designation"
     render_probes(q, exp_path, out_path, n_quantiles)
-    videos_out_path = "/renders/videos/exp1_target_designation"
+    videos_out_path = "/renders/videos/exp1_isr/exp1_target_designation"
     compile_videos(out_path, videos_out_path)
 
     println("rendering probes for data_correspondence")
-    exp_path = "/experiments/exp1_data_correspondence"
-    out_path = "/renders/exp1_data_correspondence"
+    exp_path = "/experiments/exp1_isr/exp1_data_correspondence"
+    out_path = "/renders/exp1_isr/exp1_data_correspondence"
     render_probes(q, exp_path, out_path, n_quantiles)
-    videos_out_path = "/renders/videos/exp1_data_correspondence"
+    videos_out_path = "/renders/videos/exp1_isr/exp1_data_correspondence"
     compile_videos(out_path, videos_out_path)
 end
 
