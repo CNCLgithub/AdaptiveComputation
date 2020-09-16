@@ -1,16 +1,16 @@
-export load_trial
+export load_scene
 
 """
 loads gt causal graphs and motion
 """
-function load_trial(trial, dataset_path, gm;
+function load_scene(scene, dataset_path, gm;
                     generate_masks=true,
                     from_mask_rcnn=false)
     
 	file = jldopen(dataset_path, "r")
-    trial = read(file, "$trial")
-    motion = trial["motion"]
-    gt_causal_graphs = trial["gt_causal_graphs"]
+    scene = read(file, "$scene")
+    motion = scene["motion"]
+    gt_causal_graphs = scene["gt_causal_graphs"]
     close(file)
 
     if generate_masks
@@ -22,8 +22,8 @@ function load_trial(trial, dataset_path, gm;
         masks = nothing
     end
     
-    trial_data = Dict([:gt_causal_graphs => gt_causal_graphs,
+    scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
                        :motion => motion,
                        :masks => masks])
-    return trial_data
+    return scene_data
 end

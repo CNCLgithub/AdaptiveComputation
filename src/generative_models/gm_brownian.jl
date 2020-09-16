@@ -47,6 +47,8 @@ end
     probe_flip::Float64 = 0.0
 end
 
+default_gm = GMMaskParams()
+
 function load(::Type{GMMaskParams}, path::String)
     GMMaskParams(;read_json(path)...)
 end
@@ -280,4 +282,4 @@ br_mask_chain = Gen.Unfold(br_mask_kernel)
     return result
 end
 
-export GMMaskParams, gm_brownian_pos, gm_brownian_mask
+export GMMaskParams, gm_brownian_pos, gm_brownian_mask, default_gm
