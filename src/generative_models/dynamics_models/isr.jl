@@ -2,13 +2,13 @@ export ISRDynamics
 
 @with_kw struct ISRDynamics <: AbstractDynamicsModel
     repulsion::Bool = true
-    dot_repulsion::Float64 = 100.4
-    wall_repulsion::Float64 = 110.9
-    distance::Float64 = 40.0
+    dot_repulsion::Float64 = 100.0
+    wall_repulsion::Float64 = 50.0
+    distance::Float64 = 60.0
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
 
-    brownian::Bool = false
+    brownian::Bool = true
     inertia::Float64 = 0.8
     spring::Float64 = 0.002
     sigma_x::Float64 = 1.0
@@ -32,7 +32,7 @@ end
 
     x = _x + vx
     y = _y + vy
-
+    
     return Dot([x,y,_z], [vx,vy])
 end
 
@@ -42,10 +42,11 @@ function isr_repulsion_step(model, dots, gm_params)
     n = length(dots)
 
     for i = 1:n
+        dot = dots[i]
         force = zeros(3)
         for j = 1:n
             i == j && continue
-            v = dots[i].pos - dots[j].pos
+            v = dot.pos - dots[j].pos
             (norm(v) > model.distance) && continue
             force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.dot_repulsion^2)) * v / norm(v)
         end
@@ -53,23 +54,26 @@ function isr_repulsion_step(model, dots, gm_params)
                 
         # repulsion from walls
         walls = Matrix{Float64}(undef, 4, 3)
-        walls[1,:] = [gm_params.area_width/2, dots[i].pos[2], dots[i].pos[3]]
-        walls[2,:] = [dots[i].pos[1], gm_params.area_height/2, dots[i].pos[3]]
-        walls[3,:] = [-gm_params.area_width/2, dots[i].pos[2], dots[i].pos[3]]
-        walls[4,:] = [dots[i].pos[1], -gm_params.area_height/2, dots[i].pos[3]]
+        walls[1,:] = [gm_params.area_width/2, dot.pos[2], dot.pos[3]]
+        walls[2,:] = [dot.pos[1], gm_params.area_height/2, dot.pos[3]]
+        walls[3,:] = [-gm_params.area_width/2, dot.pos[2], dot.pos[3]]
+        walls[4,:] = [dot.pos[1], -gm_params.area_height/2, dot.pos[3]]
 
         force = zeros(3)
         for j = 1:4
-            v = dots[i].pos - walls[j,:]
+            v = dot.pos - walls[j,:]
             (norm(v) > model.distance) && continue
             force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.wall_repulsion^2)) * v / norm(v)
         end
         wall_applied_force = force
 
-        if sum(dots[i].vel) != 0
-            dots[i].vel = model.vel*dots[i].vel/norm(dots[i].vel)
+        vel = dots[i].vel
+        if sum(vel) != 0
+            vel *= model.vel/norm(vel)
         end
-        dots[i].vel = model.rep_inertia*dots[i].vel + (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
+        vel *= model.rep_inertia
+        vel += (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
+        dots[i] = Dot(dot.pos, vel)
     end
     
     return dots

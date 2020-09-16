@@ -5,8 +5,6 @@ import json
 import argparse
 
 
-
-
 def main():
     parser = argparse.ArgumentParser(
         description = 'Submits batch jobs to render stimuli.',

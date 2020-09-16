@@ -27,7 +27,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
     # CHANGE (added rejuvenation for all before applying attention)
-    n_rejuvs = 5
+    n_rejuvs = 0
     for i = 1:n_rejuvs
         for j = 1:gm.n_trackers
             weights = zeros(gm.n_trackers)
@@ -38,9 +38,9 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     end
 
     rtrace.stats = get_stats(attention, pf_state)
-    rtrace.attended_trackers = rtrace.stats # CHANGED this reflects the actual underlying continuous
-    #weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : softmax(rtrace.stats)
-    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : rtrace.stats/sum(rtrace.stats)
+    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) :
+        get_weights(attention, rtrace.stats)
+    # weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : rtrace.stats/sum(rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
     
@@ -55,7 +55,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
         #
         acceptance, attended_trackers = perturb_state!(pf_state, weights)
         rtrace.acceptance += acceptance
-        # rtrace.attended_trackers += attended_trackers
+        rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
 
         # computing new population statistics
@@ -72,6 +72,14 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
     println("acceptance: $(rtrace.acceptance)")
     println("attended_trackers: $(rtrace.attended_trackers)")
+    # just getting the MAP TD and A
+    t, gm = Gen.get_args(first(pf_state.traces))
+    println("timestep: $t")
+
+    order = sortperm(pf_state.log_weights, rev=true)
+    assocs = extract_assignments(pf_state.traces[first(order)])
+    println("top assocs")
+    display(Dict(zip(assocs...)))
     return rtrace
 end
 

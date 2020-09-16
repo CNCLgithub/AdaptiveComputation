@@ -8,45 +8,24 @@ _dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel) = gm_brownian_pos(
 # _dgp(k::Int, gm::GMMaskParams, motion::ConstrainedBDM) = ...
 _dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics) = gm_isr_pos(k, motion, gm)
 
-function dgp(k::Int, params::GMMaskParams,
+function dgp(k::Int, gm::GMMaskParams,
              motion::AbstractDynamicsModel;
              generate_masks=true)
 
     # new params with all dots having state for data generation
-    gm = deepcopy(params)
+    gm = deepcopy(gm)
     gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
     
     # running generative model on just positions (no need to go to masks)
     init_state, states = _dgp(k, gm, motion)
-
-    num_dots = gm.n_trackers
-
-    # initial positions and positions over time will be returned
-    # from this generative process
-    init_positions = Array{Float64}(undef, num_dots, 3)
-    init_vels = Array{Float64}(undef, num_dots, 2)
-    positions = Vector{Array{Float64}}(undef, k)
-
-    for i=1:num_dots
-        init_positions[i,:] = init_state.graph.elements[i].pos
-        init_vels[i,:] = init_state.graph.elements[i].vel
-    end
     
-    for t=1:k
-        dots = states[t].graph.elements
-        pos_t = Array{Float64}(undef, length(dots), 3)
-        for i=1:num_dots
-            pos_t[i,:] = dots[i].pos
-        end
-        positions[t] = pos_t
-    end
+    gt_causal_graphs = Vector{CausalGraph}(undef, k+1)
+    gt_causal_graphs[1] = init_state.graph
+    gt_causal_graphs[2:end] = map(x->x.graph, states)
     
-    if generate_masks
-        masks = get_masks(positions, params.dot_radius, params.img_height,
-                          params.img_width, params.area_height, params.area_width)
-    else
-        masks = nothing
-    end
-
-    return init_positions, init_vels, masks, positions
+    masks = generate_masks ? get_masks(gt_causal_graphs, gm) : nothing
+    
+    trial_data = Dict([:gt_causal_graphs => gt_causal_graphs,
+                       :motion => motion,
+                       :masks => masks])
 end

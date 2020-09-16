@@ -15,6 +15,11 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/proc.json"
 
+        "--dataset_path"
+        help = "Dataset to be used"
+        arg_type = String
+        default = "/datasets/exp1_isr.jld2" # TODO expose this is in the batch script
+
         "--restart", "-r"
         help = "Whether to resume inference"
         action = :store_true
@@ -72,8 +77,9 @@ end
 
 function main()
     args = parse_commandline()
-    exp = Exp1(;trial = args["trial"], k = 120,
-               gm = args["gm"], proc = args["proc"])
+    exp = Exp1ISR(;trial = args["trial"], k = 60,
+               gm = args["gm"], proc = args["proc"],
+               dataset_path = args["dataset_path"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, args[att_mode]["params"])

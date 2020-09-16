@@ -1,64 +1,109 @@
 using DataFrames
 using CSV
 using FileIO
-using VideoIO
 using MOT
+using LinearAlgebra: norm
 
-function place_probes(q::Exp0, tracker::T, t::T, pad::T) where {T<:Int}
-    gm = MOT.load(GMMaskParams, q.gm)
-    positions = last(load_exp0_trial(q.trial, gm, q.dataset_path))
-    n_dots = round(Int, gm.n_trackers + gm.distractor_rate)
-    probes = zeros(Bool, q.k, n_dots)
-    t_end = min(q.k, t + pad)
-    probes[t:t_end, tracker] .= true
-    (gm, positions, probes)
+
+"""
+    adds nearest distractor and distance
+    to "attention_trial_tps.csv" 
+"""
+function add_nearest_distractor(att_tps::String, att_tps_out::String;
+                                dataset_path::String="/datasets/exp0.jld2")
+    df = DataFrame(CSV.File(att_tps))
+
+    # adding new cols
+    df[!,:nd] .= 0
+    df[!,:dist_to_nd] .= 0.0
+    df[!,:tracker_to_origin] .= 0.0 # perhaps to control for eccentricity?
+
+    for (i, trial_row) in enumerate(eachrow(df))
+        scene = trial_row.scene # indexing from R is 0-based
+        scene_data = load_scene(scene, dataset_path, default_gm;
+                                generate_masks=false)
+        # getting the corresponding causal graph elements
+        # (+1 because the first causal graph is for the init state)
+        dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
+        pos = map(x->x.pos[1:2], dots)
+        tracker_pos = pos[trial_row.tracker]
+
+        df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
+
+        distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
+        df[i, :nd] = argmin(distances)+4
+        df[i, :dist_to_nd] = minimum(distances)
+    end
+    display(df)
+    CSV.write(att_tps_out, df)
+end
+
+
+# TODO: place padding to the left and righj of probe
+# DONE?
+function place_probes!(cgs, tracker::T, t::T, pad::T) where {T<:Int}
+    t_start = max(1, t - pad)
+    t_end = min(length(cgs), t + pad)
+    for i = t_start:t_end
+        dot = cgs[i+1].elements[tracker]
+        cgs[i+1].elements[tracker] = Dot(pos = dot.pos,
+                                       vel = dot.vel,
+                                       probe = true,
+                                       radius = dot.radius,
+                                       width = dot.width,
+                                       height = dot.height)
+    end
 end
 
 function render_probe_trial(trial_row::DataFrameRow, out::String;
-                            pad::Int64 = 4)
+                            pad::Int64 = 2, # how many frames from left and right of the peak
+                            pad_end::Int64 = 8, # how many frames after the probe
+                            probe::Bool = false)
 
-    trial = trial_row.scene + 1
-    q = Exp0(k=120, trial = trial)
+    q = Exp0(scene = trial_row.scene)
 
-    td_out = joinpath(out, "td")
-    td_args = Tuple(trial_row[[:td_tracker, :td_t]])
-    gm, pos, probes = place_probes(q, td_args..., pad)
-    render(gm, dot_positions = pos, probes = probes, path = td_out,
-           stimuli = true, highlighted = [1], freeze_time = 24)
-    compile_video(out, "td")
+    tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
+    gm = MOT.load(GMMaskParams, q.gm)
+    trial_data = load_scene(q.scene, q.dataset_path, gm;
+                            generate_masks=false)
+    cgs = trial_data[:gt_causal_graphs]
+    n_dots = round(Int, gm.n_trackers + gm.distractor_rate)
+    if probe
+        place_probes!(cgs, tracker, t, pad)
+    end
 
-    dc_out = joinpath(out, "dc")
-    dc_args = Tuple(trial_row[[:dc_tracker, :dc_t]])
-    _, _, probes = place_probes(q, dc_args..., pad)
-    render(gm, dot_positions = pos, probes = probes, path = dc_out,
-           stimuli = true, highlighted = [1], freeze_time = 24)
-    compile_video(out, "dc")
-    display(td_args)
-    display(dc_args)
+    # rendering trial with tracker query
+    tracker_out = "$(out)_1"
+    ispath(tracker_out) || mkpath(tracker_out)
+    render(gm, min(t+pad+pad_end, q.k);
+           gt_causal_graphs = cgs,
+           path = tracker_out,
+           stimuli = true,
+           highlighted = [tracker],
+           freeze_time = 24)
+
+    # rendering trial with distractor query
+    distractor_out = "$(out)_2"
+    ispath(distractor_out) || mkpath(distractor_out)
+    render(gm, min(t+pad+pad_end, q.k);
+           gt_causal_graphs = cgs,
+           path = distractor_out,
+           stimuli = true,
+           highlighted = [distractor],
+           freeze_time = 24)
+
     return nothing
 end
 
-function compile_video(path::String, model::String)
-    render_path = joinpath(path, model)
-    imgnames = filter(x->occursin(".png",x), readdir(render_path))
-    intstrings =  map(x->split(x,".")[1],imgnames)
-    p = sortperm(parse.(Int,intstrings))
-    imgstack = []
-    for imgname in imgnames[p]
-        push!(imgstack,load(joinpath(render_path, imgname)))
-    end
-    encodevideo("$(path)_$(model).mp4", imgstack)
-end
-
-function render_probe_trials(att_tps::String)
+function render_probe_trials(att_tps::String; pct_control::Float64 = 0.5)
     out = "/renders/probes"
     ispath(out) || mkpath(out)
-
     df = DataFrame(CSV.File(att_tps))
-    for trial_row in eachrow(df)
-        trial = trial_row.scene
-        trial_out = "$(out)/$(trial)"
-        ispath(trial_out) || mkpath(trial_out)
-        render_probe_trial(trial_row, trial_out)
+    max_probes = Int64((1.0-pct_control) * nrow(df))
+    display(df)
+    for (i, trial_row) in enumerate(eachrow(df))
+        trial_out = "$(out)/$i"
+        render_probe_trial(trial_row, trial_out;
+                           probe = i <= max_probes)
     end
 end

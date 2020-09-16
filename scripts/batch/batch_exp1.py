@@ -25,10 +25,12 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--trials', type = int, default = 128,
+    parser.add_argument('--trials', type = int, default = 10,
                         help = 'number of trials')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
+    parser.add_argument('--duration', type = int, default = 40,
+                        help = 'job duration (min)')
 
     subparsers = parser.add_subparsers(title='Attention models')
 
@@ -45,14 +47,13 @@ def main():
     args = parser.parse_args()
 
     n = args.trials * args.chains
-    duration = 15 # in minutes
     tasks, kwargs, extras = args.func(args)
 
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
         'mem-per-cpu' : '2GB',
-        'time' : '{0:d}'.format(duration),
+        'time' : '{0:d}'.format(args.duration),
         'partition' : 'short',
         'requeue' : None,
     }

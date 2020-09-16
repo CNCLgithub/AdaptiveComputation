@@ -25,6 +25,10 @@ function read_json(path)
 end
 
 
+function td_accuracy(td::Vector{Int}, n::Int)
+    length(intersect(td, 1:n))/n
+end
+
 function analysis_load_trial(trial_dir::String)
     runs = readdir(trial_dir)
     n_runs = length(runs)
@@ -42,14 +46,13 @@ function analysis_load_trial(trial_dir::String)
         final_log_scores = extracted["log_scores"][end,:]
         final_assignments = extracted["weighted"][:assignments][end,:]
         perm = sortperm(final_log_scores, rev=true) # sorting according to log scores
-        
-        assignment = first(final_assignments[perm]) # taking max assignment
-        assignment = vcat(assignment[2:end]...) # first partition is ppp
-        n_trackers = size(extracted["weighted"][:tracker_positions], 3)
-        performance[run] = length(intersect(assignment, 1:n_trackers))/n_trackers
+        assocs, ls = final_assignments[first(perm)]
+        assocs = map(x -> vcat(x[2:end]...), assocs)
+        weights = exp.(ls .- logsumexp(ls))
+        performance[run] = sum(map(x -> td_accuracy(x, 4), assocs) .* weights)
 
         # getting pred_target
-        pred_target[run, assignment] .= 1.0
+        pred_target[run, first(assocs)] .= 1.0
 
         # getting the compute for this run
         aux_state = extracted["aux_state"]
