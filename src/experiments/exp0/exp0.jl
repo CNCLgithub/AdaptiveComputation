@@ -20,16 +20,11 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
 
     gm = load(GMMaskParams, q.gm)
 
-    # getting some trial data (initial positions, ground truth causal graphs,
-    # masks for observations, motion model/parameters) from the dataset
-    # trial_data = load_exp0_trial(q.trial, gm, q.dataset_path;
-                                 # generate_masks=true)
     trial_data = load_trial(q.trial, q.dataset_path, gm;
                             generate_masks=true)
     motion = trial_data[:motion]
     masks = trial_data[:masks]
     gt_causal_graphs = trial_data[:gt_causal_graphs]
-    # init_positions = trial_data[:init_positions]
 
     # initial observations based on init_positions
     # model knows where trackers start off
