@@ -47,7 +47,7 @@ end
     probe_flip::Float64 = 0.0
 end
 
-default_gm = GMMaskParams()
+const default_gm = GMMaskParams()
 
 function load(::Type{GMMaskParams}, path::String)
     GMMaskParams(;read_json(path)...)
@@ -257,7 +257,6 @@ end
 
     prev_graph = prev_state.graph
 
-    # new_graph = @trace(inertial_update(dynamics_model, prev_graph), :dynamics)
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
 
