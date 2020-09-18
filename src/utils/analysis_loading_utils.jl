@@ -25,8 +25,16 @@ function read_json(path)
 end
 
 
-function td_accuracy(td::Vector{Int}, n::Int)
-    length(intersect(td, 1:n))/n
+function _td_accuracy(assocs, ls)
+    assocs = map(x -> vcat(x[2:end]...), assocs)
+    weights = exp.(ls .- logsumexp(ls))
+    sum(map(x -> length(intersect(x, 1:4)/4), assocs) .* weights)
+end
+
+function td_accuracy(particles)
+    accs = map((x,y) -> _td_accuracy(x,y), particles)
+    weights = exp.(ls .- logsumexp(ls))
+    mean(accs)
 end
 
 function analysis_load_trial(trial_dir::String)
@@ -44,14 +52,12 @@ function analysis_load_trial(trial_dir::String)
         
         # getting performance for this run
         final_log_scores = extracted["log_scores"][end,:]
-        final_assignments = extracted["weighted"][:assignments][end,:]
-        perm = sortperm(final_log_scores, rev=true) # sorting according to log scores
-        assocs, ls = final_assignments[first(perm)]
-        assocs = map(x -> vcat(x[2:end]...), assocs)
-        weights = exp.(ls .- logsumexp(ls))
-        performance[run] = sum(map(x -> td_accuracy(x, 4), assocs) .* weights)
+        final_assignments = extracted["unweighted"][:assignments][end,:]
+        performance[run] = td_accuracy(final_assignments)
 
         # getting pred_target
+        assocs, ls = final_assignments[first(perm)]
+        assocs = map(x -> vcat(x[2:end]...), assocs)
         pred_target[run, first(assocs)] .= 1.0
 
         # getting the compute for this run

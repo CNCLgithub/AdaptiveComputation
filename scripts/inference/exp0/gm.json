@@ -10,9 +10,9 @@
 
     "dot_radius": 20.0,
 
-    "dot_p": 0.75,
-    "gauss_amp": 0.1,
-    "gauss_std": 1.0,
+    "dot_p": 4.0,
+    "gauss_amp": 0.75,
+    "gauss_std": 0.55,
 
     "exp0": true
 }

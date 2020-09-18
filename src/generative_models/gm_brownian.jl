@@ -79,7 +79,6 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
                                  params.img_height, params.img_width,
                                  params.dot_p,
                                  params.gauss_amp, params.gauss_std)
-        
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 
