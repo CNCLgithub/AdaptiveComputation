@@ -171,14 +171,14 @@ function relative_entropy(p::T, q::T) where T<:Dict
     # display(p); display(q)
     order = sortperm(probs[:, 1], rev= true)
     # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
-    println("new set")
+    # println("new set")
     kl = 0.0
     for i in order
         _kl = 0.0
         _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
         kl += isnan(_kl) ? 0.0 : _kl
-        println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
+        # println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
 
     end
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
