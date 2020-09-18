@@ -25,7 +25,6 @@ function run_inference(q::Exp0, attention::T, path::String; viz::Bool = false) w
     motion = scene_data[:motion]
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
-    # init_positions = scene_data[:init_positions]
 
     # initial observations based on init_positions
     # model knows where trackers start off

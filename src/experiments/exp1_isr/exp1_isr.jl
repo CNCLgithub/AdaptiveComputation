@@ -6,7 +6,7 @@ export Exp1ISR
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
     k::Int = 120
-    trial::Union{Nothing, Int} = nothing
+    scene::Union{Nothing, Int} = nothing
     dataset_path::String = "/datasets/exp1_isr.jld2"
 end
 
@@ -20,10 +20,10 @@ function run_inference(q::Exp1ISR,
     gm = load(GMMaskParams, q.gm)
     motion = load(InertiaModel, q.motion)
     
-    if isnothing(q.trial)
+    if isnothing(q.scene)
         init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
     else
-        init_positions, masks, _, positions = load_trial(q.trial, q.dataset_path, gm)
+        init_positions, masks, _, positions = load_scene(q.scene, q.dataset_path, gm)
     end
     
     latent_map = LatentMap(Dict(
