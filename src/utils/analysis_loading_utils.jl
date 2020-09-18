@@ -32,23 +32,23 @@ function _td_accuracy(assocs, ls)
 end
 
 function td_accuracy(particles)
-    accs = map((x,y) -> _td_accuracy(x,y), particles)
-    weights = exp.(ls .- logsumexp(ls))
+    accs = map(_td_accuracy, zip(particles...)...)
     mean(accs)
 end
 
 function analysis_load_trial(trial_dir::String)
-    runs = readdir(trial_dir)
+    runs = filter(x -> occursin("jld", x),
+                  readdir(trial_dir, join = true))
     n_runs = length(runs)
 
     performance = Array{Float64}(undef, n_runs)
     compute = zeros(n_runs)
     pred_target = zeros(n_runs, 8)
 
-    for run=1:n_runs
+    for (run, chain) in enumerate(runs)
 
         # reading the file
-        extracted = extract_chain(joinpath(trial_dir, "$run.jld2"))
+        extracted = extract_chain(chain)
         
         # getting performance for this run
         final_log_scores = extracted["log_scores"][end,:]
@@ -56,7 +56,9 @@ function analysis_load_trial(trial_dir::String)
         performance[run] = td_accuracy(final_assignments)
 
         # getting pred_target
-        assocs, ls = final_assignments[first(perm)]
+        weighted_assignments = extracted["weighted"][:assignments][end,:]
+        map_idx = argmax(final_log_scores)
+        assocs, ls = weighted_assignments[map_idx]
         assocs = map(x -> vcat(x[2:end]...), assocs)
         pred_target[run, first(assocs)] .= 1.0
 
