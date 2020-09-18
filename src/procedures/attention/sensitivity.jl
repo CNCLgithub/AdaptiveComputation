@@ -169,7 +169,7 @@ function relative_entropy(p::T, q::T) where T<:Dict
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
     # display(p); display(q)
-    order = sortperm(probs[:, 1], rev= true)[1:5]
+    order = sortperm(probs[:, 1], rev= true)
     # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
     println("new set")
     kl = 0.0
