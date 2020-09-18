@@ -19,7 +19,6 @@ attention = MapSensitivity(samples=5,
                            # x0 = 1200.0,
                            # scale = 20.0,
                            objective=MOT.target_designation)
-path = "/experiments/test"
-mkpath(path)
+path = "/experiments/test/test.jld2"
 
 run_inference(q, attention, path, viz=true)

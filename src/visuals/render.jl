@@ -93,16 +93,12 @@ function render_object(dot::Dot;
                        leading_edges=true,
                        dot_color="#e0b388",
                        leading_edge_color="#ee70f2",
-                       probe_color="#e6a160")
-                       # probe_color="#f6d6bc")
+                       probe_color="#c28247")
     color = dot.probe ? probe_color : dot_color
     _draw_circle(dot.pos[1:2], dot.radius, color)
     if leading_edges
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
-    # if dot.probe
-    #     _draw_circle(dot.pos[1:2], dot.radius, probe_color)
-    # end
 end
 
 """

@@ -6,7 +6,7 @@ export Exp1ISR
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
     k::Int = 120
-    scene::Union{Nothing, Int} = nothing
+    scene::Int = 1
     dataset_path::String = "/datasets/exp1_isr.jld2"
 end
 
@@ -20,30 +20,29 @@ function run_inference(q::Exp1ISR,
     gm = load(GMMaskParams, q.gm)
     motion = load(InertiaModel, q.motion)
     
-    if isnothing(q.scene)
-        init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
-    else
-        init_positions, masks, _, positions = load_scene(q.scene, q.dataset_path, gm)
-    end
+
+    scene_data = load_scene(q.scene, q.dataset_path, gm;
+                            generate_masks=true)
+    masks = scene_data[:masks]
+    gt_causal_graphs = scene_data[:gt_causal_graphs]
     
     latent_map = LatentMap(Dict(
-                                :tracker_positions => extract_tracker_positions,
-                                # :tracker_masks => extract_tracker_masks,
-                                :assignments => extract_assignments
-                               ))
+        :tracker_positions => extract_tracker_positions,
+        :assignments => extract_assignments,
+        :causal_graph => extract_causal_graph))
+
 
     # initial observations based on init_positions
     # model knows where trackers start off
     constraints = Gen.choicemap()
-    for i=1:size(init_positions, 1)
+    init_dots = gt_causal_graphs[1].elements
+    for i=1:gm.n_trackers
         addr = :init_state => :trackers => i => :x
-        constraints[addr] = init_positions[i,1]
+        constraints[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
-        constraints[addr] = init_positions[i,2]
-        # addr = :init_state => :trackers => i => :z
-        # constraints[addr] = init_positions[i,3]
+        constraints[addr] = init_dots[i].pos[2]
     end
-    
+
     # compiling further observations for the model
     args = [(t, motion, gm) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
@@ -71,8 +70,8 @@ function run_inference(q::Exp1ISR,
                                      path = path)
     
     if viz
-        println(path)
-        visualize_inference(results, positions, gm, attention, path)
+        visualize_inference(results, gt_causal_graphs,
+                            gm, attention, dirname(path))
     end
 
     return results

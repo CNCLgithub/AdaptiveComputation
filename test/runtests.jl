@@ -4,4 +4,4 @@ using MOT
 # include("gm.jl")
 # include("pf.jl")
 include("causal_graph.jl")
-include("experiments/experiments.jl")
+include("exp0.jl")

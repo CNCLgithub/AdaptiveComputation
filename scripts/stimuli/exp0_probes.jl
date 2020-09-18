@@ -1,7 +1,6 @@
 using DataFrames
 using CSV
 using FileIO
-using VideoIO
 using MOT
 using LinearAlgebra: norm
 
@@ -111,17 +110,6 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
            freeze_time = 24)
 
     return nothing
-end
-
-function compile_video(render_path::String)
-    imgnames = filter(x->occursin(".png",x), readdir(render_path))
-    intstrings =  map(x->split(x,".")[1],imgnames)
-    p = sortperm(parse.(Int,intstrings))
-    imgstack = []
-    for imgname in imgnames[p]
-        push!(imgstack,load(joinpath(render_path, imgname)))
-    end
-    encodevideo("$(render_path).mp4", imgstack)
 end
 
 function render_probe_trials(att_tps::String; pct_control::Float64 = 0.5)
