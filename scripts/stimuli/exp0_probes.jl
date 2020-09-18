@@ -5,6 +5,23 @@ using VideoIO
 using MOT
 using LinearAlgebra: norm
 
+"""
+    rotates the positions of elements in causal graphs by angle in radians
+"""
+function rotate(cgs::Vector{CausalGraph}, angle::Float64)
+    rotated_cgs = Vector{CausalGraph}(undef, length(cgs))
+
+    for i=1:length(cgs)
+        rotated_cgs[i] = deepcopy(cgs[i])
+        for element in rotated_cgs[i].elements
+            pos = element.pos[1:2]
+            element.pos[1] = pos[1]*cos(angle) - pos[2]*sin(angle)
+            element.pos[2] = pos[1]*sin(angle) + pos[2]*cos(angle)
+        end
+    end
+    
+    return rotated_cgs
+end
 
 """
     adds nearest distractor and distance
