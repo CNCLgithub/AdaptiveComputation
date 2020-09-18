@@ -28,7 +28,7 @@ end
 function _td_accuracy(assocs, ls)
     assocs = map(x -> vcat(x[2:end]...), assocs)
     weights = exp.(ls .- logsumexp(ls))
-    sum(map(x -> length(intersect(x, 1:4)/4), assocs) .* weights)
+    sum(map(x -> length(intersect(x, 1:4))/4, assocs) .* weights)
 end
 
 function td_accuracy(particles)
