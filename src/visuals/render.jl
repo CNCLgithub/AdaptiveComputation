@@ -277,6 +277,7 @@ function render(gm, k;
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[k+1], gm;
                        highlighted=highlighted,
+                       highlighted_color="yellow",
                        show_label=!stimuli)
         end
 
