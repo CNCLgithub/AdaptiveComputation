@@ -18,13 +18,14 @@ function run_inference(q::Exp1ISR,
                        viz::Bool=true) where {T<:AbstractAttentionModel}
     
     gm = load(GMMaskParams, q.gm)
-    motion = load(InertiaModel, q.motion)
+    #motion = load(InertiaModel, q.motion)
     
 
     scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=true)
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
+    motion = scene_data[:motion]
     
     latent_map = LatentMap(Dict(
         :tracker_positions => extract_tracker_positions,

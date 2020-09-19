@@ -35,7 +35,7 @@ isr_mask_chain = Gen.Unfold(isr_mask_kernel)
 end
 
 @gen static function gm_isr_mask(T::Int, motion::AbstractDynamicsModel,
-                                params::GMMaskParams)
+                                 params::GMMaskParams)
     init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(isr_mask_chain(T, init_state, motion, params), :kernel)
     result = (init_state, states, nothing)

@@ -26,8 +26,8 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
-    # CHANGE (added rejuvenation for all before applying attention)
-    n_rejuvs = 0
+    # n_rejuvs = 0
+    n_rejuvs = 3
     for i = 1:n_rejuvs
         for j = 1:gm.n_trackers
             weights = zeros(gm.n_trackers)

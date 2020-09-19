@@ -14,7 +14,8 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     aux_state = extracted["aux_state"]
     attention_weights = [aux_state[t].stats for t = 1:k]
     attention_weights = collect(hcat(attention_weights...)')
-
+    
+    display(attention_weights)
     plot_compute_weights(attention_weights, path)
 
     attempts = Vector{Int}(undef, k)
@@ -53,27 +54,29 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
 end
 
 
-function model_render(xy, full_imgs, params; path="model_render")
-    k, n, _, _ = size(xy)
+function model_render(full_imgs, gm;
+                      model_cgs=nothing,
+                      path="model_render")
 
-    h, w, ah, aw = params.img_height, params.img_width, params.area_height, params.area_width
-
+    h, w, ah, aw = gm.img_height, gm.img_width, gm.area_height, gm.area_width
+    
+    k = length(full_imgs)
+    
     for t=1:k
         img = full_imgs[t]
-
-        for p=1:n
-            for i=1:size(xy,3)
-                x = xy[t,p,i,1]
-                y = xy[t,p,i,2]
-                x, y = translate_area_to_img(x, y, h, w, ah, aw)
-
-                # particle positions
-                draw_circle!(img, [x,y], 3.0, false)
-                draw_circle!(img, [x,y], 2.0, true)
-                draw_circle!(img, [x,y], 1.0, false)
+    
+        if !isnothing(model_cgs)
+            for cg in model_cgs[t,:]
+                positions = map(x->x.pos[1:2], cg.elements)
+                for pos in positions
+                    x, y = translate_area_to_img(pos[1], pos[2], h, w, ah, aw)
+                    draw_circle!(img, [x,y], 3.0, false)
+                    draw_circle!(img, [x,y], 2.0, true)
+                    draw_circle!(img, [x,y], 1.0, false)
+                end
             end
         end
-
+    
         mkpath(path)
         filename = "$(lpad(t, 3, "0")).png"
         save(joinpath(path, filename), img)
