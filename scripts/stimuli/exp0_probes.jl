@@ -1,9 +1,9 @@
-using DataFrames
-using CSV
-using FileIO
 using MOT
+using CSV
+using ArgParse
+using FileIO
+using DataFrames
 using LinearAlgebra: norm
-
 
 """
     adds nearest distractor and distance
@@ -20,7 +20,7 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
 
     for (i, trial_row) in enumerate(eachrow(df))
         scene = trial_row.scene # indexing from R is 0-based
-        scene_data = load_scene(scene, dataset_path, default_gm;
+        scene_data = MOT.load_scene(scene, dataset_path, default_gm;
                                 generate_masks=false)
         # getting the corresponding causal graph elements
         # (+1 because the first causal graph is for the init state)
@@ -60,10 +60,8 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
                             pad_end::Int64 = 8, # how many frames after the probe
                             probe::Bool = false)
 
-    q = Exp0(scene = trial_row.scene)
 
     tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
-    gm = MOT.load(GMMaskParams, q.gm)
     trial_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=false)
     cgs = trial_data[:gt_causal_graphs]
@@ -73,7 +71,7 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
     end
 
     # rendering trial with tracker query
-    tracker_out = "$(out)_1"
+    tracker_out = "$(out)_trg"
     ispath(tracker_out) || mkpath(tracker_out)
     render(gm, min(t+pad+pad_end, q.k);
            gt_causal_graphs = cgs,
@@ -83,7 +81,7 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
            freeze_time = 24)
 
     # rendering trial with distractor query
-    distractor_out = "$(out)_2"
+    distractor_out = "$(out)_dis"
     ispath(distractor_out) || mkpath(distractor_out)
     render(gm, min(t+pad+pad_end, q.k);
            gt_causal_graphs = cgs,
@@ -95,15 +93,50 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
     return nothing
 end
 
-function render_probe_trials(att_tps::String; pct_control::Float64 = 0.5)
-    out = "/renders/probes"
-    ispath(out) || mkpath(out)
-    df = DataFrame(CSV.File(att_tps))
-    max_probes = Int64((1.0-pct_control) * nrow(df))
-    display(df)
-    for (i, trial_row) in enumerate(eachrow(df))
-        trial_out = "$(out)/$i"
-        render_probe_trial(trial_row, trial_out;
-                           probe = i <= max_probes)
+function render_probe_trials(df, out::String,
+                             max_t::Int64 = 120)
+    for trow in eachrow(df)
+        trial_out = joinpath(out, "$(trow.scene)_$(trow.tracker)_$(trow.epoch)")
+        render_probe_trial(trow, "$(trial_out)_probe"; probe = true)
+        render_probe_trial(trow, "$(trial_out)_noprobe"; probe = false)
     end
 end
+
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+
+        "probe_map"
+        help = "Probe map"
+        arg_type = String
+        required = true
+
+        "scene"
+        help = "Which scene to render"
+        arg_type = Int
+        required = true
+
+    end
+    return parse_args(s)
+end
+
+function main()
+    args = parse_commandline()
+    df = DataFrame(CSV.File(args["probe_map"]))
+    scenes = groupby(df, :scene)
+    scene = keys(scenes)[args["scene"]]
+    group = scenes[scene]
+    q = Exp0(scene = args["scene"])
+    gm = MOT.load(GMMaskParams, q.gm)
+
+    path = "/renders/probes"
+    try
+        isdir(path) || mkpath(path)
+    catch e
+        println("could not make dir $(path)")
+    end
+    render_probe_trials(group, path)
+end
+
+
+main();
