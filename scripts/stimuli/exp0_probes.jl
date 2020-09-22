@@ -57,7 +57,7 @@ end
 
 function render_probe_trial(trial_row::DataFrameRow, out::String;
                             pad::Int64 = 2, # how many frames from left and right of the peak
-                            pad_end::Int64 = 8, # how many frames after the probe
+                            pad_end::Int64 = 10, # how many frames after the probe
                             probe::Bool = false)
 
 
