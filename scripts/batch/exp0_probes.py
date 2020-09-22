@@ -15,7 +15,7 @@ script = 'bash {0!s}/run.sh julia -J /project/mot.so ' + \
 
 default_probe_map = "/datasets/exp0_probe_map.csv"
 
-def att_tasks(args):
+def gen_tasks(args):
     tasks = [(args.probe_map, t) for t in range(1, args.scenes+1)]
     return (tasks, [], [])
 
@@ -31,8 +31,9 @@ def main():
 
     args = parser.parse_args()
 
+    n = args.scenes
     duration = 30 # in minutes
-    tasks, kwargs, extras = args.func(args)
+    tasks, kwargs, extras = gen_tasks(args)
 
     interpreter = '#!/bin/bash'
     resources = {

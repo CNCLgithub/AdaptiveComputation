@@ -5,39 +5,6 @@ using FileIO
 using DataFrames
 using LinearAlgebra: norm
 
-"""
-    adds nearest distractor and distance
-    to "attention_trial_tps.csv" 
-"""
-function add_nearest_distractor(att_tps::String, att_tps_out::String;
-                                dataset_path::String="/datasets/exp0.jld2")
-    df = DataFrame(CSV.File(att_tps))
-
-    # adding new cols
-    df[!,:nd] .= 0
-    df[!,:dist_to_nd] .= 0.0
-    df[!,:tracker_to_origin] .= 0.0 # perhaps to control for eccentricity?
-
-    for (i, trial_row) in enumerate(eachrow(df))
-        scene = trial_row.scene # indexing from R is 0-based
-        scene_data = MOT.load_scene(scene, dataset_path, default_gm;
-                                generate_masks=false)
-        # getting the corresponding causal graph elements
-        # (+1 because the first causal graph is for the init state)
-        dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
-        pos = map(x->x.pos[1:2], dots)
-        tracker_pos = pos[trial_row.tracker]
-
-        df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
-
-        distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
-        df[i, :nd] = argmin(distances)+4
-        df[i, :dist_to_nd] = minimum(distances)
-    end
-    display(df)
-    CSV.write(att_tps_out, df)
-end
-
 
 # TODO: place padding to the left and righj of probe
 # DONE?
@@ -55,7 +22,14 @@ function place_probes!(cgs, tracker::T, t::T, pad::T) where {T<:Int}
     end
 end
 
-function render_probe_trial(trial_row::DataFrameRow, out::String;
+function compile_movie(path::String)
+    cmd = `ffmpeg -y -framerate 24 -i "$(path)/%03d.png"
+   	    -hide_banner -crf 5 -preset slow
+            -c:v libx264  -pix_fmt yuv420p "$(path).mp4"`
+    run(cmd)
+end
+
+function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
                             pad::Int64 = 2, # how many frames from left and right of the peak
                             pad_end::Int64 = 10, # how many frames after the probe
                             probe::Bool = false)
@@ -65,7 +39,6 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
     trial_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=false)
     cgs = trial_data[:gt_causal_graphs]
-    n_dots = round(Int, gm.n_trackers + gm.distractor_rate)
     if probe
         place_probes!(cgs, tracker, t, pad)
     end
@@ -90,15 +63,17 @@ function render_probe_trial(trial_row::DataFrameRow, out::String;
            highlighted = [distractor],
            freeze_time = 24)
 
+    compile_movie(tracker_out)
+    compile_movie(distractor_out)
+
     return nothing
 end
 
-function render_probe_trials(df, out::String,
-                             max_t::Int64 = 120)
+function render_probe_trials(q, gm, df, out::String)
     for trow in eachrow(df)
         trial_out = joinpath(out, "$(trow.scene)_$(trow.tracker)_$(trow.epoch)")
-        render_probe_trial(trow, "$(trial_out)_probe"; probe = true)
-        render_probe_trial(trow, "$(trial_out)_noprobe"; probe = false)
+        render_probe_trial(q, gm, trow, "$(trial_out)_probe"; probe = true)
+        render_probe_trial(q, gm, trow, "$(trial_out)_noprobe"; probe = false)
     end
 end
 
@@ -135,7 +110,7 @@ function main()
     catch e
         println("could not make dir $(path)")
     end
-    render_probe_trials(group, path)
+    render_probe_trials(q, gm, group, path)
 end
 
 

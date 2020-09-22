@@ -3,7 +3,7 @@ using MOT
 args = Dict(
     "trial" => 51,
     "chain" => 1,
-    "time" => 120,
+    "time" => 5,
     "gm" => "/project/scripts/inference/exp0/gm.json",
     "proc" => "/project/scripts/inference/exp0/proc.json",
     "restart" => true,
