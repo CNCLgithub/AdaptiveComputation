@@ -70,8 +70,7 @@ function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T
     
     # now let's do update on kinematics ancestrally
     addrs = []
-    #for i = max(1, t-3):t
-    for i = max(1, t-8):t
+    for i = max(1, t-3):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end

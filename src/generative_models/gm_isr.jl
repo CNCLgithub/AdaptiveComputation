@@ -18,9 +18,9 @@ isr_pos_chain = Gen.Unfold(isr_pos_kernel)
     prev_graph = prev_state.graph
     new_graph = @trace(isr_update(dynamics_model, prev_graph, params), :dynamics)
     new_trackers = new_graph.elements
-    pmbrfs,fm = get_masks_params(new_trackers, params)
+    pmbrfs, flow_masks = get_masks_params(new_trackers, params, flow_masks=prev_state.flow_masks)
     @trace(rfs(pmbrfs), :masks)
-    new_state = FullState(new_graph, pmbrfs, nothing)
+    new_state = FullState(new_graph, pmbrfs, flow_masks)
     return new_state
 end
 isr_mask_chain = Gen.Unfold(isr_mask_kernel)

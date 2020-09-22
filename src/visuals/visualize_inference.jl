@@ -2,11 +2,9 @@ export visualize_inference
 
 function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              render_tracker_masks=false,
-                             render_model=false)
+                             render_model=false,
+                             masks=nothing)
     extracted = extract_chain(results)
-    # tracker_positions = extracted["unweighted"][:tracker_positions]
-    # k = size(tracker_positions, 1)
-    # tracker_masks = get_masks(tracker_positions)
     causal_graphs = extracted["unweighted"][:causal_graph]
     k = size(causal_graphs, 1)
     tracker_masks = render_tracker_masks ? extracted["unweighted"][:tracker_masks] : nothing
@@ -46,11 +44,10 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
             push!(masks[i], mask(tracker_masks[i,1,j]))
         end
     end
-    # masks = get_masks(positions, gm.dot_radius,
-                      # gm.img_height, gm.img_width,
-                      # gm.area_height, gm.area_width)
     full_imgs = get_full_imgs(masks)
-    model_render(tracker_positions, full_imgs, gm, path=joinpath(path, "model_render"))
+    model_render(full_imgs, gm,
+                 # model_cgs=causal_graphs,
+                 path=joinpath(path, "model_render"))
 end
 
 

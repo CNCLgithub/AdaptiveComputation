@@ -2,13 +2,24 @@ using MOT
 using Random
 Random.seed!(2)
 
+scene = 1
 k = 120
-gm = GMMaskParams(fmasks=true,
-                  fmasks_decay_function=x->x/2,
-                  distractor_rate=0)
-motion = BrownianDynamicsModel()
+fmasks_decay_function=x->x/1.2
+fmasks_n = 5
 
-scene_data = dgp_gm(k, gm, motion)
-full_imgs = MOT.get_full_imgs(scene_data[:masks])
-MOT.model_render(full_imgs, gm)
+q = FlowMasksExp(scene=scene, k=k,
+                 fmasks_decay_function=fmasks_decay_function,
+                 fmasks_n=fmasks_n)
 
+att = MapSensitivity(samples=1,
+                     sweeps=0,
+                     smoothness=1.007,
+                   k = 3350.,
+                   x0 = 1.68E11,
+                   scale = 495.,
+                   objective=MOT.target_designation)
+
+path = "/experiments/test_flow_masks/"
+mkpath(path)
+out = joinpath(path, "results.jld2")
+run_inference(q, att, out, viz=true);

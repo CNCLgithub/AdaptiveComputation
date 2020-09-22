@@ -11,6 +11,7 @@ struct FullState
     flow_masks::Union{Nothing, FlowMasks}
 end
 
+
 @with_kw struct GMMaskParams
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
@@ -44,6 +45,10 @@ end
 
     # probes
     probe_flip::Float64 = 0.0
+end
+
+function load(::Type{GMMaskParams}, path; kwargs...)
+    GMMaskParams(;read_json(path)..., kwargs...)
 end
 
 const default_gm = GMMaskParams()
@@ -114,17 +119,18 @@ function add_flow_masks(flow_masks::FlowMasks, masks)
         new_fmasks[i,1] = masks[i][1]
         new_fmasks[i,2:end] = flow_masks.masks[i,1:end-1]
 
-        mask = zeros(img_height, img_width)
+        mask = new_fmasks[i,1]
         # going through time
-        for j=1:n_fmasks
+        for j=2:n_fmasks
             fmask = flow_masks.decay_function.(new_fmasks[i,j])
             fmask = subtract_images(fmask, mask)
             mask = add_images(fmask, mask)
         end
+        # TODO remove
+        #mask = zeros(img_height, img_width)
         new_masks[i] = (mask,)
     end
     
-    display(new_masks)
     return FlowMasks(new_fmasks, flow_masks.decay_function), new_masks
 end
 
@@ -180,10 +186,12 @@ function get_masks_params(trackers, params::GMMaskParams;
     mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
     clutter_mask = subtract_images(mask_prob, trackers_img)
     
+    #display(flow_masks)
     if !isnothing(flow_masks)
+        #println("hello!!!")
         flow_masks, mask_args = add_flow_masks(flow_masks, mask_args)
     end
-
+    
     pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
     pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
     for i = 2:length(pmbrfs)
