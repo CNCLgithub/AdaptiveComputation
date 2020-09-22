@@ -16,8 +16,7 @@ script = 'bash {0!s}/run.sh julia -J /project/mot.so ' + \
 default_probe_map = "/datasets/exp0_probe_map.csv"
 
 def att_tasks(args):
-    tasks = [(t,c,args.att_key) for c in range(1, args.chains + 1)
-             for t in range(1, args.trials+1)]
+    tasks = [(args.probe_map, t) for t in range(1, args.scenes+1)]
     return (tasks, [], [])
 
 def main():
