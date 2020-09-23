@@ -12,6 +12,7 @@ import Cairo
 # using ImageTransformations:imresize, imfilter
 using Statistics
 using StatsBase
+using FileIO
 
 function attention_map(c::Dict, bin::Int64)
     aux_state = c["aux_state"]
@@ -35,6 +36,8 @@ function load_attmap(trial_path::String; bin::Int64 = 2)
     atts = map(attention_map, chains, fill(bin, length(chains)))
     sum(atts) ./ length(chain_paths)
 end
+
+
 
 """
     z scored attention maps from an experiment results folder
@@ -143,3 +146,33 @@ function compare_experiments(a::String, b::String;
     results = vcat(results...)
     CSV.write(joinpath(out, "attention.csv"), results)
 end
+
+function add_nearest_distractor(att_tps::String, att_tps_out::String;
+                                dataset_path::String="/datasets/exp0.jld2")
+    df = DataFrame(CSV.File(att_tps))
+
+    # adding new cols
+    df[!,:nd] .= 0
+    df[!,:dist_to_nd] .= 0.0
+    df[!,:tracker_to_origin] .= 0.0 # perhaps to control for eccentricity?
+
+    for (i, trial_row) in enumerate(eachrow(df))
+        scene = trial_row.scene # indexing from R is 0-based
+        scene_data = MOT.load_scene(scene, dataset_path, default_gm;
+                                generate_masks=false)
+        # getting the corresponding causal graph elements
+        # (+1 because the first causal graph is for the init state)
+        dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
+        pos = map(x->x.pos[1:2], dots)
+        tracker_pos = pos[trial_row.tracker]
+
+        df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
+
+        distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
+        df[i, :nd] = argmin(distances)+4
+        df[i, :dist_to_nd] = minimum(distances)
+    end
+    display(df)
+    CSV.write(att_tps_out, df)
+end
+
