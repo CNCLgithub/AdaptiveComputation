@@ -159,7 +159,7 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
     for (i, trial_row) in enumerate(eachrow(df))
         scene = trial_row.scene # indexing from R is 0-based
         scene_data = MOT.load_scene(scene, dataset_path, default_gm;
-                                generate_masks=false)
+                                    generate_masks=false)
         # getting the corresponding causal graph elements
         # (+1 because the first causal graph is for the init state)
         dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements

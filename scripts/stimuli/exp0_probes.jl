@@ -47,10 +47,9 @@ function compile_movie(path::String)
 end
 
 function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
-                            pad::Int64 = 2, # how many frames from left and right of the peak
-                            pad_end::Int64 = 10, # how many frames after the probe
+                            pad::Int64 = 1, # how many frames from left and right of the peak
+                            pad_end::Int64 = 9, # how many frames after the probe
                             probe::Bool = false)
-
 
     tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
     trial_data = load_scene(q.scene, q.dataset_path, gm;
@@ -113,12 +112,12 @@ function parse_commandline()
 end
 
 function main()
-    args = parse_commandline()
+    args = parse_commandline() # TODO
     df = DataFrame(CSV.File(args["probe_map"]))
     scenes = groupby(df, :scene)
     scene = keys(scenes)[args["scene"]]
     group = scenes[scene]
-    q = Exp0(scene = args["scene"])
+    q = Exp0(scene = scene[1]) # was bug here
     gm = MOT.load(GMMaskParams, q.gm)
 
     path = "/renders/probes"
