@@ -55,6 +55,8 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
     trial_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=false)
     cgs = trial_data[:gt_causal_graphs]
+    # making sure probed tracker is on top
+    map(cg->cg.elements[tracker].pos[3] = -1.0, cgs)
     if probe
         place_probes!(cgs, tracker, t, pad)
     end
@@ -112,7 +114,7 @@ function parse_commandline()
 end
 
 function main()
-    args = parse_commandline() # TODO
+    args = parse_commandline()
     df = DataFrame(CSV.File(args["probe_map"]))
     scenes = groupby(df, :scene)
     scene = keys(scenes)[args["scene"]]
