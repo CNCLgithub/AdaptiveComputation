@@ -1,17 +1,9 @@
 using MOT
 using Random
+Random.seed!(1)
 
-Random.seed!(3)
+motion = ISRDynamics()
+k = 120
+trial_data = dgp(k, default_gm, motion; generate_masks=false)
+render(default_gm, k; gt_causal_graphs=trial_data[:gt_causal_graphs])
 
-q = Exp1(k=120, trial=1,
-         gm="scripts/inference/exp1/gm.json",
-         proc="scripts/inference/exp1/proc.json",
-         dataset_path="output/datasets/exp1_isr.jld2")
-
-
-path = "/experiments/test"
-mkpath(path)
-
-att = MOT.load(MapSensitivity, "scripts/inference/exp1/td.json")
-results = run_inference(q, att, path)
-println("final assignment: $(extract_chain(results)["unweighted"][:assignments][end,1])")

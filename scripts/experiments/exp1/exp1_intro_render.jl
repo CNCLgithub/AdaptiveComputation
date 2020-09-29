@@ -36,12 +36,22 @@ render(gm, k;
 render(gm, k;
        gt_causal_graphs=cgs,
        path=joinpath(output_dir, "intro_target_designation"),
+       freeze_time=75,
+       stimuli=true)
+
+error()
+
+# intro target designation snap
+render(gm, 1;
+       gt_causal_graphs=cgs,
+       path=joinpath(output_dir, "intro_target_designation_snap"),
        freeze_time=24,
        stimuli=true)
 
 # probes
 t = 40
-for i=t-2:t+2
+pad = 1
+for i=t-pad:t+pad
     dot = cgs[i+1].elements[1]
     cgs[i+1].elements[1] = Dot(pos = dot.pos,
                                      vel = dot.vel,
@@ -56,6 +66,11 @@ render(gm, k;
        freeze_time=24,
        stimuli=true)
 
+render(gm, 0;
+       gt_causal_graphs=cgs[t:t+1],
+       path=joinpath(output_dir, "intro_probe_snap"),
+       freeze_time=24,
+       stimuli=true)
 
 
 # intro full
