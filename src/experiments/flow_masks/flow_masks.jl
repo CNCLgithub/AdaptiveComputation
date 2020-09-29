@@ -1,38 +1,41 @@
-export Exp1ISR
+export FlowMasksExp
 
-@with_kw struct Exp1ISR <: AbstractExperiment
+@with_kw struct FlowMasksExp <: AbstractExperiment
     proc::String = "$(@__DIR__)/proc.json"
     gm::String = "$(@__DIR__)/gm.json"
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
     k::Int = 120
-    trial::Union{Nothing, Int} = nothing
+    scene::Int = 1
     dataset_path::String = "/datasets/exp1_isr.jld2"
+    fmasks_decay_function::Function = x->x
+    fmasks_n::Int = 5
 end
 
-get_name(::Exp1ISR) = "exp1_isr"
+get_name(::FlowMasksExp) = "flow_masks"
 
-function run_inference(q::Exp1ISR,
+function run_inference(q::FlowMasksExp,
                        attention::T,
                        path::String;
                        viz::Bool=true) where {T<:AbstractAttentionModel}
     
-    gm = load(GMMaskParams, q.gm)
-    motion = load(InertiaModel, q.motion)
-
-    trial_data = load_trial(q.trial, q.dataset_path, gm;
-                            generate_masks=true)
-    masks = trial_data[:masks]
-    gt_causal_graphs = trial_data[:gt_causal_graphs]
+    gm = load(GMMaskParams, q.gm;
+              fmasks=true,
+              fmasks_decay_function=q.fmasks_decay_function,
+              fmasks_n=q.fmasks_n)
     
+    scene_data = load_scene(q.scene, q.dataset_path, gm;
+                            generate_masks=true)
+    masks = scene_data[:masks]
+    gt_causal_graphs = scene_data[:gt_causal_graphs]
+    motion = scene_data[:motion]
+
     latent_map = LatentMap(Dict(
-        :tracker_positions => extract_tracker_positions,
-        :assignments => extract_assignments,
-        :causal_graph => extract_causal_graph))
+                                :causal_graph => extract_causal_graph,
+                                :tracker_masks => extract_tracker_masks,
+                                :assignments => extract_assignments
+                               ))
 
-
-    # initial observations based on init_positions
-    # model knows where trackers start off
     constraints = Gen.choicemap()
     init_dots = gt_causal_graphs[1].elements
     for i=1:gm.n_trackers
@@ -41,7 +44,7 @@ function run_inference(q::Exp1ISR,
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_dots[i].pos[2]
     end
-
+    
     # compiling further observations for the model
     args = [(t, motion, gm) for t in 1:q.k]
     observations = Vector{Gen.ChoiceMap}(undef, q.k)
@@ -50,11 +53,11 @@ function run_inference(q::Exp1ISR,
         cm[:kernel => t => :masks] = masks[t]
         observations[t] = cm
     end
-    
-
+   
+    # TODO find a cleaner way of doing this (maybe we should have separate experiments?)
+    gm_function = q.dataset_path == "/datasets/exp1.jld2" ? gm_brownian_mask : gm_isr_mask
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        #gm_isr_mask,
-                                        gm_inertia_mask,
+                                        gm_function,
                                         (0, motion, gm),
                                         constraints,
                                         args,
@@ -66,11 +69,14 @@ function run_inference(q::Exp1ISR,
     
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
+                                     #path = joinpath(path, "results.jld2"))
                                      path = path)
     
     if viz
         visualize_inference(results, gt_causal_graphs,
-                            gm, attention, dirname(path))
+                            gm, attention, dirname(path),
+                            render_tracker_masks=true,
+                            render_model=true)
     end
 
     return results

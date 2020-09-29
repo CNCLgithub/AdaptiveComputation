@@ -21,8 +21,7 @@ end
 
 include("exp0/exp0.jl")
 include("exp1/exp1.jl")
-include("exp1_isr/exp1_isr.jl")
 
-# ISR dynamics
-include("isr_dynamics/isr_dynamics.jl")
+# flow masks
+include("flow_masks/flow_masks.jl")
 

@@ -30,9 +30,11 @@ end
     helper to draw circle
 """
 function _draw_circle(position, radius, color;
-                      opacity=1.0, style=:fill)
+                      opacity=1.0, style=:fill,
+                      pattern="solid")
     if style==:stroke
         setline(5)
+        setdash(pattern)
     end
     setopacity(opacity)
     sethue(color)
@@ -74,17 +76,6 @@ function _draw_arrow(startpoint, endpoint, color;
     Luxor.arrow(p1, p2, linewidth=linewidth, arrowheadlength=arrowheadlength)
 end
 
-function _render_probes(dot_positions_t,
-                        probes_t,
-                        gm;
-                        probe_color="blue")
-    for i=1:size(dot_positions_t, 1)
-        if probes_t[i]
-            _draw_circle(dot_positions_t[i,1:2], gm.dot_radius, probe_color, style = :stroke)
-        end
-    end
-end
-
 function render_object(object::Object)
     error("not defined")
 end
@@ -93,7 +84,9 @@ function render_object(dot::Dot;
                        leading_edges=true,
                        dot_color="#e0b388",
                        leading_edge_color="#ee70f2",
-                       probe_color="#c28247")
+                       probe_color = "#e09b88")
+                       # probe_color="#c99665")
+                
     color = dot.probe ? probe_color : dot_color
     _draw_circle(dot.pos[1:2], dot.radius, color)
     if leading_edges
@@ -121,7 +114,8 @@ function render_cg(cg::CausalGraph, gm;
             _draw_text("$i", objects[i].pos[1:2] .+ [objects[i].width/2, objects[i].height/2])
         end
         if i in highlighted
-            _draw_circle(objects[i].pos[1:2], objects[i].width*0.5, highlighted_color)
+            _draw_circle(objects[i].pos[1:2], objects[i].width, highlighted_color;
+                         style=:stroke, pattern="dash")
         end
     end
 
@@ -266,13 +260,14 @@ function render(gm, k;
 
         array ? push!(imgs, image_as_matrix()) : finish()
     end
-    # final freeze time showing the answer
+    # final freeze showing the query
     for t=1:freeze_time
         _init_drawing(t+k+freeze_time, path, gm,
                       background_color = background_color)
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[k+1], gm;
                        highlighted=highlighted,
+                       highlighted_color="#d2f72a",
                        show_label=!stimuli)
         end
 
