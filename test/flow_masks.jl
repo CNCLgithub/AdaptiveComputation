@@ -11,13 +11,15 @@ q = FlowMasksExp(scene=scene, k=k,
                  fmasks_decay_function=fmasks_decay_function,
                  fmasks_n=fmasks_n)
 
-att = MapSensitivity(samples=1,
-                     sweeps=0,
+att = MapSensitivity(samples=5,
+                     sweeps=20,
                      smoothness=1.007,
-                   k = 3350.,
-                   x0 = 1.68E11,
-                   scale = 495.,
-                   objective=MOT.target_designation)
+                     k = 3350.,
+                     x0 = 1.68E11,
+                     scale = 495.,
+                     objective=MOT.target_designation,
+                     uniform_sweeps=1,
+                     ancestral_steps=5)
 
 path = "/experiments/test_flow_masks/"
 mkpath(path)
