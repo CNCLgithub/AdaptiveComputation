@@ -53,14 +53,16 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
                       jittered_obj)
         kls[i, :] = collect(ẟs)
     end
-    gs = Vector{Float64}(undef, n_latents)
     display(kls)
     display(lls)
+    gs = Vector{Float64}(undef, n_latents)
+    lse = Vector{Float64}(undef, n_latents)
     for i = 1:n_latents
-        lse = logsumexp(lls[:, i])
-        weights = exp.((lls[:, i] .- lse))
-        gs[i] = log(sum(kls[:, i] .* weights)) # + lse
+        lse[i] = logsumexp(lls[:, i])
+        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
+        # gs[i] =  logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
     end
+    gs = gs .+ (lse .- logsumexp(lse))
     println("weights: $(gs)")
     return gs
 end
@@ -74,9 +76,9 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = att.x0 * exp(-(x - att.k)^2 / (2*att.scale^2))
+    # amp = att.x0 * exp(-(x - att.k)^2 / (2*att.scale^2))
     # amp = att.x0 - att.k*(1 - exp(att.scale*x))
-    # amp = att.scale*att.k^(x - att.x0)
+    amp = att.x0*exp(att.k*x)
     println("x: $(x), amp: $(amp)")
     Int64(round(clamp(amp, 0.0, att.sweeps)))
     # sweeps = min(att.sweeps, sum(stats))
@@ -166,15 +168,20 @@ function relative_entropy(p::T, q::T) where T<:Dict
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
-    kl = 0
-    for i = 1:length(labels)
-        kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
-        kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
+    # display(p); display(q)
+    order = sortperm(probs[:, 1], rev= true)
+    # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
+    # println("new set")
+    kl = 0.0
+    for i in order
+        _kl = 0.0
+        _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
+        _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
+        kl += isnan(_kl) ? 0.0 : _kl
+        # println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
+
     end
-    if kl < 0
-        println("WATCH OUT!!!! kl $kl below 0")
-    end
-    max(kl, 0)
+    isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
 
 function index_pairs(n::Int)
