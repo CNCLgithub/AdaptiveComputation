@@ -6,7 +6,7 @@ export Exp1
     motion::String = "$(@__DIR__)/motion.json"
     attention::String = "$(@__DIR__)/attention.json"
     k::Int = 120
-    trial::Union{Nothing, Int} = nothing
+    scene::Int = 1
     dataset_path::String = "/datasets/exp1.jld2"
 end
 
@@ -20,30 +20,26 @@ function run_inference(q::Exp1,
     gm = load(GMMaskParams, q.gm)
     motion = load(BrownianDynamicsModel, q.motion)
     
-    if isnothing(q.trial)
-        init_positions, init_vels, masks, positions = dgp(q.k, gm, motion)
-    else
-        init_positions, masks, motion, positions = load_trial(q.trial, q.dataset_path, gm)
-    end
-    
-    motion = MOT.load(ISRDynamics, "motion.json") # CHANGE
+    scene_data = load_scene(q.scene, q.dataset_path, gm;
+                            generate_masks=true)
+    masks = scene_data[:masks]
+    gt_causal_graphs = scene_data[:gt_causal_graphs]
+    motion = scene_data[:motion]
+
 
     latent_map = LatentMap(Dict(
-                                :tracker_positions => extract_tracker_positions,
+                                :causal_graph => extract_causal_graph,
                                 # :tracker_masks => extract_tracker_masks,
                                 :assignments => extract_assignments
                                ))
 
-    # initial observations based on init_positions
-    # model knows where trackers start off
     constraints = Gen.choicemap()
-    for i=1:size(init_positions, 1)
+    init_dots = gt_causal_graphs[1].elements
+    for i=1:gm.n_trackers
         addr = :init_state => :trackers => i => :x
-        constraints[addr] = init_positions[i,1]
+        constraints[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
-        constraints[addr] = init_positions[i,2]
-        # addr = :init_state => :trackers => i => :z
-        # constraints[addr] = init_positions[i,3]
+        constraints[addr] = init_dots[i].pos[2]
     end
     
     # compiling further observations for the model
@@ -54,11 +50,11 @@ function run_inference(q::Exp1,
         cm[:kernel => t => :masks] = masks[t]
         observations[t] = cm
     end
-    
-
+   
+    # TODO find a cleaner way of doing this (maybe we should have separate experiments?)
+    gm_function = q.dataset_path == "/datasets/exp1.jld2" ? gm_brownian_mask : gm_isr_mask
     query = Gen_Compose.SequentialQuery(latent_map,
-                                        #gm_isr_mask,
-                                        gm_brownian_mask,
+                                        gm_function,
                                         (0, motion, gm),
                                         constraints,
                                         args,
@@ -74,7 +70,8 @@ function run_inference(q::Exp1,
                                      path = path)
     
     if viz
-        visualize_inference(results, positions, gm, attention, joinpath(path, "render"))
+        visualize_inference(results, gt_causal_graphs,
+                            gm, attention, dirname(path))
     end
 
     return results

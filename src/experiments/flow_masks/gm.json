@@ -9,6 +9,7 @@
     "area_height": 800,
 
     "dot_radius": 20.0,
-    "mask_spread_1": 0.5,
-    "mask_spread_2": 3.5
+    "dot_p": 0.7,
+    "gauss_amp": 0.2,
+    "gauss_std": 1.5
 }
