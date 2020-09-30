@@ -49,40 +49,45 @@ end
 function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
                             pad::Int64 = 1, # how many frames from left and right of the peak
                             pad_end::Int64 = 9, # how many frames after the probe
-                            probe::Bool = false)
+                            probe::Bool = false) # what do we query
 
     tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
-    trial_data = load_scene(q.scene, q.dataset_path, gm;
+    scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=false)
-    cgs = trial_data[:gt_causal_graphs]
+
+    cgs = scene_data[:gt_causal_graphs]
     # making sure probed tracker is on top
     map(cg->cg.elements[tracker].pos[3] = -1.0, cgs)
+    
     if probe
-        place_probes!(cgs, tracker, t, pad)
+        cgs_probe = deepcopy(cgs)
+        place_probes!(cgs_probe, tracker, t, pad)
     end
 
-    # rendering trial with tracker query
-    tracker_out = "$(out)_trg"
-    ispath(tracker_out) || mkpath(tracker_out)
-    render(gm, min(t+pad+pad_end, q.k);
-           gt_causal_graphs = cgs,
-           path = tracker_out,
+    t = probe ? min(t+pad+pad_end, q.k) : t # we add padding for the probe query
+
+    # rendering trial with true query
+    true_out = "$(out)_T"
+    ispath(true_out) || mkpath(true_out)
+    render(gm, t;
+           gt_causal_graphs = probe ? cgs_probe : cgs,
+           path = true_out,
            stimuli = true,
-           highlighted = probe ? [] : [tracker],
+           highlighted = probe ? Int[] : [tracker],
            freeze_time = 24)
 
-    # rendering trial with distractor query
-    distractor_out = "$(out)_dis"
-    ispath(distractor_out) || mkpath(distractor_out)
-    render(gm, min(t+pad+pad_end, q.k);
+    # rendering trial with false query
+    false_out = "$(out)_F"
+    ispath(false_out) || mkpath(false_out)
+    render(gm, t;
            gt_causal_graphs = cgs,
-           path = distractor_out,
+           path = false_out,
            stimuli = true,
-           highlighted = probe ? [] : [distractor],
+           highlighted = probe ? Int[] : [distractor],
            freeze_time = 24)
 
-    compile_movie(tracker_out)
-    compile_movie(distractor_out)
+    compile_movie(true_out)
+    compile_movie(false_out)
 
     return nothing
 end
@@ -90,8 +95,8 @@ end
 function render_probe_trials(q, gm, df, out::String)
     for trow in eachrow(df)
         trial_out = joinpath(out, "$(trow.scene)_$(trow.tracker)_$(trow.epoch)")
-        render_probe_trial(q, gm, trow, "$(trial_out)_probe"; probe = true)
-        render_probe_trial(q, gm, trow, "$(trial_out)_noprobe"; probe = false)
+        render_probe_trial(q, gm, trow, "$(trial_out)_pr"; probe = true)
+        render_probe_trial(q, gm, trow, "$(trial_out)_td"; probe = false)
     end
 end
 
@@ -121,6 +126,13 @@ function main()
     group = scenes[scene]
     q = Exp0(scene = scene[1]) # was bug here
     gm = MOT.load(GMMaskParams, q.gm)
+   
+    println(df)
+    # filtering out epochs 2 and 4
+    filter!(row->row[:epoch] in ["t_1", "t_3", "t_5"], df)
+    println(df)
+
+    error()
 
     path = "/renders/probes"
     try

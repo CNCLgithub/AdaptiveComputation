@@ -9,10 +9,11 @@ def generate_condlist(scenes, data, outpath):
     
     condlist = []
     
-    # there are probe x n_trackers = 3 x 2 = 6 conditions
-    for probe in range(2):
-        for tracker in range(3):
-            cond_trials = []
+    # there are n_trackers = 3 conditions
+    for tracker in range(3):
+        cond_trials = []
+
+        for probe in range(2):
             for (i, scene) in enumerate(scenes):
                 probe_trial = (probe + i) % 2
                 tracker_trial = (tracker + i) % 3
@@ -21,14 +22,15 @@ def generate_condlist(scenes, data, outpath):
                 scene_data = data[data.scene == scene]
                 tracker_trial = scene_data.tracker.unique()[tracker_trial]
                 
-                probe_str = "probe" if probe_trial == 1 else "noprobe"
-
-                for epoch in range(1,6):
-                    for query in ['trg', 'dis']:
-                        trial = '%d_%d_t_%d_%s_%s.mp4' % (scene, tracker_trial, epoch, probe_str, query)
+                probe_str = "pr" if probe_trial == 1 else "td"
+                
+                # only 3 epochs (instead of 5 like before)
+                for epoch in [1, 3, 5]:
+                    for tf in ['T', 'F']:
+                        trial = '%d_%d_t_%d_%s_%s.mp4' % (scene, tracker_trial, epoch, probe_str, tf)
                         cond_trials.append(trial)
-    
-            condlist.append(cond_trials)
+            
+        condlist.append(cond_trials)
 
     with open(outpath, 'w') as f:
         json.dump(condlist, f, indent = 4)
@@ -43,6 +45,12 @@ def main():
     
     # splitting into two scene lists (every other)
     scenes = data.scene.unique()
+
+    # kind of arbitrarily taking out the first two and the last two scenes
+    # so that we have 20 scenes
+    scenes = scenes[2:-2]
+    
+    # splitting into two batches
     scenes_1 = scenes[0::2]
     scenes_2 = scenes[1::2]
     
