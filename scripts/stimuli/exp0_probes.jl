@@ -68,7 +68,7 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
            gt_causal_graphs = cgs,
            path = tracker_out,
            stimuli = true,
-           highlighted = [tracker],
+           highlighted = probe ? [] : [tracker],
            freeze_time = 24)
 
     # rendering trial with distractor query
@@ -78,7 +78,7 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
            gt_causal_graphs = cgs,
            path = distractor_out,
            stimuli = true,
-           highlighted = [distractor],
+           highlighted = probe ? [] : [distractor],
            freeze_time = 24)
 
     compile_movie(tracker_out)
