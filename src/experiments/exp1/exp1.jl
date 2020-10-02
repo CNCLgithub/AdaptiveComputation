@@ -7,7 +7,11 @@ export Exp1
     attention::String = "$(@__DIR__)/attention.json"
     k::Int = 120
     scene::Int = 1
-    dataset_path::String = "/datasets/exp1.jld2"
+    dataset_path::String = "/datasets/exp1_brownian.jld2"
+    fmasks::Bool = false
+    fmasks_decay_function::Function = x->x
+    fmasks_n::Int = 5
+
 end
 
 get_name(::Exp1) = "exp1"
@@ -17,19 +21,25 @@ function run_inference(q::Exp1,
                        path::String;
                        viz::Bool=true) where {T<:AbstractAttentionModel}
     
-    gm = load(GMMaskParams, q.gm)
-    motion = load(BrownianDynamicsModel, q.motion)
+    if !q.fmasks
+        gm = load(GMMaskParams, q.gm)
+    else
+        gm = load(GMMaskParams, q.gm;
+                  fmasks=true,
+                  fmasks_decay_function=q.fmasks_decay_function,
+                  fmasks_n=q.fmasks_n)
+    end
+
+    display(gm)
+
     
     scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=true)
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
     motion = scene_data[:motion]
-
-
     latent_map = LatentMap(Dict(
                                 :causal_graph => extract_causal_graph,
-                                # :tracker_masks => extract_tracker_masks,
                                 :assignments => extract_assignments
                                ))
 
@@ -52,7 +62,14 @@ function run_inference(q::Exp1,
     end
    
     # TODO find a cleaner way of doing this (maybe we should have separate experiments?)
-    gm_function = q.dataset_path == "/datasets/exp1.jld2" ? gm_brownian_mask : gm_isr_mask
+    if occursin("brownian", q.dataset_path)
+        gm_function = gm_brownian_mask
+    elseif occursin("isr", q.dataset_path)
+        gm_function = gm_isr_mask
+    else
+        error("unrecognized dataset, not sure which generative function to load")
+    end
+
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm_function,
                                         (0, motion, gm),
@@ -66,7 +83,6 @@ function run_inference(q::Exp1,
     
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = q.k,
-                                     #path = joinpath(path, "results.jld2"))
                                      path = path)
     
     if viz

@@ -1,5 +1,7 @@
 import PhysicalConstants.CODATA2018: k_B
 using Base.Iterators: take
+using Distributions
+using LinearAlgebra
 
 export MapSensitivity
 
@@ -39,34 +41,127 @@ function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
+
+function pos_objective(traces, weights, tracker)
+
+    positions = Matrix{Float64}(undef, 2, length(traces))
+    for i=1:length(traces)
+        (init_state, states) = Gen.get_retval(traces[i])
+        trackers = states[end].graph.elements
+        positions[1:2,i] = trackers[tracker].pos[1:2]
+    end
+    
+    display(positions)
+    display(weights)
+    distribution = fit_mle(MvNormal, positions, weights)
+    return mean(distribution), cov(distribution)
+end
+
+"""
+    KL between multivariate Gaussian distributions
+    https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence#Multivariate_normal_distributions
+"""
+function kl_mv_normal(mu_1, mu_2, sigma_1, sigma_2)
+    # display(mu_1)
+    # display(mu_2)
+    # display(sigma_1)
+    # display(sigma_2)
+    if length(mu_1) != length(mu_2)
+        error("dimensions must match!")
+    end
+    
+    sigma_2_inv = inv(sigma_2)
+    dim = length(mu_1)
+    0.5*(
+         tr(sigma_2_inv * sigma_1)
+         + transpose(mu_2 - mu_1)*sigma_2_inv*(mu_2 - mu_1)
+         - dim
+         + log(det(sigma_2)/det(sigma_1))
+        )
+end
+
+function get_categorical_weights(log_weights)
+    (_, log_normalized_weights) = normalize_weights(log_weights)
+    weights = exp.(log_normalized_weights)
+end
+
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
-    seeds = Gen.sample_unweighted_traces(state, att.samples)
-    latents = att.latents(first(seeds))
-    seed_obj = map(att.objective, seeds)
-    n_latents = length(latents)
-    kls = zeros(att.samples, n_latents)
-    lls = zeros(att.samples, n_latents)
-    for i = 1:att.samples
-        jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
-                               latents)...)
-        lls[i, :] = collect(ẟh)
-        jittered_obj = map(att.objective, jittered)
-        ẟs = map(j -> relative_entropy(seed_obj[i], j),
-                      jittered_obj)
-        kls[i, :] = collect(ẟs)
+
+    # attending to position
+    if att.objective == pos_objective
+        latents = att.latents(first(state.traces))
+        
+        # gets positions of trackers in terms of multivariate normal distributions
+        weights = get_categorical_weights(state.log_weights)
+        positions = map(x->pos_objective(state.traces, weights, x), latents)
+        
+        n_latents = length(latents)
+        kls = zeros(att.samples, n_latents)
+        lls = zeros(att.samples, n_latents)
+        
+        for i = 1:att.samples
+            for j = 1:n_latents
+                # sampling one unweighted trace
+                weights = get_categorical_weights(state.log_weights)
+                trace_id = Gen.categorical(weights)
+                seed = state.traces[trace_id]
+                
+                # jittering that trace and computing new positons
+                jittered, lls[i,j] = att.jitter(seed, j)
+
+                new_traces = deepcopy(state.traces)
+                new_traces[trace_id] = jittered
+                
+                log_weights = deepcopy(state.log_weights)
+                log_weights[trace_id] = log_weights[trace_id] + lls[i,j] # TODO is this correct???????
+                new_weights = get_categorical_weights(log_weights)
+
+                new_position = pos_objective(new_traces, new_weights, j)
+
+                kls[i,j] = kl_mv_normal(positions[j][1], new_position[1],
+                                        positions[j][2], new_position[2])
+            end
+        end
+        gs = Vector{Float64}(undef, n_latents)
+        display(kls)
+        display(lls)
+        for i = 1:n_latents
+            weights = exp.(min(zeros(att.samples), lls[:, i]))
+            gs[i] = log(sum(kls[:, i] .* weights))
+        end
+        println("weights: $(gs)")
+        return gs
+        
+    # attending to TD or DC
+    else
+        seeds = Gen.sample_unweighted_traces(state, att.samples)
+        latents = att.latents(first(seeds))
+        seed_obj = map(att.objective, seeds)
+        n_latents = length(latents)
+        kls = zeros(att.samples, n_latents)
+        lls = zeros(att.samples, n_latents)
+        for i = 1:att.samples
+            jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
+                                   latents)...)
+            lls[i, :] = collect(ẟh)
+            jittered_obj = map(att.objective, jittered)
+            ẟs = map(j -> relative_entropy(seed_obj[i], j),
+                          jittered_obj)
+            kls[i, :] = collect(ẟs)
+        end
+        display(kls)
+        display(lls)
+        gs = Vector{Float64}(undef, n_latents)
+        lse = Vector{Float64}(undef, n_latents)
+        for i = 1:n_latents
+            lse[i] = logsumexp(lls[:, i])
+            gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
+            # gs[i] =  logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
+        end
+        gs = gs .+ (lse .- logsumexp(lse))
+        println("weights: $(gs)")
+        return gs
     end
-    display(kls)
-    display(lls)
-    gs = Vector{Float64}(undef, n_latents)
-    lse = Vector{Float64}(undef, n_latents)
-    for i = 1:n_latents
-        lse[i] = logsumexp(lls[:, i])
-        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
-        # gs[i] =  logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
-    end
-    gs = gs .+ (lse .- logsumexp(lse))
-    println("weights: $(gs)")
-    return gs
 end
 
 function get_weights(att::MapSensitivity, stats)

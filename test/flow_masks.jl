@@ -3,23 +3,24 @@ using Random
 Random.seed!(2)
 
 scene = 1
-k = 120
+k = 60
 fmasks_decay_function=x->x/1.2
 fmasks_n = 5
 
-q = FlowMasksExp(scene=scene, k=k,
-                 fmasks_decay_function=fmasks_decay_function,
-                 fmasks_n=fmasks_n)
+q = Exp1(scene=scene, k=k,
+         fmasks=true,
+         fmasks_decay_function=fmasks_decay_function,
+         fmasks_n=fmasks_n)
 
-att = MapSensitivity(samples=5,
+att = MapSensitivity(samples=3,
+
                      sweeps=20,
                      smoothness=1.007,
                      k = 3350.,
                      x0 = 1.68E11,
                      scale = 495.,
-                     objective=MOT.target_designation,
-                     uniform_sweeps=1,
-                     ancestral_steps=5)
+                     objective=MOT.target_designation)
+
 
 path = "/experiments/test_flow_masks/"
 mkpath(path)

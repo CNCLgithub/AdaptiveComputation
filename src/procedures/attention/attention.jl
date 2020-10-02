@@ -24,16 +24,6 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
-    # CHANGE (added rejuvenation for all before applying attention)
-    for i = 1:attention.uniform_sweeps
-        for j = 1:gm.n_trackers
-            weights = zeros(gm.n_trackers)
-            weights[j] = 1.0
-            acceptance, attended_trackers = perturb_state!(pf_state, weights;
-                                                           ancestral_steps=attention.ancestral_steps)
-            # rtrace.attended_trackers += attended_trackers
-        end
-    end
 
     rtrace.stats = get_stats(attention, pf_state)
     weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) :

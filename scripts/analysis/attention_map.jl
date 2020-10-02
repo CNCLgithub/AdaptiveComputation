@@ -148,7 +148,9 @@ function compare_experiments(a::String, b::String;
 end
 
 function add_nearest_distractor(att_tps::String, att_tps_out::String;
-                                dataset_path::String="/datasets/exp0.jld2")
+                                dataset_path::String="/datasets/exp0.jld2",
+                                min_distance::Float64=0.0)
+
     df = DataFrame(CSV.File(att_tps))
 
     # adding new cols
@@ -159,7 +161,7 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
     for (i, trial_row) in enumerate(eachrow(df))
         scene = trial_row.scene # indexing from R is 0-based
         scene_data = MOT.load_scene(scene, dataset_path, default_gm;
-                                generate_masks=false)
+                                    generate_masks=false)
         # getting the corresponding causal graph elements
         # (+1 because the first causal graph is for the init state)
         dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
@@ -169,6 +171,8 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
         df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
 
         distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
+        distances = map(x-> x < min_distance ? Inf : x, distances)
+
         df[i, :nd] = argmin(distances)+4
         df[i, :dist_to_nd] = minimum(distances)
     end
