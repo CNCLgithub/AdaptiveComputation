@@ -20,14 +20,11 @@ end
 
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
 
-
-
     t, motion, gm = get_args(first(pf_state.traces))
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
-    # n_rejuvs = 0
-    n_rejuvs = 3
+    n_rejuvs = 0
     for i = 1:n_rejuvs
         for j = 1:gm.n_trackers
             weights = zeros(gm.n_trackers)

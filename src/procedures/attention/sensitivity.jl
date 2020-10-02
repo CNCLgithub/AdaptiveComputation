@@ -152,13 +152,11 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         gs = Vector{Float64}(undef, n_latents)
         lse = Vector{Float64}(undef, n_latents)
         for i = 1:n_latents
-            acceptance_probs = clamp.(exp.(lls[:,i]), 0.0, 1.0)
-            gs[i] = log(sum(acceptance_probs .* kls[:,i])) - log(att.samples)
-            # lse[i] = logsumexp(lls[:, i])
-            # gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
+            lse[i] = logsumexp(lls[:, i])
+            gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
             # gs[i] =  logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
         end
-        # gs = gs .+ (lse .- logsumexp(lse))
+        gs = gs .+ (lse .- logsumexp(lse))
         println("weights: $(gs)")
         return gs
     end
