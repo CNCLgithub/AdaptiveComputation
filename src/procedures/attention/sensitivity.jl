@@ -33,6 +33,8 @@ end
     scale::Float64 = 100.0
     k::Float64 = 0.5
     x0::Float64 = 5.0
+    ancestral_steps::Int = 3
+    uniform_sweeps::Int = 0
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)

@@ -11,6 +11,7 @@ export Exp1
     fmasks::Bool = false
     fmasks_decay_function::Function = x->x
     fmasks_n::Int = 5
+
 end
 
 get_name(::Exp1) = "exp1"
@@ -31,14 +32,12 @@ function run_inference(q::Exp1,
 
     display(gm)
 
-    # motion = load(BrownianDynamicsModel, q.motion)
     
     scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=true)
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
     motion = scene_data[:motion]
-
     latent_map = LatentMap(Dict(
                                 :causal_graph => extract_causal_graph,
                                 :assignments => extract_assignments

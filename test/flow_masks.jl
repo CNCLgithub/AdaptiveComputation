@@ -13,12 +13,14 @@ q = Exp1(scene=scene, k=k,
          fmasks_n=fmasks_n)
 
 att = MapSensitivity(samples=3,
+
                      sweeps=20,
                      smoothness=1.007,
                      k = 3350.,
                      x0 = 1.68E11,
                      scale = 495.,
                      objective=MOT.target_designation)
+
 
 path = "/experiments/test_flow_masks/"
 mkpath(path)
