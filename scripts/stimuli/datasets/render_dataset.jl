@@ -1,21 +1,24 @@
 using MOT
 using JLD2
 
-
 function render_dataset(dataset_path, render_path)
-    jldopen(dataset_path, "r") do file
-        n_trials = file["n_trials"]
-        for i=1:n_trials
-            positions = file["$i"]["positions"]
-            gm = file["$i"]["gm"]
-            path = joinpath(render_path, "$i")
-            MOT.render(gm, dot_positions=positions, path=path,
-                   stimuli=true, freeze_time=10, highlighted=collect(1:4))
-        end
+    ispath(render_path) || mkpath(render_path)
+
+    file = jldopen(dataset_path, "r")
+    n_scenes = file["n_scenes"]
+    close(file)
+    
+    for i=1:n_scenes
+        scene_data = MOT.load_scene(i, dataset_path, default_gm;
+                                    generate_masks=false)
+        path = joinpath(render_path, "$i")
+        gt_cgs = scene_data[:gt_causal_graphs]
+        k = length(gt_cgs) - 1
+        MOT.render(default_gm, k;
+                   gt_causal_graphs=gt_cgs,
+                   freeze_time=24,
+                   path=path,
+                   stimuli=true,
+                   highlighted=collect(1:default_gm.n_trackers))
     end
 end
-
-dataset_path = "output/datasets/exp1_isr.jld2"
-render_path = "output/renders/exp1_isr/"
-
-render_dataset(dataset_path, render_path)
