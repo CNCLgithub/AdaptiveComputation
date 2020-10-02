@@ -127,12 +127,8 @@ function main()
     q = Exp0(scene = scene[1]) # was bug here
     gm = MOT.load(GMMaskParams, q.gm)
    
-    println(df)
     # filtering out epochs 2 and 4
     filter!(row->row[:epoch] in ["t_1", "t_3", "t_5"], df)
-    println(df)
-
-    error()
 
     path = "/renders/probes"
     try

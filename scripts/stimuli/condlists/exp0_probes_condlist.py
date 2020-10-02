@@ -22,12 +22,12 @@ def generate_condlist(scenes, data, outpath):
                 scene_data = data[data.scene == scene]
                 tracker_trial = scene_data.tracker.unique()[tracker_trial]
                 
-                probe_str = "pr" if probe_trial == 1 else "td"
+                query = "pr" if probe_trial == 1 else "td"
                 
                 # only 3 epochs (instead of 5 like before)
                 for epoch in [1, 3, 5]:
                     for tf in ['T', 'F']:
-                        trial = '%d_%d_t_%d_%s_%s.mp4' % (scene, tracker_trial, epoch, probe_str, tf)
+                        trial = '%d_%d_t_%d_%s_%s.mp4' % (scene, tracker_trial, epoch, query, tf)
                         cond_trials.append(trial)
             
         condlist.append(cond_trials)
