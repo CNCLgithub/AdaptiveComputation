@@ -46,14 +46,14 @@ function compile_movie(path::String)
     run(cmd)
 end
 
-function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
+function render_probe_trial(scene_data, trial_row::DataFrameRow, out::String;
                             pad::Int64 = 1, # how many frames from left and right of the peak
                             pad_end::Int64 = 9, # how many frames after the probe
                             probe::Bool = false) # what do we query
 
     tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
-    scene_data = load_scene(q.scene, q.dataset_path, gm;
-                            generate_masks=false)
+    # scene_data = load_scene(q.scene, q.dataset_path, gm;
+                            # generate_masks=false)
 
     cgs = scene_data[:gt_causal_graphs]
     # making sure probed tracker is on top
@@ -63,13 +63,14 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
         cgs_probe = deepcopy(cgs)
         place_probes!(cgs_probe, tracker, t, pad)
     end
-
-    t = probe ? min(t+pad+pad_end, q.k) : t # we add padding for the probe query
+    
+    k = length(cgs) - 1
+    t = probe ? min(t+pad+pad_end, k) : t # we add padding for the probe query
 
     # rendering trial with true query
     true_out = "$(out)_T"
     ispath(true_out) || mkpath(true_out)
-    render(gm, t;
+    render(default_gm, t;
            gt_causal_graphs = probe ? cgs_probe : cgs,
            path = true_out,
            stimuli = true,
@@ -79,7 +80,7 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
     # rendering trial with false query
     false_out = "$(out)_F"
     ispath(false_out) || mkpath(false_out)
-    render(gm, t;
+    render(default_gm, t;
            gt_causal_graphs = cgs,
            path = false_out,
            stimuli = true,
@@ -92,11 +93,13 @@ function render_probe_trial(q, gm, trial_row::DataFrameRow, out::String;
     return nothing
 end
 
-function render_probe_trials(q, gm, df, out::String)
+function render_probe_trials(scene_data, df, out::String)
+    println(df)
     for trow in eachrow(df)
         trial_out = joinpath(out, "$(trow.scene)_$(trow.tracker)_$(trow.epoch)")
-        render_probe_trial(q, gm, trow, "$(trial_out)_pr"; probe = true)
-        render_probe_trial(q, gm, trow, "$(trial_out)_td"; probe = false)
+        println(trial_out)
+        render_probe_trial(scene_data, trow, "$(trial_out)_pr"; probe = true)
+        render_probe_trial(scene_data, trow, "$(trial_out)_td"; probe = false)
     end
 end
 
@@ -120,23 +123,29 @@ end
 
 function main()
     args = parse_commandline()
+    # args = Dict("scene" => 2,
+                # "probe_map" => "output/attention_analysis/exp0_probe_map_nd.csv")
+
     df = DataFrame(CSV.File(args["probe_map"]))
-    scenes = groupby(df, :scene)
-    scene = keys(scenes)[args["scene"]]
-    group = scenes[scene]
-    q = Exp0(scene = scene[1]) # was bug here
-    gm = MOT.load(GMMaskParams, q.gm)
-   
     # filtering out epochs 2 and 4
     filter!(row->row[:epoch] in ["t_1", "t_3", "t_5"], df)
 
+    scenes = groupby(df, :scene)
+    scene = keys(scenes)[args["scene"]]
+    group = scenes[scene]
+
+    dataset_path = joinpath("/datasets", "exp0.jld2")
+    scene_data = MOT.load_scene(scene[1], dataset_path, default_gm;
+                                generate_masks=false)
+    # gm = MOT.load(GMMaskParams, q.gm)
+   
     path = "/renders/probes"
     try
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
     end
-    render_probe_trials(q, gm, group, path)
+    render_probe_trials(scene_data, group, path)
 end
 
 
