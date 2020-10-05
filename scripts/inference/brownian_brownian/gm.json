@@ -14,5 +14,8 @@
     "gauss_amp": 0.75,
     "gauss_std": 0.55,
 
+    "fmasks" : false,
+    "fmasks_n" : 5,
+
     "exp0": true
 }

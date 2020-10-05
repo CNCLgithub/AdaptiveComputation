@@ -40,7 +40,7 @@ end
 
     # flow masks
     fmasks::Bool = false
-    fmasks_decay_function::Union{Nothing, Function} = nothing
+    fmasks_decay_function::Function = (x, t) -> x * exp(t)
     fmasks_n = 5
 
     # probes

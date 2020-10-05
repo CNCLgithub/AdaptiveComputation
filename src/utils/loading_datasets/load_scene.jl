@@ -3,7 +3,7 @@ export load_scene
 """
 loads gt causal graphs and motion
 """
-function load_scene(scene, dataset_path, gm;
+function load_scene(scene, dataset_path, graphics;
                     generate_masks=true,
                     from_mask_rcnn=false)
     
@@ -14,16 +14,17 @@ function load_scene(scene, dataset_path, gm;
     close(file)
 
     if generate_masks
-        masks = get_masks(gt_causal_graphs[2:end], gm)
+        masks = get_masks(gt_causal_graphs[2:end], graphics)
         if from_mask_rcnn
-            masks[1:k-1] = get_masks_from_mask_rcnn(gt_causal_graphs[2:end], gm)[1:k-1]
+            masks[1:k-1] = get_masks_from_mask_rcnn(gt_causal_graphs[2:end],
+                                                    graphics)[1:k-1]
         end
     else
         masks = nothing
     end
     
     
-    if gm.fmasks
+    if graphics.fmasks
         fmasks = Vector{Vector{BitArray{2}}}(undef, length(masks))
 
         # for each mask, generate a new mask that takes history into account
@@ -33,13 +34,13 @@ function load_scene(scene, dataset_path, gm;
 
             # going through individual trackers
             for i=1:length(masks[t])
-                new_mask = zeros(gm.img_height, gm.img_width)
+                new_mask = zeros(graphics.img_height, graphics.img_width)
 
                 # going through t, t-1, t-2, etc.
-                for j=Iterators.reverse(max(1,t-gm.fmasks_n+1):t)
+                for j=Iterators.reverse(max(1,t-graphics.fmasks_n+1):t)
                     fmask = masks[t][i]
                     for _=1:(t-j)
-                        fmask = gm.fmasks_decay_function.(fmask)
+                        fmask = graphics.fmasks_decay_function.(fmask)
                     end
                     fmask = subtract_images(fmask, new_mask)
                     new_mask = add_images(fmask, new_mask)

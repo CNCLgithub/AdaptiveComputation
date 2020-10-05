@@ -9,23 +9,26 @@ args = Dict(
     "restart" => true,
     "viz" => true
 )
-exp = Exp0(;scene = args["trial"], k = args["time"],
-            gm = args["gm"], proc = args["proc"])
 
-
-function test_exp0(args, exp, att_mode)
+function test_exp0(args, att_mode)
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, "/project/scripts/inference/exp0/td.json")
     elseif att_mode == "data_correspondence"
         att = MOT.load(MapSensitivity, "/project/scripts/inference/exp0/dc.json";
                     objective = MOT.data_correspondence)
-    # else
-    #     att = MOT.load(UniformAttention, ,
-    #                 exp.scene, exp.k)
     end
 
-    result_dir = "/project/test/exp0/$(get_name(exp))_$(att_mode)"
-    path = joinpath(result_dir, "$(exp.scene)")
+
+    query = query_from_params(args["gm"], args["dataset"],
+                          args["trial"], args["time"])
+
+    proc = load(PopParticleFilter, args["proc"];
+                rejuvenation = rejuvenate_attention!,
+                rejuv_args = (att,))
+
+    result_dir = "/project/test/exp0/brownian_$(att_mode)"
+    scene = args["trial"]
+    path = joinpath(result_dir, "$(scene)")
     try
         isdir(result_dir) || mkpath(result_dir)
         isdir(path) || mkpath(path)
@@ -39,7 +42,7 @@ function test_exp0(args, exp, att_mode)
         return
     end
     println("running chain $c")
-    run_inference(exp, att, out; viz = args["viz"])
+    run_inference(query, proc, out; viz = args["viz"])
 end
 
 

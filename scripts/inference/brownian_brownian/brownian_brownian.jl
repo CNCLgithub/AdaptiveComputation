@@ -5,6 +5,12 @@ function parse_commandline()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
+        "--dataset"
+        help = "Dataset to use"
+        arg_type = String,
+        default = "/datasets/exp0.jld2"
+
+
         "--gm"
         help = "Generative Model params"
         arg_type = String
@@ -76,10 +82,9 @@ function parse_commandline()
     return parse_args(s)
 end
 
+
 function main()
     args = parse_commandline()
-    exp = Exp0(;scene = args["trial"], k = args["time"],
-               gm = args["gm"], proc = args["proc"])
     att_mode = args["%COMMAND%"]
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, args[att_mode]["params"])
@@ -91,9 +96,22 @@ function main()
                    exp.scene, exp.k)
     end
 
-    path = "/experiments/$(get_name(exp))_$(att_mode)/$(exp.scene)"
+    query = query_from_params(args["gm"], args["dataset"],
+                              args["trial"], args["time"])
+
+    proc = load(PopParticleFilter, args["proc"];
+                rejuvenation = rejuvenate_attention!,
+                rejuv_args = (att,))
+
+
+    dataset_name = first(splitext(basename(args["dataset"])))
+    experiment_name = "$(dataset_name)_brownian"
+
+    base_path = "/experiments/$(experiment_name)_$(att_mode)"
+    scene = args["trial"]
+    path = joinpath(base_path, "$(scene)")
     try 
-        isdir("/experiments/$(get_name(exp))_$(att_mode)") || mkpath("/experiments/$(get_name(exp))_$(att_mode)")
+        isdir(base_path) || mkpath(base_path)
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
@@ -105,7 +123,7 @@ function main()
         return
     end
     println("running chain $c")
-    run_inference(exp, att, out; viz = args["viz"])
+    run_inference(query, proc, out; viz = args["viz"])
     return nothing
 end
 
