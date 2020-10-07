@@ -2,7 +2,7 @@ export ISRDynamics
 
 @with_kw struct ISRDynamics <: AbstractDynamicsModel
     repulsion::Bool = true
-    dot_repulsion::Float64 = 100.0
+    dot_repulsion::Float64 = 80.0
     wall_repulsion::Float64 = 50.0
     distance::Float64 = 60.0
     vel::Float64 = 10.0 # base velocity

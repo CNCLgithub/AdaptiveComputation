@@ -1,16 +1,10 @@
 using LinearAlgebra
 
-struct FlowMasks
-    masks::Array{Matrix{Float64}}
-    decay_function::Function
-end
-
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
     rfs::RFSElements{Array}
     flow_masks::Union{Nothing, FlowMasks}
 end
-
 
 @with_kw struct GMMaskParams
     n_trackers::Int = 4
@@ -40,7 +34,7 @@ end
 
     # flow masks
     fmasks::Bool = false
-    fmasks_decay_function::Function = (x, t) -> x * exp(t)
+    fmasks_decay_function::Function = (x, t) -> x .* exp(-t)
     fmasks_n = 5
 
     # probes
@@ -106,32 +100,6 @@ function find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
     d = copy(distances[i,:])
     d[i] = Inf
     return argmin(d)
-end
-
-function add_flow_masks(flow_masks::FlowMasks, masks)
-    img_height, img_width = size(first(first(masks)))
-    n_trackers, n_fmasks = size(flow_masks.masks)
-    new_masks = Vector{Tuple{Array{Float64}}}(undef, length(masks))
-    new_fmasks = Array{Matrix{Float64}}(undef, n_trackers, n_fmasks)
-
-    # going through trackers
-    for i=1:n_trackers
-        new_fmasks[i,1] = masks[i][1]
-        new_fmasks[i,2:end] = flow_masks.masks[i,1:end-1]
-
-        mask = new_fmasks[i,1]
-        # going through time
-        for j=2:n_fmasks
-            fmask = flow_masks.decay_function.(new_fmasks[i,j])
-            fmask = subtract_images(fmask, mask)
-            mask = add_images(fmask, mask)
-        end
-        # TODO remove
-        #mask = zeros(img_height, img_width)
-        new_masks[i] = (mask,)
-    end
-    
-    return FlowMasks(new_fmasks, flow_masks.decay_function), new_masks
 end
 
 """
@@ -301,8 +269,8 @@ end
 
 br_mask_chain = Gen.Unfold(br_mask_kernel)
 
-#@gen static function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
-@gen function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
+@gen static function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
+#@gen function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(br_mask_chain(T, init_state, motion, params), :kernel)

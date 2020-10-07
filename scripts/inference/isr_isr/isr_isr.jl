@@ -28,8 +28,8 @@ function parse_commandline()
         help = "Whether to render masks"
         action = :store_true
 
-        "trial"
-        help = "Which trial to run"
+        "scene"
+        help = "Which scene to run"
         arg_type = Int
         required = true
 
@@ -46,8 +46,8 @@ function parse_commandline()
         help = "Using data correspondence"
         action = :command
 
-        "trial_avg", "A"
-        help = "Using trial avg"
+        "scene_avg", "A"
+        help = "Using scene avg"
         action = :command
 
     end
@@ -65,7 +65,7 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/dc.json"
     end
-    @add_arg_table! s["trial_avg"] begin
+    @add_arg_table! s["scene_avg"] begin
         "model_path"
         help = "path containing compute allocations"
         arg_type = String
@@ -76,11 +76,23 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "isr_inertia"
+experiment_name = "isr_isr"
 
 function main()
-    args = parse_commandline()
-    att_mode = args["%COMMAND%"]
+    # args = parse_commandline()
+    # att_mode = args["%COMMAND%"]
+
+    args = Dict("gm" => "scripts/inference/isr_isr/gm.json",
+                "dataset" => "output/datasets/exp1_isr.jld2",
+                "scene" => 1,
+                "time" => 120,
+                "proc" => "scripts/inference/brownian_brownian/proc.json",
+                "chain" => 1,
+                "target_designation" => Dict("params" => "scripts/inference/isr_isr/td.json"),
+                "viz" => true,
+                "restart" => true)
+
+    att_mode = "target_designation"
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, args[att_mode]["params"])
     elseif att_mode == "data_correspondence"
@@ -91,20 +103,20 @@ function main()
                    exp.scene, exp.k)
     end
 
+    motion = ISRDynamics()
 
-    motion = ...
+    query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
+                                                           args["scene"], args["time"],
+                                                           # gm = gm_inertia_mask,
+                                                           gm = gm_isr_mask,
+                                                           motion = motion)
 
-    query = query_from_params(args["gm"], args["dataset"],
-                              args["trial"], args["time"],
-                              gm = gm_inertia_mask,
-                              motion = motion)
-
-    proc = load(PopParticleFilter, args["proc"];
-                rejuvenation = rejuvenate_attention!,
-                rejuv_args = (att,))
+    proc = MOT.load(PopParticleFilter, args["proc"];
+                    rejuvenation = rejuvenate_attention!,
+                    rejuv_args = (att,))
 
     base_path = "/experiments/$(experiment_name)_$(att_mode)"
-    scene = args["trial"]
+    scene = args["scene"]
     path = joinpath(base_path, "$(scene)")
     try
         isdir(base_path) || mkpath(base_path)
@@ -118,8 +130,14 @@ function main()
         println("chain $c complete")
         return
     end
+
     println("running chain $c")
-    run_inference(query, proc, out; viz = args["viz"])
+    results = run_inference(query, proc, out)
+
+    if (args["viz"])
+        visualize_inference(results, gt_causal_graphs, gm_params, att, path)
+    end
+
     return nothing
 end
 
