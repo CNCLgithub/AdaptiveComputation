@@ -85,8 +85,9 @@ function main()
     args = Dict("gm" => "scripts/inference/isr_isr/gm.json",
                 "dataset" => "output/datasets/exp1_isr.jld2",
                 "scene" => 1,
-                "time" => 120,
+                "time" => 40,
                 "proc" => "scripts/inference/isr_isr/proc.json",
+                "motion" => "scripts/inference/isr_isr/motion.json",
                 "chain" => 1,
                 "target_designation" => Dict("params" => "scripts/inference/isr_isr/td.json"),
                 "viz" => true,
@@ -103,7 +104,7 @@ function main()
                    exp.scene, exp.k)
     end
 
-    motion = ISRDynamics()
+    motion = MOT.load(ISRDynamics, args["motion"])
 
     query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
                                                            args["scene"], args["time"],
