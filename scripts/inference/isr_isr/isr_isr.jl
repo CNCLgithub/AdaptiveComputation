@@ -5,11 +5,6 @@ function parse_commandline()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
-        "--dataset"
-        help = "Dataset to use"
-        arg_type = String,
-        default = "/datasets/exp0.jld2"
-
         "--gm"
         help = "Generative Model params"
         arg_type = String
@@ -81,22 +76,24 @@ function parse_commandline()
     return parse_args(s)
 end
 
+experiment_name = "isr_isr"
 
 function main()
     # args = parse_commandline()
     # att_mode = args["%COMMAND%"]
-    
-    args = Dict("gm" => "scripts/inference/brownian_brownian/gm.json",
-                "dataset" => "output/datasets/exp0.jld2",
-                "scene" => 124,
-                "time" => 5,
-                "proc" => "scripts/inference/brownian_brownian/proc.json",
-                "chain" => 1,
-                "target_designation" => Dict("params" => "scripts/inference/brownian_brownian/td.json"),
-                "restart" => true,
-                "viz" => true)
-    att_mode = "target_designation"
 
+    args = Dict("gm" => "scripts/inference/isr_isr/gm.json",
+                "dataset" => "output/datasets/exp1_isr.jld2",
+                "scene" => 1,
+                "time" => 40,
+                "proc" => "scripts/inference/isr_isr/proc.json",
+                "motion" => "scripts/inference/isr_isr/motion.json",
+                "chain" => 1,
+                "target_designation" => Dict("params" => "scripts/inference/isr_isr/td.json"),
+                "viz" => true,
+                "restart" => true)
+
+    att_mode = "target_designation"
     if att_mode == "target_designation"
         att = MOT.load(MapSensitivity, args[att_mode]["params"])
     elseif att_mode == "data_correspondence"
@@ -107,20 +104,21 @@ function main()
                    exp.scene, exp.k)
     end
 
+    motion = MOT.load(ISRDynamics, args["motion"])
+
     query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
-                                                           args["scene"], args["time"])
+                                                           args["scene"], args["time"],
+                                                           gm = gm_isr_mask,
+                                                           motion = motion)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))
 
-    dataset_name = first(splitext(basename(args["dataset"])))
-    experiment_name = "$(dataset_name)_brownian"
-
     base_path = "/experiments/$(experiment_name)_$(att_mode)"
     scene = args["scene"]
     path = joinpath(base_path, "$(scene)")
-    try 
+    try
         isdir(base_path) || mkpath(base_path)
         isdir(path) || mkpath(path)
     catch e
@@ -132,11 +130,13 @@ function main()
         println("chain $c complete")
         return
     end
+
     println("running chain $c")
     results = run_inference(query, proc, out)
 
     if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params, att, path)
+        visualize_inference(results, gt_causal_graphs, gm_params, att, path;
+                            render_tracker_masks=true)
     end
 
     return nothing

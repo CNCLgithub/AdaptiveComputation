@@ -1,30 +1,25 @@
 function run_inference(query::SequentialQuery,
                        proc::Gen_Compose.AbstractParticleFilter,
-                       path::String;
-                       viz::Bool = False) where
-    {T<:AbstractAttentionModel}
+                       path::String)
 
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = length(query),
                                      path = path)
-    if viz
-        visualize_inference(results, query, dirname(path))
-    end
-    return results
 end
 
 function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
-                           gm = gm_brownian_mask, motion = nothing) where
-    {T<:String, K<:Int}
+                           gm = gm_brownian_mask, motion = nothing) where {T<:String, K<:Int}
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
+               :tracker_masks => extract_tracker_masks,
                :assignments => extract_assignments,
                :causal_graph => extract_causal_graph)
+
     latent_map = LatentMap(_lm)
 
     gm_params = load(GMMaskParams, gm_params_path)
 
-    scene_data = load_scene(scene, dataset_path, gm_params;
+    scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true)
 
     motion = isnothing(motion) ? scene_data[:motion] : motion
@@ -35,7 +30,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
     # model knows where trackers start off
     constraints = Gen.choicemap()
     init_dots = gt_causal_graphs[1].elements
-    for i=1:gm.n_trackers
+
+    for i=1:gm_params.n_trackers
         addr = :init_state => :trackers => i => :x
         constraints[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
@@ -57,6 +53,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
                                         constraints,
                                         args,
                                         observations)
+
+    return query, gt_causal_graphs, gm_params
 end
 
 export run_inference, query_from_params

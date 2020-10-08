@@ -35,16 +35,13 @@ function load_scene(scene, dataset_path, graphics;
             # going through individual trackers
             for i=1:length(masks[t])
                 new_mask = zeros(graphics.img_height, graphics.img_width)
-
-                # going through t, t-1, t-2, etc.
-                for j=Iterators.reverse(max(1,t-graphics.fmasks_n+1):t)
+                for j=max(1,t-graphics.fmasks_n+1):t
                     fmask = masks[t][i]
-                    for _=1:(t-j)
-                        fmask = graphics.fmasks_decay_function.(fmask)
-                    end
+                    fmask = graphics.fmasks_decay_function(fmask, t-j)
                     fmask = subtract_images(fmask, new_mask)
                     new_mask = add_images(fmask, new_mask)
                 end
+
                 fmasks_t[i] = mask(new_mask)    
             end
             # sampling a mask
@@ -52,7 +49,6 @@ function load_scene(scene, dataset_path, graphics;
         end
         masks = fmasks
     end
-
     
     println("scene data loaded")
 

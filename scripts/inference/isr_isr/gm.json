@@ -11,11 +11,11 @@
     "dot_radius": 20.0,
 
     "dot_p": 8.0,
-    "gauss_std": 0.5,
-    "gauss_amp": 0.8,
+    "gauss_amp": 0.75,
+    "gauss_std": 0.55,
 
     "fmasks" : true,
-    "fmasks_n" : 8,
+    "fmasks_n" : 10,
 
     "exp0": false
 }

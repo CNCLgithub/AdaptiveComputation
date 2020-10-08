@@ -64,7 +64,7 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
         for j=1:w
             (sqrt((i - center[1])^2 + (j - center[2])^2) > threshold) && continue
             mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
-                                                  gauss_amp,scaled_sd, scaled_sd)
+                                                  gauss_amp, scaled_sd, scaled_sd)
         end
     end
     mask
