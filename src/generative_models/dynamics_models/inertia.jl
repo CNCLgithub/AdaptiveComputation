@@ -1,8 +1,10 @@
 
 @with_kw struct InertiaModel <: AbstractDynamicsModel
-    sigma_inertia::Float64 = 3.5
-    acc_w::Float64 = 3.5
-    v_w::Float64 = 0.05
+    vel::Float64 = 10 # base vel
+    low_w::Float64 = 0.05
+    high_w::Float64 = 3.5
+    a::Float64 = 0.1
+    b::Float64 = 0.3
 end
 
 function load(::Type{InertiaModel}, path::String)
@@ -14,19 +16,25 @@ end
     _vx, _vy = dot.vel
     _ax, _ay = dot.acc
 
-    a = @trace(beta(0.9, 0.9), :acc)
-    # ax = @trace(uniform(0.1, 0.9), :ax)
-    # ay = @trace(uniform(0.1, 0.9), :ay)
+    acc = @trace(beta(model.a, model.b), :acc)
 
-    vel_sd = min(model.v_w / (a+1E-3), model.sigma_inertia)
-    vx = @trace(normal(a * _vx, vel_sd), :vx)
-    vy = @trace(normal(a * _vy, vel_sd), :vy)
+    vx = acc*_vx + (1-acc)*@trace(normal(0.0, model.high_w), :vx)
+    vy = acc*_vy + (1-acc)*@trace(normal(0.0, model.high_w), :vy)
+    
+    vel = [vx, vy] .+ 1e-10
+    vel *= model.vel/norm(vel)
 
-    x = _x + vx
-    y = _y + vy
+    vel = @trace(broadcasted_normal(vel, model.low_w), :v)
+
+    # vel_sd = min(model.low_w/acc, model.high_w)
+    # vx = @trace(normal(acc * _vx, vel_sd), :vx)
+    # vy = @trace(normal(acc * _vy, vel_sd), :vy)
+
+    x = _x + vel[1]
+    y = _y + vel[2]
     z = @trace(uniform(0, 1), :z)
 
-    d = Dot(pos = [x,y,z], vel = [vx,vy], acc = [a, a])
+    d = Dot(pos = [x,y,z], vel = vel, acc = [acc, acc])
     return d
 end
 

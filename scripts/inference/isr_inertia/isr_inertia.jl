@@ -15,6 +15,16 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/proc.json"
 
+        "--motion"
+        help = "Motion parameters for Inertia model"
+        arg_type = String
+        default = "$(@__DIR__)/motion.json"
+
+        "--dataset"
+        help = "Motion parameters for Inertia model"
+        arg_type = String
+        default = joinpath("datasets", "exp1_isr.jld2")
+
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
@@ -76,19 +86,20 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "isr_isr"
+experiment_name = "isr_inertia"
 
 function main()
     # args = parse_commandline()
     # att_mode = args["%COMMAND%"]
 
-    args = Dict("gm" => "scripts/inference/isr_isr/gm.json",
+    args = Dict("gm" => "scripts/inference/isr_inertia/gm.json",
                 "dataset" => "output/datasets/exp1_isr.jld2",
                 "scene" => 1,
                 "time" => 120,
-                "proc" => "scripts/inference/isr_isr/proc.json",
+                "proc" => "scripts/inference/isr_inertia/proc.json",
+                "motion" => "scripts/inference/isr_inertia/motion.json",
                 "chain" => 1,
-                "target_designation" => Dict("params" => "scripts/inference/isr_isr/td.json"),
+                "target_designation" => Dict("params" => "scripts/inference/isr_inertia/td.json"),
                 "viz" => true,
                 "restart" => true)
 
@@ -102,12 +113,12 @@ function main()
         att = MOT.load(UniformAttention, args[att_mode]["model_path"],
                    exp.scene, exp.k)
     end
-
-    motion = ISRDynamics()
+    
+    motion = MOT.load(InertiaModel, args["motion"])
 
     query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
                                                            args["scene"], args["time"],
-                                                           gm = gm_isr_mask,
+                                                           gm = gm_inertia_mask,
                                                            motion = motion)
 
     proc = MOT.load(PopParticleFilter, args["proc"];

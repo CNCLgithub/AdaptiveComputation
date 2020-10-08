@@ -10,9 +10,9 @@
 
     "dot_radius": 20.0,
 
-    "dot_p": 4.0,
-    "gauss_amp": 0.75,
-    "gauss_std": 0.55,
+    "dot_p": 5.0,
+    "gauss_std": 0.5,
+    "gauss_amp": 0.4,
 
     "fmasks" : true,
     "fmasks_n" : 10,

@@ -34,7 +34,7 @@ end
 
     # flow masks
     fmasks::Bool = false
-    fmasks_decay_function::Function = (x, t) -> x .* exp(-t)
+    fmasks_decay_function::Function = default_decay_function
     fmasks_n = 5
 
     # probes
@@ -156,7 +156,6 @@ function get_masks_params(trackers, params::GMMaskParams;
     
     #display(flow_masks)
     if !isnothing(flow_masks)
-        #println("hello!!!")
         flow_masks, mask_args = add_flow_masks(flow_masks, mask_args)
     end
     
