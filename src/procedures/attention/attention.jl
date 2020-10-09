@@ -35,24 +35,13 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     fails = 0
     # main loop going through rejuvenation
     for sweep = 1:sweeps
-
         # making a rejuvenation move (rejuvenating velocity)
-        #
         acceptance, attended_trackers = perturb_state!(pf_state, weights;
                                                        ancestral_steps=attention.ancestral_steps)
         rtrace.acceptance += acceptance
         rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
 
-        # computing new population statistics
-        # new_stats = get_stats(attention, pf_state)
-
-        # # early stopping
-        # if early_stopping(attention, new_stats, rtrace.stats)
-        #     break
-        # end
-
-        # rtrace.stats = new_stats
     end
 
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
