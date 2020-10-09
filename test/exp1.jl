@@ -3,7 +3,7 @@ using MOT
 args = Dict("gm" => "/project/scripts/inference/isr_inertia/gm.json",
             "dataset" => "/datasets/exp1_isr.jld2",
             "scene" => 1,
-            "time" => 120,
+            "time" => 30,
             "proc" => "/project/scripts/inference/isr_inertia/proc.json",
             "motion" => "/project/scripts/inference/isr_inertia/motion.json",
             "chain" => 1,

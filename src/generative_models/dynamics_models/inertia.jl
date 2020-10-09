@@ -22,7 +22,14 @@ end
     vx = @trace(normal(acc * _vx, vel_sd), :vx)
     vy = @trace(normal(acc * _vy, vel_sd), :vy)
 
-    vel = [vx, vy]
+    vel = [vx, vy] .+ 1e-10
+    vel *= model.vel/norm(vel)
+    vel = @trace(broadcasted_normal(vel, model.low_w), :v)
+
+    # vel_sd = min(model.low_w/acc, model.high_w)
+    # vx = @trace(normal(acc * _vx, vel_sd), :vx)
+    # vy = @trace(normal(acc * _vy, vel_sd), :vy)
+    # vel = [vx, vy]
 
     x = _x + vel[1]
     y = _y + vel[2]
