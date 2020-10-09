@@ -9,8 +9,11 @@ build
 htmlcov
 
 .julia/
+mot.so
 mot.sif
 mot_env/
+output/
+user.conf
 
 *.png
 *.gif
