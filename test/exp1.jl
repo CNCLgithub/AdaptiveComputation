@@ -8,7 +8,7 @@ args = Dict("gm" => "/project/scripts/inference/isr_inertia/gm.json",
             "motion" => "/project/scripts/inference/isr_inertia/motion.json",
             "chain" => 1,
             "target_designation" => Dict("params" => "/project/scripts/inference/isr_inertia/td.json"),
-            "viz" => true,
+            "viz" => false,
             "restart" => true)
 
 experiment_name = "isr_inertia"

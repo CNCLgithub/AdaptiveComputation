@@ -11,9 +11,9 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
                            gm = gm_brownian_mask, motion = nothing) where {T<:String, K<:Int}
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
-               :tracker_masks => extract_tracker_masks,
                :assignments => extract_assignments,
                :causal_graph => extract_causal_graph)
+               # :tracker_masks => extract_tracker_masks)
                # :trace => extract_trace)
 
     latent_map = LatentMap(_lm)
