@@ -53,7 +53,7 @@ function render_probe_trial(scene_data, trial_row::DataFrameRow, out::String;
 
     tracker, t, distractor = Tuple(trial_row[[:tracker, :frame, :nd]])
 
-    cgs = scene_data[:gt_causal_graphs]
+    cgs = deepcopy(scene_data[:gt_causal_graphs])
     # making sure probed tracker is on top
     map(cg->cg.elements[tracker].pos[3] = -1.0, cgs)
     
