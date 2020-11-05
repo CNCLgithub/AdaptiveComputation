@@ -62,15 +62,6 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     end
 
 
-    # just getting the MAP TD and A
-    t, gm = Gen.get_args(first(state.traces))
-    println("timestep: $t")
-
-    order = sortperm(state.log_weights, rev=true)
-    order = [order[1]]
-    for i in order
-        println("best assignment $(extract_assignments(state.traces[i]))")
-    end
 
     aux_contex = Gen_Compose.rejuvenate!(proc, state)
     

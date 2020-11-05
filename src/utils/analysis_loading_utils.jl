@@ -25,31 +25,42 @@ function read_json(path)
 end
 
 
+function _td_accuracy(assocs, ls)
+    assocs = map(x -> vcat(x[2:end]...), assocs)
+    weights = exp.(ls .- logsumexp(ls))
+    sum(map(x -> length(intersect(x, 1:4))/4, assocs) .* weights)
+end
+
+function td_accuracy(particles)
+    accs = map(_td_accuracy, zip(particles...)...)
+    mean(accs)
+end
+
 function analysis_load_trial(trial_dir::String)
-    runs = readdir(trial_dir)
+    runs = filter(x -> occursin("jld", x),
+                  readdir(trial_dir, join = true))
     n_runs = length(runs)
 
     performance = Array{Float64}(undef, n_runs)
     compute = zeros(n_runs)
     pred_target = zeros(n_runs, 8)
 
-    for run=1:n_runs
+    for (run, chain) in enumerate(runs)
 
         # reading the file
-        extracted = extract_chain(joinpath(trial_dir, "$run.jld2"))
+        extracted = extract_chain(chain)
         
         # getting performance for this run
         final_log_scores = extracted["log_scores"][end,:]
-        final_assignments = extracted["weighted"][:assignments][end,:]
-        perm = sortperm(final_log_scores, rev=true) # sorting according to log scores
-        
-        assignment = first(final_assignments[perm]) # taking max assignment
-        assignment = vcat(assignment[2:end]...) # first partition is ppp
-        n_trackers = size(extracted["weighted"][:tracker_positions], 3)
-        performance[run] = length(intersect(assignment, 1:n_trackers))/n_trackers
+        final_assignments = extracted["unweighted"][:assignments][end,:]
+        performance[run] = td_accuracy(final_assignments)
 
         # getting pred_target
-        pred_target[run, assignment] .= 1.0
+        weighted_assignments = extracted["weighted"][:assignments][end,:]
+        map_idx = argmax(final_log_scores)
+        assocs, ls = weighted_assignments[map_idx]
+        assocs = map(x -> vcat(x[2:end]...), assocs)
+        pred_target[run, first(assocs)] .= 1.0
 
         # getting the compute for this run
         aux_state = extracted["aux_state"]

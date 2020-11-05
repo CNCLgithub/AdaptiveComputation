@@ -1,11 +1,5 @@
 using LinearAlgebra
 
-struct FlowMasks
-    masks::Matrix{BitArray{2}}
-    decay_function::Function
-    n_steps::Int
-end
-
 struct FullState
     graph::CausalGraph{Dot, SimpleGraph}
     rfs::RFSElements{Array}
@@ -39,13 +33,19 @@ end
     exp0::Bool = false
 
     # flow masks
-    flow_masks::Bool = false
-    flow_masks_function::Union{Nothing, Function} = nothing
-    flow_masks_n_steps = 5
+    fmasks::Bool = false
+    fmasks_decay_function::Function = default_decay_function
+    fmasks_n = 5
 
     # probes
     probe_flip::Float64 = 0.0
 end
+
+function load(::Type{GMMaskParams}, path; kwargs...)
+    GMMaskParams(;read_json(path)..., kwargs...)
+end
+
+const default_gm = GMMaskParams()
 
 function load(::Type{GMMaskParams}, path::String)
     GMMaskParams(;read_json(path)...)
@@ -77,7 +77,6 @@ function get_masks_rvs_args(trackers, params::GMMaskParams)
                                  params.img_height, params.img_width,
                                  params.dot_p,
                                  params.gauss_amp, params.gauss_std)
-        
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 
@@ -101,10 +100,6 @@ function find_nearest_neighbour(distances::Matrix{Float64}, i::Int)
     d = copy(distances[i,:])
     d[i] = Inf
     return argmin(d)
-end
-
-function add_flow_masks!(flow_masks::FlowMasks, masks)
-    return nothing
 end
 
 """
@@ -159,10 +154,11 @@ function get_masks_params(trackers, params::GMMaskParams;
     mask_prob = fill(pixel_prob, (params.img_height, params.img_width))
     clutter_mask = subtract_images(mask_prob, trackers_img)
     
+    #display(flow_masks)
     if !isnothing(flow_masks)
-        add_flow_masks!(flow_masks, mask_args)
+        flow_masks, mask_args = add_flow_masks(flow_masks, mask_args)
     end
-
+    
     pmbrfs = RFSElements{Array}(undef, params.n_trackers + 1)
     pmbrfs[1] = PoissonElement{Array}(params.distractor_rate, mask, (clutter_mask,))
     for i = 2:length(pmbrfs)
@@ -202,21 +198,24 @@ end
 
 init_trackers_map = Gen.Map(sample_init_tracker)
 
-@gen function sample_init_state(params::GMMaskParams)
-    trackers_params = fill(params.init_pos_spread, params.n_trackers)
-    exp0 = fill(params.exp0, params.n_trackers)
-    trackers = @trace(init_trackers_map(trackers_params, exp0), :trackers)
+@gen function sample_init_state(gm::GMMaskParams)
+    trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
+    exp0 = fill(gm.exp0, gm.n_trackers)
+    trackers = @trace(init_trackers_map(trackers_gm, exp0), :trackers)
     trackers = collect(Dot, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
     pmbrfs = RFSElements{Array}(undef, 0)
 
-    if params.flow_masks
-        flow_masks = FlowMasks(zeros(params.flow_masks_n_steps,
-                                     params.img_height,
-                                     params.img_width),
-                               params.flow_masks_function,
-                               params.flow_masks_n_steps)
+    if gm.fmasks
+        fmasks = Array{Matrix{Float64}}(undef, gm.n_trackers, gm.fmasks_n)
+        for i=1:gm.n_trackers
+            for j=1:gm.fmasks_n
+                fmasks[i,j] = zeros(gm.img_height, gm.img_width)
+            end
+        end
+        flow_masks = FlowMasks(fmasks,
+                               gm.fmasks_decay_function)
     else
         flow_masks = nothing
     end
@@ -255,7 +254,6 @@ end
 
     prev_graph = prev_state.graph
 
-    # new_graph = @trace(inertial_update(dynamics_model, prev_graph), :dynamics)
     new_graph = @trace(brownian_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
 
@@ -271,6 +269,7 @@ end
 br_mask_chain = Gen.Unfold(br_mask_kernel)
 
 @gen static function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
+#@gen function gm_brownian_mask(T::Int, motion::AbstractDynamicsModel,
                                        params::GMMaskParams)
     init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(br_mask_chain(T, init_state, motion, params), :kernel)
@@ -280,4 +279,4 @@ br_mask_chain = Gen.Unfold(br_mask_kernel)
     return result
 end
 
-export GMMaskParams, gm_brownian_pos, gm_brownian_mask
+export GMMaskParams, gm_brownian_pos, gm_brownian_mask, default_gm

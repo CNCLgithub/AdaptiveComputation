@@ -7,16 +7,16 @@ using Images
 
 # add images and clamp to normal range
 function add_images(img1, img2)
-    img = map(clamp01nan, img1+img2)
-    img .-= 1e-10
-    return img
+    clamp.(img1+img2, 1E-50, 1.0)
+    # img = map(clamp01nan, img1+img2)
+    # return img
 end
 
 # subtract images and clamp to normal range
 function subtract_images(img1, img2)
-    img = map(clamp01nan, img1-img2)
-    img .+= 1e-10
-    return img
+    clamp.(img1-img2, 1E-50, 1.0)
+    # img = map(clamp01nan, img1-img2)
+    # return img
 end
 
 # get a full sequency of masks added together on images

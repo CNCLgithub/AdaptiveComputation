@@ -61,8 +61,8 @@ state_move(trace, args) = Gen.mh(trace, state_perturb_proposal, args, state_pert
 
 rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
 
-function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T) where
-    {T<:Vector{Float64}}
+function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T;
+                                ancestral_steps::Int = 3) where {T<:Vector{Float64}}
 
     t = first(Gen.get_args(trace))
     tracker = Gen.categorical(probs)
@@ -70,7 +70,8 @@ function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T
     
     # now let's do update on kinematics ancestrally
     addrs = []
-    for i = max(1, t-2):t
+    # it does ancestral steps + current step
+    for i = max(1, t-ancestral_steps):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
@@ -83,7 +84,8 @@ end
     Does one state rejuvenation step based on the probabilities of which object to perturb.
     probs are softmaxed in the process so no need to normalize.
 """
-function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
+function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64};
+                        ancestral_steps::Int = 5)
     #timestep, motion, gm = Gen.get_args(first(state.traces))
     num_particles = length(state.traces)
     accepted = 0
@@ -91,7 +93,8 @@ function perturb_state!(state::Gen.ParticleFilterState, probs::Vector{Float64})
     args = (probs, attended_trackers)
     for i=1:num_particles
         # state.traces[i], a = state_move(state.traces[i], args)
-        state.traces[i], a = ancestral_kernel_move!(attended_trackers, state.traces[i], probs)
+        state.traces[i], a = ancestral_kernel_move!(attended_trackers, state.traces[i], probs;
+                                                    ancestral_steps=ancestral_steps)
         accepted += a
     end
     

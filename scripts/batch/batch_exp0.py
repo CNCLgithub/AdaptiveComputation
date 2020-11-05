@@ -45,7 +45,7 @@ def main():
     args = parser.parse_args()
 
     n = args.trials * args.chains
-    duration = 15 # in minutes
+    duration = 30 # in minutes
     tasks, kwargs, extras = args.func(args)
 
     interpreter = '#!/bin/bash'
@@ -55,6 +55,7 @@ def main():
         'time' : '{0:d}'.format(duration),
         'partition' : 'short',
         'requeue' : None,
+        'output' : os.path.join(os.getcwd(), 'slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
