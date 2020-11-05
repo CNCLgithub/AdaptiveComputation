@@ -65,7 +65,7 @@ function load_attmaps(exp_path::String; bin::Int64 = 2)
     std = Statistics.std(attmaps)
     attmaps = (attmaps .- mu)/std
     results = vcat(results...)
-    CSV.write(joinpath(exp_path, "attention.csv"), results)
+    CSV.write(joinpath("output", "attention_analysis", "$(basename(exp_path))_attention.csv"), results)
     return attmaps
 end
 
@@ -157,6 +157,7 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
     df[!,:nd] .= 0
     df[!,:dist_to_nd] .= 0.0
     df[!,:tracker_to_origin] .= 0.0 # perhaps to control for eccentricity?
+    df[!,:cumulative_dist] .= 0.0 # distance to all other objects
 
     for (i, trial_row) in enumerate(eachrow(df))
         scene = trial_row.scene # indexing from R is 0-based
@@ -169,13 +170,18 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
         tracker_pos = pos[trial_row.tracker]
 
         df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
+        
+        tracker_distances = map(x->norm(tracker_pos - x), pos[setdiff(1:4, trial_row.tracker)])
+        distractor_distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
+        
+        df[i, :cumulative_dist] = sum(tracker_distances) + sum(distractor_distances)
 
-        distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
-        distances = map(x-> x < min_distance ? Inf : x, distances)
+        distractor_distances = map(x-> x < min_distance ? Inf : x, distractor_distances)
 
-        df[i, :nd] = argmin(distances)+4
-        df[i, :dist_to_nd] = minimum(distances)
+        df[i, :nd] = argmin(distractor_distances)+4
+        df[i, :dist_to_nd] = minimum(distractor_distances)
     end
+
     display(df)
     CSV.write(att_tps_out, df)
 end

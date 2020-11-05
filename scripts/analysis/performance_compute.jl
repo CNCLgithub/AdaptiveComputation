@@ -24,7 +24,7 @@ function performance_compute(src::String)
                     [Symbol("dot_$i")=>pred_target_trial[:,i] for i=1:8]...
                     )
 
-    CSV.write("$(src)/performance_compute.csv", df)
+    CSV.write("output/compute_analysis/$(basename(src))_performance_compute.csv", df)
     println(df)
     return df
 end

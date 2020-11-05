@@ -98,3 +98,7 @@ function extract_causal_graph(trace::Gen.Trace)
     causal_graph = [ret[2][t].graph]
     causal_graph = reshape(causal_graph, (1,1,size(causal_graph)...))
 end
+
+function extract_trace(trace::Gen.Trace)
+    reshape([trace], (1,1, size([trace])...))
+end

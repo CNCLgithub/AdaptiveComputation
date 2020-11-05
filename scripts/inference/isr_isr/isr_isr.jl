@@ -85,7 +85,7 @@ function main()
     args = Dict("gm" => "scripts/inference/isr_isr/gm.json",
                 "dataset" => "output/datasets/exp1_isr.jld2",
                 "scene" => 1,
-                "time" => 40,
+                "time" => 120,
                 "proc" => "scripts/inference/isr_isr/proc.json",
                 "motion" => "scripts/inference/isr_isr/motion.json",
                 "chain" => 1,

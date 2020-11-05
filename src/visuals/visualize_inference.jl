@@ -3,9 +3,20 @@ export visualize_inference
 function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              render_tracker_masks=false,
                              render_model=false,
+                             render_map=false,
                              masks=nothing)
     extracted = extract_chain(results)
     causal_graphs = extracted["unweighted"][:causal_graph]
+    
+    if render_map
+        for t=1:size(causal_graphs,1)
+            for i=1:size(causal_graphs, 2)
+                trace = extracted["unweighted"][:trace][t,i]
+                causal_graphs[t,i] = extract_causal_graph(trace)[1]
+            end
+        end
+    end
+
     k = size(causal_graphs, 1)
     tracker_masks = render_tracker_masks ? extracted["unweighted"][:tracker_masks] : nothing
     

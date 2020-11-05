@@ -9,6 +9,6 @@
     "brownian": true,
     "inertia": 0.8,
     "spring": 0.002,
-    "sigma_x": 2.0,
-    "sigma_y": 2.0
+    "sigma_x": 1.8,
+    "sigma_y": 1.8
 }
