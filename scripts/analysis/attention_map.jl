@@ -10,7 +10,6 @@ using Compose
 import Cairo
 # using ImageFiltering
 # using ImageTransformations:imresize, imfilter
-using Statistics
 using StatsBase
 using FileIO
 
@@ -22,11 +21,13 @@ function attention_map(c::Dict, bin::Int64)
     for t=1:k
         attended[t, :] = aux_state[t].attended_trackers
     end
-    smoothed = Matrix{Float64}(undef, k-2*bin, n)
-    for (i,t) in  enumerate(bin+1:k-bin)
-       smoothed[i,:] = mean(attended[t-bin:t+bin, :], dims = 1)
-    end
-    smoothed
+    println(size(attended))
+    return attended
+    # smoothed = Matrix{Float64}(undef, k-2*bin, n)
+    # for (i,t) in enumerate(bin+1:k-bin)
+       # smoothed[i,:] = mean(attended[t-bin:t+bin, :], dims = 1)
+    # end
+    # smoothed
 end
 
 function load_attmap(trial_path::String; bin::Int64 = 2)
@@ -36,7 +37,6 @@ function load_attmap(trial_path::String; bin::Int64 = 2)
     atts = map(attention_map, chains, fill(bin, length(chains)))
     sum(atts) ./ length(chain_paths)
 end
-
 
 
 """
@@ -91,9 +91,11 @@ function bool_attmaps(attmaps::Array{Float64}, n_quantiles::Int)
 end
 
 
-function csv_attmaps(exp_path::String, out_path::String, z_scored::Bool)
+# function csv_attmaps(exp_path::String, out_path::String, z_scored::Bool)
+function csv_attmaps(exp_path::String, out_path::String)
     mkpath(out_path)
-    attmaps = load_attmaps(exp_path, z_scored=z_scored)
+    # attmaps = load_attmaps(exp_path, z_scored=z_scored)
+    attmaps = load_attmaps(exp_path)
     results = []
     for i = 1:size(attmaps,1)
         df = DataFrame(trial=fill(i,size(attmaps,2)),
@@ -157,19 +159,28 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
     df[!,:nd] .= 0
     df[!,:dist_to_nd] .= 0.0
     df[!,:tracker_to_origin] .= 0.0 # perhaps to control for eccentricity?
+    df[!,:tracker_to_tracker_mean] .= 0.0 # perhaps to control for eccentricity?
+    df[!,:tracker_to_dot_mean] .= 0.0 # another control for eccentricity
     df[!,:cumulative_dist] .= 0.0 # distance to all other objects
 
     for (i, trial_row) in enumerate(eachrow(df))
-        scene = trial_row.scene # indexing from R is 0-based
+        scene = trial_row.scene
         scene_data = MOT.load_scene(scene, dataset_path, default_gm;
                                     generate_masks=false)
         # getting the corresponding causal graph elements
+        #
         # (+1 because the first causal graph is for the init state)
-        dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
+        # dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
+        # actually, not sure if needed
+        dots = scene_data[:gt_causal_graphs][trial_row.frame].elements
         pos = map(x->x.pos[1:2], dots)
         tracker_pos = pos[trial_row.tracker]
-
+        
+        tracker_mean = Statistics.mean(pos[1:4])
+        dot_mean = Statistics.mean(pos)
         df[i, :tracker_to_origin] = norm(tracker_pos - zeros(2))
+        df[i, :tracker_to_tracker_mean] = norm(tracker_pos - tracker_mean)
+        df[i, :tracker_to_dot_mean] = norm(tracker_pos - dot_mean)
         
         tracker_distances = map(x->norm(tracker_pos - x), pos[setdiff(1:4, trial_row.tracker)])
         distractor_distances = map(distr_pos->norm(tracker_pos - distr_pos), pos[5:8])
