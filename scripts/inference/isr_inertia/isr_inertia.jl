@@ -23,12 +23,12 @@ function parse_commandline()
         "--dataset"
         help = "Motion parameters for Inertia model"
         arg_type = String
-        default = joinpath("datasets", "exp1_isr.jld2")
+        default = joinpath("/datasets", "exp1_isr_480.jld2")
 
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
-        default = 120
+        default = 480
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -86,12 +86,13 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "isr_inertia"
+experiment_name = "isr_inertia_480"
 
 function main()
-    # args = parse_commandline()
-    # att_mode = args["%COMMAND%"]
-
+    args = parse_commandline()
+    att_mode = args["%COMMAND%"]
+    
+    """
     args = Dict("gm" => "scripts/inference/isr_inertia/gm.json",
                 "dataset" => "output/datasets/exp1_isr.jld2",
                 "scene" => 1,
@@ -102,6 +103,7 @@ function main()
                 "target_designation" => Dict("params" => "scripts/inference/isr_inertia/td.json"),
                 "viz" => true,
                 "restart" => true)
+    """
 
     att_mode = "target_designation"
     if att_mode == "target_designation"
