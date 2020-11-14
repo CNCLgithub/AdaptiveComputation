@@ -1,3 +1,4 @@
+using CSV
 using MOT
 using ArgParse
 
@@ -128,6 +129,9 @@ function main()
         visualize_inference(results, gt_causal_graphs, gm_params, att, path;
                             render_tracker_masks=true)
     end
+
+    df = MOT.analyze_chain(df)
+    CSV.write(joinpath(path, "$(c).csv"), df)
 
     return nothing
 end

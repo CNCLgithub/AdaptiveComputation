@@ -1,8 +1,9 @@
+using CSV
 using MOT
 
 args = Dict("gm" => "/project/scripts/inference/isr_inertia/gm.json",
             "dataset" => "/datasets/exp1_isr_480.jld2",
-            "scene" => 1,
+            "scene" => 2,
             "time" => 1,
             "proc" => "/project/scripts/inference/isr_inertia/proc.json",
             "motion" => "/project/scripts/inference/isr_inertia/motion.json",
@@ -51,7 +52,11 @@ function test_isr_inertia(args, att_mode)
       visualize_inference(results, gt_causal_graphs, gm_params, att, path;
                            render_tracker_masks=true)
    end
-   MOT.analyze_chain(results)
+   df = MOT.analyze_chain(results)
+   df[!, :scene] .= args["scene"]
+   df[!, :chain] .= c
+   CSV.write(joinpath(path, "$(c).csv"), df)
+   return df
 end
 
 
