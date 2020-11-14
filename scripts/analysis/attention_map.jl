@@ -111,44 +111,6 @@ function csv_attmaps(exp_path::String, out_path::String)
     CSV.write(joinpath(out_path, "attention.csv"), results)
 end
 
-
-function plot_attmap(att::Matrix{Float64}, path::String)
-    p = Gadfly.spy(att', Guide.xlabel("Time"), Guide.ylabel("Tracker"))
-    p |> PNG(path)
-end
-
-function compare_att(a::String, b::String, i::Int64;
-                             k::Int64 = 2)
-    a_i = load_attmap("$a/$i")
-    b_i = load_attmap("$b/$i")
-    collect((a_i .- b_i)')
-end
-
-function compare_experiments(a::String, b::String;
-                             n::Int64 = 128,
-                             bin::Int64 = 4)
-    out = "/experiments/$(a)_vs_$(b)"
-    isdir(out) || mkdir(out)
-    a_path = "/experiments/$a"
-    b_path = "/experiments/$b"
-    results = []
-    for i = 1:n
-        ds = compare_att(a_path, b_path, i)
-        df = DataFrame(t = 1:size(ds, 2),
-                       tracker_1 = ds[1, :],
-                       tracker_2 = ds[2, :],
-                       tracker_3 = ds[3, :],
-                       tracker_4 = ds[4, :])
-        df[!, :trial] .= i
-        push!(results, df)
-        # plot_attmap(ds, joinpath(out, "$i_att.png"))
-        # CSV.write(joinpath(out, "$i.csv"), DataFrame(ds[ps,:]),
-        #           writeheader=false)
-    end
-    results = vcat(results...)
-    CSV.write(joinpath(out, "attention.csv"), results)
-end
-
 function add_nearest_distractor(att_tps::String, att_tps_out::String;
                                 dataset_path::String="/datasets/exp0.jld2",
                                 min_distance::Float64=0.0)
@@ -173,7 +135,8 @@ function add_nearest_distractor(att_tps::String, att_tps_out::String;
         # dots = scene_data[:gt_causal_graphs][trial_row.frame+1].elements
         # actually, not sure if needed
         dots = scene_data[:gt_causal_graphs][trial_row.frame].elements
-        pos = map(x->x.pos[1:2], dots)
+        pos = collect(map(x->x.pos[1:2], dots))
+
         tracker_pos = pos[trial_row.tracker]
         
         tracker_mean = Statistics.mean(pos[1:4])
