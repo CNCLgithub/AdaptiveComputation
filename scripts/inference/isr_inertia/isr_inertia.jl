@@ -1,3 +1,4 @@
+using CSV
 using MOT
 using ArgParse
 
@@ -23,12 +24,12 @@ function parse_commandline()
         "--dataset"
         help = "Motion parameters for Inertia model"
         arg_type = String
-        default = joinpath("datasets", "exp1_isr.jld2")
+        default = joinpath("/datasets", "exp1_isr_480.jld2")
 
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
-        default = 120
+        default = 480
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -86,34 +87,14 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "isr_inertia"
+experiment_name = "isr_inertia_480"
 
 function main()
-    # args = parse_commandline()
-    # att_mode = args["%COMMAND%"]
-
-    args = Dict("gm" => "scripts/inference/isr_inertia/gm.json",
-                "dataset" => "output/datasets/exp1_isr.jld2",
-                "scene" => 1,
-                "time" => 120,
-                "proc" => "scripts/inference/isr_inertia/proc.json",
-                "motion" => "scripts/inference/isr_inertia/motion.json",
-                "chain" => 1,
-                "target_designation" => Dict("params" => "scripts/inference/isr_inertia/td.json"),
-                "viz" => true,
-                "restart" => true)
-
+    args = parse_commandline()
+    att_mode = args["%COMMAND%"]
     att_mode = "target_designation"
-    if att_mode == "target_designation"
-        att = MOT.load(MapSensitivity, args[att_mode]["params"])
-    elseif att_mode == "data_correspondence"
-        att = MOT.load(MapSensitivity, args[att_mode]["params"];
-                   objective = MOT.data_correspondence)
-    else
-        att = MOT.load(UniformAttention, args[att_mode]["model_path"],
-                   exp.scene, exp.k)
-    end
-    
+    att = MOT.load(MapSensitivity, args[att_mode]["params"])
+
     motion = MOT.load(InertiaModel, args["motion"])
 
     query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
@@ -148,6 +129,11 @@ function main()
         visualize_inference(results, gt_causal_graphs, gm_params, att, path;
                             render_tracker_masks=true)
     end
+
+    df = MOT.analyze_chain(results)
+    df[!, :scene] .= args["scene"]
+    df[!, :chain] .= c
+    CSV.write(joinpath(path, "$(c).csv"), df)
 
     return nothing
 end
