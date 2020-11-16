@@ -130,7 +130,9 @@ function main()
                             render_tracker_masks=true)
     end
 
-    df = MOT.analyze_chain(df)
+    df = MOT.analyze_chain(results)
+    df[!, :scene] .= args["scene"]
+    df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)
 
     return nothing

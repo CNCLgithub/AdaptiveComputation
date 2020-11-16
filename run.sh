@@ -28,7 +28,6 @@ done
 # add the repo path to "/project"
 BS="${BS} -B ${PWD}:/project"
 
-
 ${SING} ${BS} ${CONT} bash -c "source activate /project/${ENV[env]} \
         && export JULIA_DEPOT_PATH=/project/${ENV[julia_depot]} \
         && export JULIA_PROJECT=${PWD} \
