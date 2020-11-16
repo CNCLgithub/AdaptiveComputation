@@ -1,9 +1,10 @@
+using CSV
 using MOT
 
 args = Dict("gm" => "/project/scripts/inference/isr_inertia/gm.json",
-            "dataset" => "/datasets/exp1_isr.jld2",
-            "scene" => 1,
-            "time" => 30,
+            "dataset" => "/datasets/exp1_isr_480.jld2",
+            "scene" => 2,
+            "time" => 1,
             "proc" => "/project/scripts/inference/isr_inertia/proc.json",
             "motion" => "/project/scripts/inference/isr_inertia/motion.json",
             "chain" => 1,
@@ -15,16 +16,7 @@ experiment_name = "isr_inertia"
 
 function test_isr_inertia(args, att_mode)
 
-   att_mode = "target_designation"
-   if att_mode == "target_designation"
-      att = MOT.load(MapSensitivity, args[att_mode]["params"])
-   elseif att_mode == "data_correspondence"
-      att = MOT.load(MapSensitivity, args[att_mode]["params"];
-                  objective = MOT.data_correspondence)
-   else
-      att = MOT.load(UniformAttention, args[att_mode]["model_path"],
-                  exp.scene, exp.k)
-   end
+   att = MOT.load(MapSensitivity, args[att_mode]["params"])
 
    motion = MOT.load(InertiaModel, args["motion"])
 
@@ -60,7 +52,12 @@ function test_isr_inertia(args, att_mode)
       visualize_inference(results, gt_causal_graphs, gm_params, att, path;
                            render_tracker_masks=true)
    end
+   df = MOT.analyze_chain(results)
+   df[!, :scene] .= args["scene"]
+   df[!, :chain] .= c
+   CSV.write(joinpath(path, "$(c).csv"), df)
+   return df
 end
 
 
-test_isr_inertia(args, "target_designation")
+results = test_isr_inertia(args, "target_designation")
