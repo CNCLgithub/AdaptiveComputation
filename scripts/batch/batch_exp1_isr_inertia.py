@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
 """ Submits sbatch array for rendering stimuli """
-def tavg_tasks(args):
-    tasks = [(t,c) for c in range(1, args.chains + 1) 
-             for t in range(1, args.scenes+1)]
-    return (tasks, [], [])
-
 import os
 import argparse
 from slurmpy import sbatch
@@ -24,7 +19,7 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--scenes', type = int, default = 60,
+    parser.add_argument('--scenes', type = int, default = 40,
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
@@ -53,7 +48,7 @@ def main():
         'cpus-per-task' : '1',
         'mem-per-cpu' : '4GB',
         'time' : '{0:d}'.format(args.duration),
-        'partition' : 'short',
+        'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
         'output' : os.path.join(os.getcwd(), 'output/slurm/%A_%a.out')
