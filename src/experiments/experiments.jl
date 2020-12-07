@@ -1,4 +1,10 @@
 function run_inference(query::SequentialQuery,
+                       proc::Gen_Compose.AbstractParticleFilter)
+
+    results = sequential_monte_carlo(proc, query,
+                                     buffer_size = length(query))
+end
+function run_inference(query::SequentialQuery,
                        proc::Gen_Compose.AbstractParticleFilter,
                        path::String)
 

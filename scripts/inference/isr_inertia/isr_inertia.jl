@@ -123,7 +123,7 @@ function main()
     end
 
     println("running chain $c")
-    results = run_inference(query, proc, out)
+    results = run_inference(query, proc)
 
     if (args["viz"])
         visualize_inference(results, gt_causal_graphs, gm_params, att, path;
