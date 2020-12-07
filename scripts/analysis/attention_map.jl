@@ -6,8 +6,7 @@ using Base.Iterators:take
 using DataFrames
 using FileIO
 
-function add_nearest_distractor(att_tps::String, att_tps_out::String;
-                                dataset_path::String="/datasets/exp0.jld2",
+function add_nearest_distractor(att_tps::String, att_tps_out::String, dataset_path::String;
                                 min_distance::Float64=0.0)
 
     df = DataFrame(CSV.File(att_tps))
