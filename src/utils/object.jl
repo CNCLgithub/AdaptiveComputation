@@ -14,6 +14,17 @@ abstract type Object end
     radius::Float64 = 20.0
     width::Float64 = 40.0
     height::Float64 = 40.0
+    # how it interacts with the pylons
+    # 0 - no interaction
+    # 1 - attraction
+    # -1 - repulsion
+    pylon_interaction::Int = 0
+end
+
+@with_kw struct Pylon <: Object
+    pos::Vector{Float64} = zeros(3)
+    radius::Float64 = 40.0
+    strength::Float64 = 10.0
 end
 
 Dot(pos::Vector{Float64}, vel::Vector{Float64}) = Dot(pos = pos, vel = vel)

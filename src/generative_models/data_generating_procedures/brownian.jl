@@ -7,6 +7,7 @@ _dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel) = gm_brownian_pos(
 # TODO : implement gm_cbm_pos
 # _dgp(k::Int, gm::GMMaskParams, motion::ConstrainedBDM) = ...
 _dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics) = gm_isr_pos(k, motion, gm)
+_dgp(k::Int, gm::GMMaskParams, motion::ISRPylonsDynamics) = gm_isr_pylons_pos(k, motion, gm)
 
 function dgp(k::Int, gm::GMMaskParams,
              motion::AbstractDynamicsModel;

@@ -6,6 +6,7 @@ include("flow_masks.jl")
 include("gm_brownian.jl")
 include("gm_inertia.jl")
 include("gm_isr.jl")
+include("gm_isr_pylons.jl")
 include("probe_brownian.jl")
 # include("gm_positions_cbm_static.jl")
 

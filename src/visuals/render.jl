@@ -80,6 +80,22 @@ function render_object(object::Object)
     error("not defined")
 end
 
+function render_object(pylon::Pylon;
+                       pylon_color="black")
+    
+
+    background_color="#7079f2" #TODO remove hardcoding
+    darker_background_color = "#7175a8"
+
+    point = Point(pylon.pos[1], pylon.pos[2])
+    bg_pylon_blend = blend(point, pylon.radius/5, 
+                           point, pylon.radius*1.2,
+                           darker_background_color, background_color)
+    setblend(bg_pylon_blend)
+    #_draw_circle(pylon.pos[1:2], pylon.radius, pylon_color, opacity=0.1,
+    Luxor.circle(point, 1.2*pylon.radius, :fill)
+end
+
 function render_object(dot::Dot;
                        leading_edges=true,
                        dot_color="#e0b388",
@@ -88,10 +104,17 @@ function render_object(dot::Dot;
                        # probe_color="#c99665")
                 
     color = dot.probe ? probe_color : dot_color
+    
     _draw_circle(dot.pos[1:2], dot.radius, color)
     if leading_edges
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
+
+    if (dot.pylon_interaction != 0)
+        txt = dot.pylon_interaction == 1 ? "+" : "-"
+        _draw_text(txt, dot.pos[1:2])
+    end
+
 end
 
 """
@@ -110,7 +133,7 @@ function render_cg(cg::CausalGraph, gm;
     
     for i in depth_perm
         render_object(objects[i])
-        if show_label
+        if show_label && !isa(objects[i], Pylon)
             _draw_text("$i", objects[i].pos[1:2] .+ [objects[i].width/2, objects[i].height/2])
         end
         if i in highlighted
@@ -213,6 +236,7 @@ function render(gm, k;
                 highlighted=Int[],
                 causal_graphs=nothing,
                 attended=nothing,
+                pylons=nothing, # pass the motion model with pylons here
                 array=false,
                 tracker_masks=nothing,
                 background_color="#7079f2",
@@ -236,7 +260,7 @@ function render(gm, k;
     # tracking while dots are moving
     # TODO change with good init causal graphs
     for t=1:k
-        print("render timestep: $t \r")
+        print("render timestep: $t/$k \r")
         _init_drawing(t+freeze_time, path, gm,
                       background_color = background_color)
 

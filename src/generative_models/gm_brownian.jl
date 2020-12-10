@@ -1,7 +1,7 @@
 using LinearAlgebra
 
 struct FullState
-    graph::CausalGraph{Dot, SimpleGraph}
+    graph::CausalGraph{Object, SimpleGraph}
     rfs::RFSElements{Array}
     flow_masks::Union{Nothing, FlowMasks}
 end

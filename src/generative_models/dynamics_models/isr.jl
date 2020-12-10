@@ -19,7 +19,7 @@ function load(::Type{ISRDynamics}, path::String)
     ISRDynamics(;read_json(path)...)
 end
 
-@gen function isr_step(model::ISRDynamics, dot::Dot)
+@gen function isr_brownian_step(model::ISRDynamics, dot::Dot)
     _x, _y, _z = dot.pos
     vx, vy = dot.vel
     
@@ -33,13 +33,16 @@ end
     x = _x + vx
     y = _y + vy
     
-    return Dot([x,y,_z], [vx,vy])
+    return Dot(pos=[x,y,_z], vel=[vx,vy],
+               pylon_interaction=dot.pylon_interaction)
 end
 
-_isr_step = Map(isr_step)
+_isr_brownian_step = Map(isr_brownian_step)
 
-function isr_repulsion_step(model, dots, gm_params)
+function get_repulsion_force(model, dots, gm_params)
+
     n = length(dots)
+    rep_forces = Vector{Vector{Float64}}(undef, n)
 
     for i = 1:n
         dot = dots[i]
@@ -48,7 +51,7 @@ function isr_repulsion_step(model, dots, gm_params)
             i == j && continue
             v = dot.pos - dots[j].pos
             (norm(v) > model.distance) && continue
-            force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.dot_repulsion^2)) * v / norm(v)
+            force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(model.distance^2)) * v / norm(v)
         end
         dot_applied_force = force
                 
@@ -63,16 +66,27 @@ function isr_repulsion_step(model, dots, gm_params)
         for j = 1:4
             v = dot.pos - walls[j,:]
             (norm(v) > model.distance) && continue
-            force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.wall_repulsion^2)) * v / norm(v)
+            force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(model.distance^2)) * v / norm(v)
         end
         wall_applied_force = force
 
+        rep_forces[i] = dot_applied_force[1:2]+wall_applied_force[1:2]
+    end
+    
+    rep_forces
+end
+
+function isr_repulsion_step(model, dots, gm_params)
+    rep_forces = get_repulsion_force(mode, dots, gm_params)
+    n = length(dots)
+
+    for i = 1:n
         vel = dots[i].vel
         if sum(vel) != 0
             vel *= model.vel/norm(vel)
         end
         vel *= model.rep_inertia
-        vel += (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
+        vel += (1.0-model.rep_inertia)*(rep_forces[i])
         dots[i] = Dot(dot.pos, vel)
     end
     
@@ -87,7 +101,7 @@ end
         dots = isr_repulsion_step(model, dots, gm_params)
     end
 
-    dots = @trace(_isr_step(fill(model, length(dots)), dots), :brownian)
+    dots = @trace(_isr_brownian_step(fill(model, length(dots)), dots), :brownian)
 
     dots = collect(Dot, dots)
     cg = update(cg, dots)
