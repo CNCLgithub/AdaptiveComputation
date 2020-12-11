@@ -37,18 +37,15 @@ function get_pylons_force(model, dots, pylons, gm_params)
             force .+= -dot.pylon_interaction * pylon.strength * exp(-(v[1]^2 + v[2]^2)/(pylon.radius^2)) * v / norm(v)
         end
 
-        println(force)
-
         pylons_forces[i] = force[1:2]
     end
     
-    #println(pylons_forces)
 
     pylons_forces
 end
 
 
-function isr_pylons_step(model, dots, pylons, gm_params)
+function isr_pylons_step(model, dots, pylons, gm_params, homogeneity)
     rep_forces = get_repulsion_force(model, dots, gm_params)
     pylons_forces = get_pylons_force(model, dots, pylons, gm_params)
     
@@ -61,6 +58,7 @@ function isr_pylons_step(model, dots, pylons, gm_params)
         end
         vel *= model.rep_inertia
         vel += (1.0-model.rep_inertia)*(rep_forces[i]+pylons_forces[i])
+    
         dots[i] = Dot(pos=dots[i].pos, vel=vel,
                       pylon_interaction=dots[i].pylon_interaction)
     end
@@ -68,17 +66,38 @@ function isr_pylons_step(model, dots, pylons, gm_params)
     dots
 end
 
+@gen function pylon_interaction_step(homogeneity, dot::Dot)
+    pylon_interaction = dot.pylon_interaction
 
+    # probability of staying with the old pylon_interaction
+    dot_consistency = 0.95 # TODO don't hardcode
+    
+    if !@trace(bernoulli(dot_consistency), :stay)
+        probs = [homogeneity, 0.0, 1.0-homogeneity]
+        idx = @trace(Gen.categorical(probs), :pylon_interaction)
+        pylon_interaction = [-1,0,1][idx]
+    end
 
-@gen function isr_pylons_update(model::ISRDynamics, cg::CausalGraph, gm_params) #gm_params::GMMaskParams)
+    Dot(pos=dot.pos, vel=dot.vel,
+        pylon_interaction=pylon_interaction)
+end
+
+_pylon_interaction_step = Map(pylon_interaction_step)
+
+@gen function isr_pylons_update(model::ISRDynamics, cg::CausalGraph, gm_params, homogeneity::Real)
     dots = filter(x->isa(x, Dot), cg.elements)
     pylons = filter(x->isa(x, Pylon), cg.elements)
+    
+    dots = @trace(_pylon_interaction_step(fill(homogeneity, length(dots)), dots), :pylon)
+    dots = collect(Dot, dots)
 
     if model.repulsion
-        dots = isr_pylons_step(model, dots, pylons, gm_params)
+        dots = isr_pylons_step(model, dots, pylons, gm_params, homogeneity)
     end
     
     dots = @trace(_isr_brownian_step(fill(model, length(dots)), dots), :brownian)
+
+    println("homogeneity: $homogeneity")
     println("pylon interaction: ", map(d->d.pylon_interaction, dots))
 
     dots = collect(Dot, dots)
