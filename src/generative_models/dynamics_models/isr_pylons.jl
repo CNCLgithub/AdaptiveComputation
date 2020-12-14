@@ -15,10 +15,14 @@ export ISRPylonsDynamics
     sigma_y::Float64 = 1.0
     
     # there are 4 pylons, all symmetrically positioned from origin (0,0)
-    pylon_strength = 30.0
+    pylon_strength = 18.0
     pylon_radius = 100.0
     pylon_x = 150.0 
     pylon_y = 150.0
+    
+    # vector describing the interactions of each dot
+    pi_first::Union{Nothing, Vector{Int}} = nothing
+    pi_second::Union{Nothing, Vector{Int}} = nothing
 end
 
 
@@ -97,8 +101,8 @@ _pylon_interaction_step = Map(pylon_interaction_step)
     
     dots = @trace(_isr_brownian_step(fill(model, length(dots)), dots), :brownian)
 
-    println("homogeneity: $homogeneity")
-    println("pylon interaction: ", map(d->d.pylon_interaction, dots))
+    #println("homogeneity: $homogeneity")
+    #println("pylon interaction: ", map(d->d.pylon_interaction, dots))
 
     dots = collect(Dot, dots)
     cg = update(cg, [dots; pylons])

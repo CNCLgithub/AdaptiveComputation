@@ -13,7 +13,6 @@ end
     prev_graph = prev_state.graph
     homogeneity = prev_state.homogeneity
     new_graph = @trace(isr_pylons_update(dynamics_model, prev_graph, params, homogeneity), :dynamics)
-    new_trackers = new_graph.elements
     pmbrfs = prev_state.rfs # pass along this reference for effeciency
     new_state = FullStateISRPylons(new_graph, pmbrfs, nothing, prev_state.homogeneity)
     return new_state
@@ -22,40 +21,48 @@ isr_pylons_pos_chain = Gen.Unfold(isr_pylons_pos_kernel)
 
 
 # #@gen (static) function sample_init_tracker(init_pos_spread::Real)::Dot
-@gen function sample_init_tracker_pylons(init_pos_spread::Real, exp0::Bool, homogeneity::Real)::Dot
-
-    x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
-    y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
-
-    # initial velocity is zero (in the new version)
-    vx = 0.0
-    vy = 0.0
-
-    # z (depth) drawn at beginning
-    z = @trace(uniform(0, 1), :z)
+@gen function sample_init_tracker_pylons(gm::GMMaskParams,
+                                         motion::ISRPylonsDynamics,
+                                         homogeneity::Real)::Vector{Dot}
+   
+    dots = Vector{Dot}(undef, gm.n_trackers)
     
-    # either attracting or repulsing
-    probs = [homogeneity, 0.0, 1.0-homogeneity]
-    idx = @trace(Gen.categorical(probs), :pylon_interaction)
-    pylon_interaction = [-1,0,1][idx]
-    #pylon_interaction = 1
+    for i=1:gm.n_trackers
+        x = @trace(uniform(-gm.init_pos_spread, gm.init_pos_spread), i => :x)
+        y = @trace(uniform(-gm.init_pos_spread, gm.init_pos_spread), i => :y)
 
-    # initial velocity is zero
-    return Dot(pos=[x,y,z], vel=[vx,vy],
-               pylon_interaction=pylon_interaction)
+        # initial velocity is zero (in the new version)
+        vx = 0.0
+        vy = 0.0
+
+        # z (depth) drawn at beginning
+        z = @trace(uniform(0, 1), i => :z)
+        
+        # either attracting or repulsing
+        probs = [homogeneity, 0.0, 1.0-homogeneity]
+        idx = @trace(Gen.categorical(probs), i => :pylon_interaction)
+        pylon_interaction = [-1,0,1][idx]
+
+        # initial velocity is zero
+        dots[i] = Dot(pos=[x,y,z], vel=[vx,vy],
+                      pylon_interaction=pylon_interaction)
+    end
+
+    return dots
 end
 
-init_trackers_pylons_map = Gen.Map(sample_init_tracker_pylons)
+#init_trackers_pylons_map = Gen.Map(sample_init_tracker_pylons)
 
 @gen function sample_init_isr_pylons_state(gm::GMMaskParams, motion::ISRPylonsDynamics)
     # sampling the parameter for bernoulli that will define individual
     # tracker attraction/repulsion
     homogeneity = @trace(beta(10,2), :homogeneity)
     
-    trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
-    exp0 = fill(gm.exp0, gm.n_trackers)
-    homogeneity_vec = fill(homogeneity, gm.n_trackers)
-    trackers = @trace(init_trackers_pylons_map(trackers_gm, exp0, homogeneity_vec), :trackers)
+    #trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
+    #exp0 = fill(gm.exp0, gm.n_trackers)
+    #homogeneity_vec = fill(homogeneity, gm.n_trackers)
+    #trackers = @trace(init_trackers_pylons_map(trackers_gm, exp0, homogeneity_vec), :trackers)
+    trackers = @trace(sample_init_tracker_pylons(gm, motion, homogeneity), :trackers)
     trackers = collect(Dot, trackers)
 
     # pylons
