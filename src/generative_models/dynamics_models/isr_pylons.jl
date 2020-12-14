@@ -15,7 +15,7 @@ export ISRPylonsDynamics
     sigma_y::Float64 = 1.0
     
     # there are 4 pylons, all symmetrically positioned from origin (0,0)
-    pylon_strength = 18.0
+    pylon_strength = 30.0
     pylon_radius = 100.0
     pylon_x = 150.0 
     pylon_y = 150.0
@@ -70,7 +70,7 @@ end
     pylon_interaction = dot.pylon_interaction
 
     # probability of staying with the old pylon_interaction
-    dot_consistency = 0.95 # TODO don't hardcode
+    dot_consistency = 1.0 # TODO don't hardcode
     
     if !@trace(bernoulli(dot_consistency), :stay)
         probs = [homogeneity, 0.0, 1.0-homogeneity]

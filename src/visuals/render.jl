@@ -109,7 +109,8 @@ function render_object(dot::Dot;
     if leading_edges
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
-
+    
+    return 
     if (dot.pylon_interaction != 0)
         txt = dot.pylon_interaction == 1 ? "+" : "-"
         _draw_text(txt, dot.pos[1:2])
