@@ -2,8 +2,6 @@ using MOT
 using Random
 Random.seed!(1)
 
-
-
 function render_stimuli(k,
                         pylon_strength,
                         vel,
@@ -22,12 +20,21 @@ function render_stimuli(k,
         cm[:kernel => floor(Int, k/2) => :dynamics => :pylon => i => :stay] = false
         cm[:kernel => floor(Int, k/2) => :dynamics => :pylon => i => :pylon_interaction] = second_pi[i]+2
     end
-    trial_data = dgp(k, default_gm, motion;
-                     generate_masks=false,
-                     cm=cm)
+    
+    scene_data = nothing
+    tries = 0
+    while true
+        tries += 1
+        print("tries: $tries \r")
+        scene_data = dgp(k, default_gm, motion;
+                         generate_masks=false,
+                         cm=cm)
+        is_min_distance_satisfied(scene_data, 80.0) && break
+    end
+        
 
     render(default_gm, k;
-           gt_causal_graphs=trial_data[:gt_causal_graphs],
+           gt_causal_graphs=scene_data[:gt_causal_graphs],
            path=joinpath("render", "$(name)_vel_$(vel)_force_$(pylon_strength)"),
            freeze_time=24,
            highlighted=collect(1:4),
@@ -46,4 +53,4 @@ render_stimuli(k, pylon_strength, vel, het_pi, hom_att_pi, "het_homatt")
 render_stimuli(k, pylon_strength, vel, het_pi, hom_rep_pi, "het_homrep")
 
 render_stimuli(k, pylon_strength, vel, hom_att_pi, het_pi, "homatt_het")
-render_stimuli(k, pylon_strength, vel, hom_rep_pi, het_pi, "hethom_rep")
+render_stimuli(k, pylon_strength, vel, hom_rep_pi, het_pi, "homrep_het")
