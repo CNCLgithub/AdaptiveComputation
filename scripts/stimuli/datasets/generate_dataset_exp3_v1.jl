@@ -26,8 +26,6 @@ function get_choicemaps(k, gm,
     return cms
 end
 
-
-
 # fastest just to spell it out
 pi_22 = [-1, -1, 1, 1, -1, -1, 1, 1]
 pi_13 = [-1, -1, -1, 1, -1, -1, -1, 1]
@@ -36,35 +34,28 @@ pi_04 = fill(-1, 8)
 pi_40 = fill(1, 8)
 
 possible_pis = [pi_22, pi_13, pi_31, pi_04, pi_40]
+#possible_pis = [pi_40]
 #perms = collect(permutations(possible_pis))
 
-# generating not changing scenes
+# generating scenes that don't change
 pis = map(p -> [p, p], possible_pis)
 
 # repeating to generate more scenes
-pis = repeat(pis, 4)
+n_repeats = 4
+pis = repeat(pis, n_repeats)
+
+aux_data = []
+map(p -> push!(aux_data, p), pis)
 
 println(pis)
-#pis = Vector{Vector{Vector{Int}}}(undef, n_scenes)
-
-# pis = [
-        # [
-         # het_pi,
-         # hom_att_pi
-        # ],
-        # [
-         # hom_att_pi,
-         # hom_rep_pi
-        # ]
-      # ]
 
 n_scenes = length(pis)
 
-pylon_strength = 30
+pylon_strength = 35
 vel = 12
 
 dataset_path = joinpath("/datasets", "exp3_v1.jld2")
-k = 240
+k = 120
 motion = ISRPylonsDynamics(vel = vel,
                            pylon_strength = pylon_strength,
                            pylon_radius = 100.0,
@@ -74,6 +65,7 @@ motion = ISRPylonsDynamics(vel = vel,
 cms = get_choicemaps(k, default_gm, pis)
 
 MOT.generate_dataset(dataset_path, n_scenes, k, default_gm, motion;
-                     min_distance = 80.0,
-                     cms=cms)
+                     min_distance = 60.0,
+                     cms=cms,
+                     aux_data=aux_data)
 

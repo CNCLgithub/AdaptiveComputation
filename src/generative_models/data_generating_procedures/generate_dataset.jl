@@ -10,7 +10,9 @@ end
 
 function generate_dataset(dataset_path, n_scenes, k, gm, motion;
                           min_distance = 50.0,
-                          cms::Union{Nothing, Vector{ChoiceMap}} = nothing)
+                          cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
+                          aux_data::Union{Nothing, Vector{Any}} = nothing)
+
     jldopen(dataset_path, "w") do file 
         file["n_scenes"] = n_scenes
         for i=1:n_scenes
@@ -33,6 +35,7 @@ function generate_dataset(dataset_path, n_scenes, k, gm, motion;
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gm
             scene["motion"] = motion
+            scene["aux_data"] = isnothing(aux_data) ? nothing : aux_data[i]
 
             gt_cgs = scene_data[:gt_causal_graphs]
             # fixing z according to the time 0

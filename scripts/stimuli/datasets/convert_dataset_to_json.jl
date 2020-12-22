@@ -11,7 +11,7 @@ function convert_dataset_to_json(dataset_path, json_path)
         scene_data = load_scene(i, dataset_path, default_gm;
                                 generate_masks=false)
         cgs = scene_data[:gt_causal_graphs]
-        positions = map(cg-> map(dot->dot.pos, cg.elements), cgs)
+        positions = map(cg-> map(dot->dot.pos, filter(x->isa(x, Dot), cg.elements)), cgs)
         push!(data, positions)
     end
 

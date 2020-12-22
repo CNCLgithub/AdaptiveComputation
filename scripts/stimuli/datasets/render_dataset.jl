@@ -10,7 +10,7 @@ function render_dataset(dataset_path, render_path)
     
     for i=1:n_scenes
         scene_data = MOT.load_scene(i, dataset_path, default_gm;
-                                    generate_masks=false)
+                                              generate_masks=false)
         path = joinpath(render_path, "$i")
         gt_cgs = scene_data[:gt_causal_graphs]
         k = length(gt_cgs) - 1

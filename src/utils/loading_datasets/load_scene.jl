@@ -11,6 +11,11 @@ function load_scene(scene, dataset_path, graphics;
     scene = read(file, "$scene")
     motion = scene["motion"]
     gt_causal_graphs = scene["gt_causal_graphs"]
+    
+    # new entry in scene data, perhaps try block
+    # would be good
+    aux_data = scene["aux_data"]
+    println(aux_data)
     close(file)
 
     if generate_masks
