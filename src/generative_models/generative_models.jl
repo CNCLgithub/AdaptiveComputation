@@ -5,6 +5,7 @@ include("dynamics_models/dynamics_models.jl")
 include("graphics/graphics.jl")
 
 include("flow_masks.jl")
+include("get_masks_params.jl")
 include("gm_brownian.jl")
 include("gm_inertia.jl")
 include("gm_isr.jl")

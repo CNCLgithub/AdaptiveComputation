@@ -127,6 +127,7 @@ function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw;
     return masks
 end
 
+
 """
     get_masks(cgs::Vector{CausalGraph})
 
@@ -141,14 +142,18 @@ end
     background - true if you want background masks
 """
 # TODO make it draw more general objects
-function get_masks(cgs::Vector{CausalGraph}, gm;
+function get_masks(cgs::Vector{CausalGraph}, gm::AbstractGMParams;
                    background=false)
     k = length(cgs)
     masks = Vector{Vector{BitArray{2}}}(undef, k)
     
     for t=1:k
         print("get_masks timestep: $t \r")
-        positions = map(x->x.pos, cgs[t].elements)
+        if isa(gm, GMMaskParams)
+            positions = map(x->x.pos, cgs[t].elements)
+        elseif isa(gm, HGMParams)
+            positions = get_hgm_positions(cgs[t], gm.targets)
+        end
 
         # sorting according to depth
         depth_perm = sortperm(map(x->x[3], positions))

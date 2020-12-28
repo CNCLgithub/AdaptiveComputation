@@ -7,9 +7,9 @@ export HGMDynamicsModel
     sigma_y::Float64 = 1.5
     
     pol_inertia::Float64 = 0.8
-    pol_spring::Float64 = 0.001
-    pol_sigma_x::Float64 = 0.5
-    pol_sigma_y::Float64 = 0.5
+    pol_spring::Float64 = 0.03
+    pol_sigma_x::Float64 = 1.5
+    pol_sigma_y::Float64 = 1.5
 end
 
 function load(::Type{HGMDynamicsModel}, path::String)
@@ -29,7 +29,8 @@ end
     x = _x + vx
     y = _y + vy
 
-    z = @trace(uniform(0, 1), :z)
+    #z = @trace(uniform(0, 1), :z)
+    z = _z
 
     if isa(object, Dot)
         return Dot([x,y,z], [vx,vy])
