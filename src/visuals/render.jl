@@ -136,7 +136,7 @@ end
 """
     renders the causal graph
 """
-function render_cg(cg::CausalGraph, gm;
+function render_cg(cg::CausalGraph, gm::AbstractGMParams;
                    show_label=true,
                    highlighted::Vector{Int}=Int[],
                    highlighted_color="blue",
@@ -267,7 +267,7 @@ function render(gm, k;
         
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[1], gm;
-                      highlighted=collect(1:gm.n_trackers),
+                      highlighted=highlighted,
                       show_label=!stimuli)
         end
         finish()
