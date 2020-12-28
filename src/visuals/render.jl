@@ -80,9 +80,12 @@ function render_object(object::Object)
     error("not defined")
 end
 
+function render_object(polygon::Polygon)
+    map(dot -> render_object(dot), polygon.dots)
+end
+
 function render_object(pylon::Pylon;
                        pylon_color="black")
-    
 
     background_color="#7079f2" #TODO remove hardcoding
     darker_background_color = "#7175a8"
@@ -118,6 +121,18 @@ function render_object(dot::Dot;
 
 end
 
+function flatten_cg(cg::CausalGraph)
+    objects = []
+    for e in cg.elements
+        if isa(e, Dot) || isa(e, Pylon)
+            push!(objects, e)
+        elseif isa(e, Polygon)
+            objects = [objects; e.dots]
+        end
+    end
+    objects
+end
+
 """
     renders the causal graph
 """
@@ -127,7 +142,7 @@ function render_cg(cg::CausalGraph, gm;
                    highlighted_color="blue",
                    render_edges=false)
     
-    objects = cg.elements
+    objects = flatten_cg(cg)
 
     # furthest (highest z) comes first in depth_perm
     depth_perm = sortperm(map(x -> x.pos[3], objects), rev=true)

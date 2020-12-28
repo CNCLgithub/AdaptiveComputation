@@ -12,8 +12,10 @@ _dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel, cm::ChoiceMap) = g
 _dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics, cm::ChoiceMap) = gm_isr_pos(k, motion, gm)
 _dgp(k::Int, gm::GMMaskParams, motion::ISRPylonsDynamics, cm::ChoiceMap) = Gen.generate(gm_isr_pylons_pos, (k, motion, gm), cm)
 
+_dgp(k::Int, gm::HGMParams, motion::HGMDynamicsModel, cm::ChoiceMap) = Gen.generate(hgm_pos, (k, motion, gm), cm)
 
-function dgp(k::Int, gm::GMMaskParams,
+
+function dgp(k::Int, gm::AbstractGMParams,
              motion::AbstractDynamicsModel;
              generate_masks=true,
              cm::ChoiceMap=choicemap())

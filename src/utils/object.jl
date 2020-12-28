@@ -21,6 +21,7 @@ abstract type Object end
     pylon_interaction::Int = 0
 end
 
+
 @with_kw struct Pylon <: Object
     pos::Vector{Float64} = zeros(3)
     radius::Float64 = 40.0
@@ -38,4 +39,12 @@ mutable struct BDot <: Object
     pos::Vector{Float64}
     bearing::Float64
     vel::Float64
+end
+
+
+@with_kw mutable struct Polygon <: Object
+    pos::Vector{Float64}
+    vel::Vector{Float64}
+    radius::Float64
+    dots::Vector{Dot}
 end

@@ -6,7 +6,7 @@ struct FullState
     flow_masks::Union{Nothing, FlowMasks}
 end
 
-@with_kw struct GMMaskParams
+@with_kw struct GMMaskParams <: AbstractGMParams
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
