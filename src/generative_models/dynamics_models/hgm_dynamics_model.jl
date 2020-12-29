@@ -3,12 +3,12 @@ export HGMDynamicsModel
 @with_kw struct HGMDynamicsModel <: AbstractDynamicsModel
     inertia::Float64 = 0.8
     spring::Float64 = 0.001
-    sigma_x::Float64 = 0.5
-    sigma_y::Float64 = 0.5
+    sigma_x::Float64 = 0.2
+    sigma_y::Float64 = 0.2
     
     # brownian motion on a spring with regards to polygon positions
-    pol_inertia::Float64 = 0.8
-    pol_spring::Float64 = 0.03
+    pol_inertia::Float64 = 0.2
+    pol_spring::Float64 = 0.02
     pol_sigma_x::Float64 = 0.01
     pol_sigma_y::Float64 = 0.01
 
@@ -18,6 +18,12 @@ export HGMDynamicsModel
     distance::Float64 = 60.0
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
+
+    pol_pol_repulsion::Float64 = 200.0
+    pol_wall_repulsion::Float64 = 150.0
+
+    pol_pol_distance::Float64 = 100.0
+    pol_wall_distance::Float64 = 100.0
 end
 
 function load(::Type{HGMDynamicsModel}, path::String)
@@ -77,6 +83,7 @@ function get_new_dot(index, model, rep_forces, dot)
     if sum(vel) != 0
         vel *= model.vel/norm(vel)
     end
+
     vel *= model.rep_inertia
     vel += (1.0-model.rep_inertia)*(rep_forces[index])
     index += 1
@@ -84,7 +91,58 @@ function get_new_dot(index, model, rep_forces, dot)
 end
 
 
+function get_new_polygon(model, force, polygon)
+    pos = polygon.pos
+    vel = polygon.vel
+    radius = polygon.radius
+    dots = polygon.dots
+
+    if sum(vel) != 0
+        vel *= model.vel/norm(vel)
+    end
+
+    vel *= model.rep_inertia
+    vel += (1.0-model.rep_inertia)*(force)
+    return Polygon(pos, vel, radius, dots)
+end
+
+
+
+# gets forces on dots from polygon-wall repulsion
+function get_pol_rep_forces(model, objects, hgm, n_dots::Int)
+    pol_rep_forces = []
+
+    positions = map(x -> x.pos, objects)
+    polygons = map(x -> x isa Polygon, objects)
+    
+    for i=1:length(objects)
+        if objects[i] isa Dot
+            push!(pol_rep_forces, zeros(2))
+        elseif objects[i] isa Polygon
+            wall_force = get_repulsion_from_wall(model.pol_wall_distance,
+                                            model.pol_wall_repulsion,
+                                            objects[i].pos,
+                                            hgm)
+            others = map(j -> i != j, 1:length(objects))
+            other_pos = positions[polygons .& others]
+            
+            pol_force = get_repulsion_object_to_object(model.pol_pol_distance,
+                                                        model.pol_pol_repulsion,
+                                                        objects[i].pos,
+                                                        other_pos)
+            println("pol force: $pol_force")
+
+            force = wall_force + pol_force
+            pol_rep_forces = [pol_rep_forces; fill(force[1:2], length(objects[i].dots))]
+        end
+    end
+
+    return pol_rep_forces
+end
+
+
 function hgm_repulsion_step(model, objects, hgm)
+
     dots = []
     for object in objects
         if isa(object, Polygon)
@@ -93,21 +151,27 @@ function hgm_repulsion_step(model, objects, hgm)
             push!(dots, object)
         end
     end
-
-    rep_forces = get_repulsion_force(model, dots, hgm)
-    println(rep_forces)
-    index = 1
     
+    n_dots = length(dots)
+
+    # polygon-wall repulsion
+    pol_rep_forces = get_pol_rep_forces(model, objects, hgm, n_dots)
+    # individual dot-dot and dot-wall repulsion
+    dot_rep_forces = get_repulsion_force(model, dots, hgm)
+
+    rep_forces = pol_rep_forces + dot_rep_forces
+
+    index = 1
     for i=1:length(objects)
         if objects[i] isa Polygon
             for j=1:length(objects[i].dots)
+                objects[i] = get_new_polygon(model, rep_forces[index], objects[i])
                 objects[i].dots[j], index = get_new_dot(index, model, rep_forces, objects[i].dots[j])
             end
         elseif objects[i] isa Dot
             objects[i], index = get_new_dot(index, model, rep_forces, objects[i])
         end
     end
-
     return objects
 end
 

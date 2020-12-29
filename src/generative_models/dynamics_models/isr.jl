@@ -39,36 +39,45 @@ end
 
 _isr_brownian_step = Map(isr_brownian_step)
 
+function get_repulsion_from_wall(min_distance, wall_repulsion, pos, gm_params)
+    # repulsion from walls
+    walls = Matrix{Float64}(undef, 4, 3)
+    walls[1,:] = [gm_params.area_width/2, pos[2], pos[3]]
+    walls[2,:] = [pos[1], gm_params.area_height/2, pos[3]]
+    walls[3,:] = [-gm_params.area_width/2, pos[2], pos[3]]
+    walls[4,:] = [pos[1], -gm_params.area_height/2, pos[3]]
+
+    force = zeros(3)
+    for j = 1:4
+        v = pos - walls[j,:]
+        (norm(v) > min_distance) && continue
+        force .+= wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(min_distance^2)) * v / norm(v)
+    end
+    return force
+end
+
+function get_repulsion_object_to_object(distance, repulsion, pos, other_pos)
+    force = zeros(3)
+    for j = 1:length(other_pos)
+        v = pos - other_pos[j]
+        (norm(v) > distance) && continue
+        force .+= repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2)) * v / norm(v)
+    end
+    return force
+end
+
 function get_repulsion_force(model, dots, gm_params)
 
     n = length(dots)
     rep_forces = Vector{Vector{Float64}}(undef, n)
+    positions = map(d->d.pos, dots)
 
     for i = 1:n
         dot = dots[i]
-        force = zeros(3)
-        for j = 1:n
-            i == j && continue
-            v = dot.pos - dots[j].pos
-            (norm(v) > model.distance) && continue
-            force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(model.distance^2)) * v / norm(v)
-        end
-        dot_applied_force = force
-                
-        # repulsion from walls
-        walls = Matrix{Float64}(undef, 4, 3)
-        walls[1,:] = [gm_params.area_width/2, dot.pos[2], dot.pos[3]]
-        walls[2,:] = [dot.pos[1], gm_params.area_height/2, dot.pos[3]]
-        walls[3,:] = [-gm_params.area_width/2, dot.pos[2], dot.pos[3]]
-        walls[4,:] = [dot.pos[1], -gm_params.area_height/2, dot.pos[3]]
-
-        force = zeros(3)
-        for j = 1:4
-            v = dot.pos - walls[j,:]
-            (norm(v) > model.distance) && continue
-            force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(model.distance^2)) * v / norm(v)
-        end
-        wall_applied_force = force
+        
+        other_pos = positions[map(j -> i != j, 1:n)]
+        dot_applied_force = get_repulsion_object_to_object(model.distance, model.dot_repulsion, dot.pos, other_pos)
+        wall_applied_force = get_repulsion_from_wall(model.distance, model.wall_repulsion, dot.pos, gm_params)
 
         rep_forces[i] = dot_applied_force[1:2]+wall_applied_force[1:2]
     end

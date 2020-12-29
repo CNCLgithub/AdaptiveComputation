@@ -4,7 +4,7 @@ using Random
 using Images
 Random.seed!(2)
 
-k = 120
+k = 240
 motion = HGMDynamicsModel()
 cm = Gen.choicemap()
 cm[:init_state => :trackers => 1 => :polygon] = true
