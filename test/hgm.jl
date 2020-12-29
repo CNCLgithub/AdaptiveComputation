@@ -12,7 +12,7 @@ cm[:init_state => :trackers => 1 => :n_dots] = 4
 cm[:init_state => :trackers => 2 => :polygon] = true
 cm[:init_state => :trackers => 2 => :n_dots] = 3
 cm[:init_state => :trackers => 3 => :polygon] = false
-
+targets = Bool[1, 1, 1, 0, 1, 0, 0, 0]
 
 hgm = HGMParams(n_trackers = 3,
                 distractor_rate = 0.0,
@@ -24,8 +24,9 @@ scene_data = dgp(k, hgm, motion;
 
 render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
-       freeze_time=24,
-       stimuli=true)
+       highlighted=collect(1:8)[targets],
+       freeze_time=2,
+       stimuli=false)
 
 # trace, _ = Gen.generate(hgm_mask, (k, motion, hgm), cm)
 # #display(get_choices(trace))

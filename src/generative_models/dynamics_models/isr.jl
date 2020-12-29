@@ -77,7 +77,7 @@ function get_repulsion_force(model, dots, gm_params)
 end
 
 function isr_repulsion_step(model, dots, gm_params)
-    rep_forces = get_repulsion_force(mode, dots, gm_params)
+    rep_forces = get_repulsion_force(model, dots, gm_params)
     n = length(dots)
 
     for i = 1:n
@@ -87,7 +87,7 @@ function isr_repulsion_step(model, dots, gm_params)
         end
         vel *= model.rep_inertia
         vel += (1.0-model.rep_inertia)*(rep_forces[i])
-        dots[i] = Dot(dot.pos, vel)
+        dots[i] = Dot(dots[i].pos, vel)
     end
     
     return dots

@@ -116,9 +116,9 @@ end
 @gen function hgm_pos_kernel(t::Int,
                             prev_state::FullState,
                             dynamics_model::AbstractDynamicsModel,
-                            params::HGMParams)
+                            hgm::HGMParams)
     prev_graph = prev_state.graph
-    new_graph = @trace(hgm_update(dynamics_model, prev_graph), :dynamics)
+    new_graph = @trace(hgm_update(dynamics_model, prev_graph, hgm), :dynamics)
     new_trackers = new_graph.elements
     pmbrfs = prev_state.rfs # pass along this reference for effeciency
     new_state = FullState(new_graph, pmbrfs, nothing)
@@ -128,10 +128,10 @@ end
 hgm_pos_chain = Gen.Unfold(hgm_pos_kernel)
 
 @gen function hgm_pos(k::Int, motion::AbstractDynamicsModel,
-                      params::HGMParams)
+                      hgm::HGMParams)
     
-    init_state = @trace(sample_init_hierarchical_state(params), :init_state)
-    states = @trace(hgm_pos_chain(k, init_state, motion, params), :kernel)
+    init_state = @trace(sample_init_hierarchical_state(hgm), :init_state)
+    states = @trace(hgm_pos_chain(k, init_state, motion, hgm), :kernel)
     result = (init_state, states)
     return result
 end
@@ -157,7 +157,7 @@ end
                                      hgm::HGMParams)
     
     prev_graph = prev_state.graph
-    new_graph = @trace(hgm_update(dynamics_model, prev_graph), :dynamics)
+    new_graph = @trace(hgm_update(dynamics_model, prev_graph, hgm), :dynamics)
     positions = get_hgm_positions(new_graph, hgm.targets)
     pmbrfs, flow_masks = get_masks_params(positions, hgm,
                                           flow_masks=prev_state.flow_masks)
@@ -178,4 +178,3 @@ hgm_mask_chain = Gen.Unfold(hgm_mask_kernel)
 end
 
 export hgm_pos, hgm_mask, HGMParams, default_hgm
-
