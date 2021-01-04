@@ -4,7 +4,7 @@ using LinearAlgebra
     n_trackers::Int = 4
     distractor_rate::Real = 4.0
     init_pos_spread::Real = 300.0
-    polygon_radius::Real = 80.0
+    polygon_radius::Real = 130.0
     
     # graphics parameters
     dot_radius::Real = 20.0
@@ -26,7 +26,7 @@ using LinearAlgebra
     # probes
     probe_flip::Float64 = 0.0
 
-    targets::Vector{Bool} = zeros(2)
+    targets::Vector{Bool} = zeros(8)
 end
 
 function load(::Type{HGMParams}, path; kwargs...)
@@ -58,16 +58,18 @@ end
 
     if pol
         r = gmh.polygon_radius
+        rot = @trace(uniform(0, 2*pi), :rot)
 
         # 3, 4 or 5 dots in the polygon
         n_dots = @trace(sample_n_dots(), :n_dots)
         
-
         dots = Vector{Dot}(undef, n_dots)
         for i=1:n_dots
             # creating dots along the polygon
-            dot_x = x + r * cos(2*pi*i/n_dots)
-            dot_y = y + r * sin(2*pi*i/n_dots)
+            dot_x = x + r * cos(2*pi*i/n_dots + rot)
+            dot_y = y + r * sin(2*pi*i/n_dots + rot)
+            #dot_x = x + r * cos(2*pi*i/n_dots)
+            #dot_y = y + r * sin(2*pi*i/n_dots)
             
             # sprinkling some noise
             dot_x = @trace(normal(dot_x, 5.0), i => :x)
@@ -76,7 +78,7 @@ end
             dots[i] = Dot([dot_x,dot_y,z], [0.0,0.0])
         end
 
-        return Polygon([x,y,z], [0.0,0.0], r, dots)
+        return Polygon([x,y,z], [0.0,0.0], rot, 0.0, r, dots)
     else
         return Dot([x,y,z], [0.0,0.0])
     end

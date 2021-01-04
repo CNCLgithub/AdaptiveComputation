@@ -2,15 +2,16 @@ export HGMDynamicsModel
 
 @with_kw struct HGMDynamicsModel <: AbstractDynamicsModel
     inertia::Float64 = 0.8
-    spring::Float64 = 0.001
-    sigma_x::Float64 = 0.2
-    sigma_y::Float64 = 0.2
+    spring::Float64 = 0.002
+    sigma_x::Float64 = 0.0
+    sigma_y::Float64 = 0.0
     
     # brownian motion on a spring with regards to polygon positions
-    pol_inertia::Float64 = 0.2
-    pol_spring::Float64 = 0.02
-    pol_sigma_x::Float64 = 0.01
-    pol_sigma_y::Float64 = 0.01
+    pol_inertia::Float64 = 0.01
+    pol_spring::Float64 = 0.5
+    pol_sigma_x::Float64 = 0.001
+    pol_sigma_y::Float64 = 0.001
+    pol_ang_vel_sigma::Float64 = 0.01
 
     # repulsion
     dot_repulsion::Float64 = 80.0
@@ -18,11 +19,9 @@ export HGMDynamicsModel
     distance::Float64 = 60.0
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
-
-    pol_pol_repulsion::Float64 = 200.0
-    pol_wall_repulsion::Float64 = 150.0
-
-    pol_pol_distance::Float64 = 100.0
+    pol_pol_repulsion::Float64 = 4.0
+    pol_wall_repulsion::Float64 = 10.0
+    pol_pol_distance::Float64 = 200.0
     pol_wall_distance::Float64 = 100.0
 end
 
@@ -51,14 +50,17 @@ end
     elseif isa(object, Polygon)
         dots = Vector{Dot}(undef, length(object.dots))
 
+        ang_vel = @trace(normal(0.95*object.ang_vel, model.pol_ang_vel_sigma), :ang_vel)
+        rot = object.rot + ang_vel
+
         for i=1:length(dots)
             _dot_x, _dot_y = object.dots[i].pos
             _dot_vx, _dot_vy = object.dots[i].vel
             
             # finding the center position defined by the polygon
             r = object.radius
-            c_dot_x = x + r * cos(2*pi*i/length(dots))
-            c_dot_y = y + r * sin(2*pi*i/length(dots))
+            c_dot_x = x + r * cos(2*pi*i/length(dots) + rot)
+            c_dot_y = y + r * sin(2*pi*i/length(dots) + rot)
 
             dot_vx = @trace(normal(model.pol_inertia * _dot_vx - model.pol_spring * (_dot_x - c_dot_x),
                                        model.pol_sigma_x), i => :vx)
@@ -70,7 +72,9 @@ end
             dots[i] = Dot([dot_x, dot_y, z], [dot_vx, dot_vy])
         end
 
-        return Polygon([x,y,z], [vx,vy], object.radius, dots)
+        return Polygon([x,y,z], [vx,vy],
+                       rot, ang_vel,
+                       object.radius, dots)
     end
 end
 
@@ -94,6 +98,8 @@ end
 function get_new_polygon(model, force, polygon)
     pos = polygon.pos
     vel = polygon.vel
+    rot = polygon.rot
+    ang_vel = polygon.ang_vel
     radius = polygon.radius
     dots = polygon.dots
 
@@ -103,7 +109,7 @@ function get_new_polygon(model, force, polygon)
 
     vel *= model.rep_inertia
     vel += (1.0-model.rep_inertia)*(force)
-    return Polygon(pos, vel, radius, dots)
+    return Polygon(pos, vel, rot, ang_vel, radius, dots)
 end
 
 
@@ -123,6 +129,7 @@ function get_pol_rep_forces(model, objects, hgm, n_dots::Int)
                                             model.pol_wall_repulsion,
                                             objects[i].pos,
                                             hgm)
+
             others = map(j -> i != j, 1:length(objects))
             other_pos = positions[polygons .& others]
             
@@ -130,10 +137,9 @@ function get_pol_rep_forces(model, objects, hgm, n_dots::Int)
                                                         model.pol_pol_repulsion,
                                                         objects[i].pos,
                                                         other_pos)
-            println("pol force: $pol_force")
 
             force = wall_force + pol_force
-            pol_rep_forces = [pol_rep_forces; fill(force[1:2], length(objects[i].dots))]
+            append!(pol_rep_forces, fill(force[1:2], length(objects[i].dots)))
         end
     end
 

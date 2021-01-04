@@ -2,7 +2,7 @@ using MOT
 using Gen
 using Random
 using Images
-Random.seed!(2)
+Random.seed!(4)
 
 k = 240
 motion = HGMDynamicsModel()
@@ -17,16 +17,20 @@ targets = Bool[1, 1, 1, 0, 1, 0, 0, 0]
 hgm = HGMParams(n_trackers = 3,
                 distractor_rate = 0.0,
                 targets = [1, 1, 0, 0])
-
-scene_data = dgp(k, hgm, motion;
-                 generate_masks=false,
-                 cm=cm)
+scene_data = nothing
+while true
+    global scene_data = dgp(k, hgm, motion;
+                     generate_masks=false,
+                     cm=cm)
+    is_min_distance_satisfied(scene_data, 100.0) && break
+end
 
 render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
        highlighted=collect(1:8)[targets],
-       freeze_time=2,
-       stimuli=false)
+       path=joinpath("render", "polygons"),
+       freeze_time=24,
+       stimuli=true)
 
 # trace, _ = Gen.generate(hgm_mask, (k, motion, hgm), cm)
 # #display(get_choices(trace))

@@ -45,6 +45,8 @@ end
 @with_kw mutable struct Polygon <: Object
     pos::Vector{Float64}
     vel::Vector{Float64}
+    rot::Float64
+    ang_vel::Float64
     radius::Float64
     dots::Vector{Dot}
 end

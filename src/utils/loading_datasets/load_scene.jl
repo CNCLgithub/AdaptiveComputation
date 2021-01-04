@@ -14,8 +14,12 @@ function load_scene(scene, dataset_path, graphics;
     
     # new entry in scene data, perhaps try block
     # would be good
-    aux_data = scene["aux_data"]
-    println(aux_data)
+    
+    aux_data = nothing
+    try
+        aux_data = scene["aux_data"]
+    catch
+    end
     close(file)
 
     if generate_masks
@@ -59,5 +63,6 @@ function load_scene(scene, dataset_path, graphics;
 
     scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
                        :motion => motion,
-                       :masks => masks])
+                       :masks => masks,
+                       :aux_data => aux_data])
 end

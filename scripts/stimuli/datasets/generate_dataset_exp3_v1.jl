@@ -45,7 +45,7 @@ n_repeats = 4
 pis = repeat(pis, n_repeats)
 
 aux_data = []
-map(p -> push!(aux_data, p), pis)
+map(p -> push!(aux_data, p), pis) # that's silly?
 
 println(pis)
 
