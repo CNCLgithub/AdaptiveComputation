@@ -7,7 +7,7 @@ function is_min_distance_satisfied(scene_data, min_distance)
     all(satisfied)
 end
 
-function generate_dataset(dataset_path, n_scenes, k, gm, motion;
+function generate_dataset(dataset_path, n_scenes, k, gms, motion;
                           min_distance = 50.0,
                           cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
                           aux_data::Union{Nothing, Vector{Any}} = nothing)
@@ -22,7 +22,7 @@ function generate_dataset(dataset_path, n_scenes, k, gm, motion;
             cm = isnothing(cms) ? choicemap() : cms[i]
 
             while true
-                scene_data = dgp(k, gm, motion;
+                scene_data = dgp(k, gms[i], motion;
                                  generate_masks=false,
                                  cm=cm)
                 if is_min_distance_satisfied(scene_data, min_distance)
@@ -31,7 +31,7 @@ function generate_dataset(dataset_path, n_scenes, k, gm, motion;
             end
 
             scene = JLD2.Group(file, "$i")
-            scene["gm"] = gm
+            scene["gm"] = gms[i]
             scene["motion"] = motion
             scene["aux_data"] = isnothing(aux_data) ? nothing : aux_data[i]
 

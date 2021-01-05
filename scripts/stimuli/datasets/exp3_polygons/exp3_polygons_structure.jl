@@ -15,7 +15,7 @@ function get_correlations(dataset_path::String, scene::Int)
     scene_data = MOT.load_scene(scene, dataset_path, default_hgm;
                                 generate_masks=false)
     gt_cgs = scene_data[:gt_causal_graphs]
-    targets = scene_data[:aux_data]
+    targets = scene_data[:aux_data][:targets]
     dots = map(_ -> true, targets)
     pos = map(cg -> MOT.get_hgm_positions(cg, dots), gt_cgs)
     vels = map(t -> pos[t+1] - pos[t], 1:length(pos)-1)
@@ -34,13 +34,7 @@ end
 """
     structure = 1/n_objects
 """
-function get_structure(dataset_path::String, scene::Int)
-    scene_data = MOT.load_scene(scene, dataset_path, default_hgm;
-                                generate_masks=false)
-    gt_cgs = scene_data[:gt_causal_graphs]
-    n_objects = length(first(gt_cgs).elements)
-    return 1/n_objects   
-end
+get_structure_value(scene_data) = 1/length(scene_data[:aux_data][:polygon_structure])
 
 # helpers for get_target_concentration
 _n_dots(x::MOT.Dot) = 1
@@ -49,39 +43,45 @@ _n_dots(x::MOT.Polygon) = length(x.dots)
 """
     compute target concentration, mean(n_targets/n_dots for each polygon that has targets)
 """
-function get_target_concentration(dataset_path::String, scene::Int)
-    scene_data = MOT.load_scene(scene, dataset_path, default_hgm;
-                                generate_masks=false)
-    gt_cgs = scene_data[:gt_causal_graphs]
-    targets = scene_data[:aux_data]
-    objects = first(gt_cgs).elements
-    polygon_dots = map(x->_n_dots(x), objects)
-    polygon_target_concentrations = []
+function get_target_concentration(pol_structure, targets)
+    pol_target_concentrations = []
     index = 1
-    for pol in polygon_dots
+    for pol in pol_structure
         pol_targets = targets[index:index+pol-1]
         ptc = sum(pol_targets)/length(pol_targets)
-        ptc != 0 && push!(polygon_target_concentrations, ptc)
+        ptc != 0 && push!(pol_target_concentrations, ptc)
         index += pol
     end
     
-    return mean(polygon_target_concentrations)
+    return mean(pol_target_concentrations)
 end
 
+get_polygon_structure(scene_data) = scene_data[:aux_data][:polygon_structure]
+get_targets(scene_data) = scene_data[:aux_data][:targets]
 
-
-function quantify_structure(dataset_path::String, output_path::String)
+function quantify_structure(dataset_path::String,
+                            output_path::String;
+                            alpha::Float64 = 1.0,
+                            beta::Float64 = 1.0)
     file = jldopen(dataset_path, "r")
     n_scenes = file["n_scenes"]
     close(file)
-    
-    #correlations = map(i -> get_correlations(dataset_path, i), 1:n_scenes)
-    structures = map(i -> get_structure(dataset_path, i), 1:n_scenes)
-    target_concentrations = map(i -> get_target_concentration(dataset_path, i), 1:n_scenes)
+   
+    scenes = map(i -> MOT.load_scene(i, dataset_path, default_hgm; generate_masks=false), 1:n_scenes)
+
+    polygons = map(i -> get_polygon_structure(scenes[i]), 1:n_scenes)
+    targets = map(i -> get_targets(scenes[i]), 1:n_scenes)
+    structure_values = map(i -> get_structure_value(scenes[i]), 1:n_scenes)
+    target_concentrations = map(i -> get_target_concentration(polygons[i], targets[i]), 1:n_scenes)
+
+    rel_structures = (alpha .* structure_values + beta .* target_concentrations)/(alpha + beta)
     
     df = DataFrame(scene = 1:n_scenes,
-                   structure = structures,
                    #correlation = correlations,
-                   target_concentration = target_concentrations)
+                   polygons = polygons,
+                   targets = targets,
+                   structure_value = structure_values,
+                   target_concentration = target_concentrations,
+                   rel_structure = rel_structures)
     df |> CSV.write(output_path)
 end

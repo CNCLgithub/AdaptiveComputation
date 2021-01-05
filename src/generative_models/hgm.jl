@@ -20,7 +20,7 @@ using LinearAlgebra
 
     # flow masks
     fmasks::Bool = false
-    fmasks_decay_function::Function = default_decay_function
+    fmasks_decay_function::Function = MOT.default_decay_function
     fmasks_n = 5
 
     # probes
