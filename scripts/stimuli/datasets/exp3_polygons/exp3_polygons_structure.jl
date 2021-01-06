@@ -44,16 +44,27 @@ _n_dots(x::MOT.Polygon) = length(x.dots)
     compute target concentration, mean(n_targets/n_dots for each polygon that has targets)
 """
 function get_target_concentration(pol_structure, targets)
+    println("pol_structure $pol_structure, targets $targets")
     pol_target_concentrations = []
     index = 1
     for pol in pol_structure
-        pol_targets = targets[index:index+pol-1]
-        ptc = sum(pol_targets)/length(pol_targets)
-        ptc != 0 && push!(pol_target_concentrations, ptc)
+        # if a dot, then count as 0
+        if pol == 1 && targets[index] == 1
+            push!(pol_target_concentrations, 0.0)
+        else
+            pol_targets = targets[index:index+pol-1]
+            ptc = sum(pol_targets)/length(pol_targets)
+            ptc != 0 && push!(pol_target_concentrations, ptc)
+        end
         index += pol
     end
     
-    return mean(pol_target_concentrations)
+    println(pol_target_concentrations)
+    if sum(pol_target_concentrations) == 0.0
+        return 0.0
+    else
+        return mean(pol_target_concentrations)
+    end
 end
 
 get_polygon_structure(scene_data) = scene_data[:aux_data][:polygon_structure]

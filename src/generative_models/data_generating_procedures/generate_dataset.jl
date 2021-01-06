@@ -1,4 +1,12 @@
-export generate_dataset, is_min_distance_satisfied
+export generate_dataset, is_min_distance_satisfied, are_dots_inside
+
+function are_dots_inside(scene_data, gm)
+    xmin, xmax = -gm.area_width/2, gm.area_width/2
+    ymin, ymax = -gm.area_width/2, gm.area_width/2
+
+    area_height::Int = 800
+    area_width::Int = 800
+end
 
 function is_min_distance_satisfied(scene_data, min_distance)
     init_dots = scene_data[:gt_causal_graphs][1].elements
@@ -25,7 +33,7 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
                 scene_data = dgp(k, gms[i], motion;
                                  generate_masks=false,
                                  cm=cm)
-                if is_min_distance_satisfied(scene_data, min_distance)
+                if are_dots_inside(scene_data, gms[i]) && is_min_distance_satisfied(scene_data, min_distance)
                     break
                 end
             end
