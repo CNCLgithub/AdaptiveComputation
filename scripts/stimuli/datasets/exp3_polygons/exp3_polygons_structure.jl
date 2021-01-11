@@ -44,7 +44,7 @@ _n_dots(x::MOT.Polygon) = length(x.dots)
     compute target concentration, mean(n_targets/n_dots for each polygon that has targets)
 """
 function get_target_concentration(pol_structure, targets)
-    println("pol_structure $pol_structure, targets $targets")
+    #println("pol_structure $pol_structure, targets $targets")
     pol_target_concentrations = []
     index = 1
     for pol in pol_structure
@@ -59,7 +59,7 @@ function get_target_concentration(pol_structure, targets)
         index += pol
     end
     
-    println(pol_target_concentrations)
+    #println(pol_target_concentrations)
     if sum(pol_target_concentrations) == 0.0
         return 0.0
     else
