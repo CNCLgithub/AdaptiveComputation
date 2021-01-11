@@ -10,7 +10,6 @@ function are_dots_inside(scene_data, gm)
     
     cg = first(scene_data[:gt_causal_graphs])
     n_dots = sum(map(x -> _n_dots(x), cg.elements))
-    println(n_dots)
     positions = get_hgm_positions(cg, fill(true, n_dots))
 
     satisfied = map(i ->
@@ -19,6 +18,7 @@ function are_dots_inside(scene_data, gm)
                     positions[i][2] > ymin &&
                     positions[i][2] < ymax,
                     1:n_dots)
+
     all(satisfied)    
 end
 
@@ -41,19 +41,12 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
         file["n_scenes"] = n_scenes
         for i=1:n_scenes
             println("generating scene $i/$n_scenes")
-            println(aux_data[i])
             scene_data = nothing
 
             # if no choicemaps, then create an empty one
             cm = isnothing(cms) ? choicemap() : cms[i]
 
-            #display(cm)
-            #display(gms[i])
-            
-            attempts = 0
             while true
-                println("here $attempts")
-                attempts += 1
                 scene_data = dgp(k, gms[i], motion;
                                  generate_masks=false,
                                  cm=cm)

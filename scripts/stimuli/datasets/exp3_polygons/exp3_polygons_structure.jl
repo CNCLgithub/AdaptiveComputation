@@ -91,6 +91,7 @@ function quantify_structure(dataset_path::String,
                    #correlation = correlations,
                    polygons = polygons,
                    targets = targets,
+                   n_targets = map(sum, targets),
                    structure_value = structure_values,
                    target_concentration = target_concentrations,
                    rel_structure = rel_structures)

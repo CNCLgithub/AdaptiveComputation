@@ -4,8 +4,8 @@ using Random
 Random.seed!(4)
 include("exp3_polygons_structure.jl")
 dataset_path = joinpath("/datasets", "exp3_polygons.jld2")
-n_scenes_2_generate = 20000 # generate and remove non-unique scenes
-k = 240
+n_scenes_2_generate = 500000 # generate and remove non-unique scenes
+k = 192
 
 function sample_polygon_structure(n_dots_limit::Int)::Vector{Int}
     n_dots_remaining = n_dots_limit
@@ -24,37 +24,29 @@ function sample_polygon_structure(n_dots_limit::Int)::Vector{Int}
     end
 end
 
-polygon_structures = map(_ -> sample_polygon_structure(8), 1:n_scenes_2_generate)
-#display(polygon_structures)
+
+
 
 motion = HGMDynamicsModel()
-cms = Vector{ChoiceMap}(undef, n_scenes_2_generate)
-for i=1:n_scenes_2_generate
-    cm = Gen.choicemap()
-    for (j, object) in enumerate(polygon_structures[i])
-        cm[:init_state => :trackers => j => :polygon] = object > 1
-        if object > 1
-            cm[:init_state => :trackers => j => :n_dots] = object
-        end
-    end
-    cms[i] = cm
-end
 
 
-# this is the default target designation that we permute
-# for each trial to generate different target concentrations
-normal_targets = Bool[1, 1, 1, 1, 0, 0, 0, 0]
-
-function describe_scene(i)
-    polygon_structure = polygon_structures[i]
+function describe_scene(polygon_structure,
+                        alpha = 1.0,
+                        beta = 1.0)
+    n_dots = sum(polygon_structure)
+    n_targets = Int(n_dots/2)
+    normal_targets = Bool[fill(1, n_targets); fill(0, n_targets)]
     targets = shuffle(normal_targets)
     structure_value = 1/length(polygon_structure)
     target_concentration = get_target_concentration(polygon_structure, targets)
+    
+    rel_structure = (alpha .* structure_value + beta .* target_concentration)/(alpha + beta)
 
     Dict([:polygon_structure => polygon_structure,
           :targets => targets,
           :structure_value => structure_value,
-          :target_concentration => target_concentration])
+          :target_concentration => target_concentration,
+          :rel_structure => rel_structure])
 end
 
 """
@@ -95,35 +87,87 @@ function polygon_concentration_condition(scene)
     return fc_pols_targets == fc_pols_distractors
 end
 
-# we store polygon structure and targets in the aux_data as a Vector{Dict}
-aux_data = map(i -> describe_scene(i), 1:n_scenes_2_generate)
-aux_data = convert(Vector{Any}, aux_data)
 
-# we make sure that
-pol_passed = map(polygon_concentration_condition, aux_data)
-aux_data = aux_data[pol_passed]
-cms = cms[pol_passed]
 
-# we don't care about targets vector uniqueness
-values = map(x -> (x[:polygon_structure], x[:structure_value], x[:target_concentration]), aux_data)
+# n_scenes specifies how many scenes to cap at
+function get_scene_prereqs(n_targets, n_scenes;
+                           alpha = 1.0,
+                           beta = 1.0)
+    polygon_structures = map(_ -> sample_polygon_structure(n_targets*2), 1:n_scenes_2_generate)
 
-unique_scenes_idxs = findfirst.(isequal.(unique(values)), [values])
-n_unique_scenes = length(unique_scenes_idxs)
-println("NUMBER OF UNIQUE SCENES GENERATED: ", n_unique_scenes)
+    cms = Vector{ChoiceMap}(undef, n_scenes_2_generate*length(n_targets))
+    for i=1:n_scenes_2_generate*length(n_targets)
+        cm = Gen.choicemap()
+        for (j, object) in enumerate(polygon_structures[i])
+            cm[:init_state => :trackers => j => :polygon] = object > 1
+            if object > 1
+                cm[:init_state => :trackers => j => :n_dots] = object
+            end
+        end
+        cms[i] = cm
+    end
+    
+    alphas = fill(alpha, length(polygon_structures))
+    betas = fill(beta, length(polygon_structures))
 
-cms = cms[unique_scenes_idxs]
-aux_data = aux_data[unique_scenes_idxs]
+    # we store polygon structure and targets in the aux_data as a Vector{Dict}
+    aux_data = map(describe_scene, polygon_structures, alphas, betas)
+    aux_data = convert(Vector{Any}, aux_data)
 
-gms = Vector{HGMParams}(undef, n_unique_scenes)
-for i=1:n_unique_scenes
-    n_trackers = length(aux_data[i][:polygon_structure])
-    gms[i] = HGMParams(n_trackers = n_trackers,
-                       distractor_rate = 0.0,
-                       targets = aux_data[i][:targets])
+    # we make sure that
+    pol_passed = map(polygon_concentration_condition, aux_data)
+    aux_data = aux_data[pol_passed]
+    cms = cms[pol_passed]
+
+    # we don't care about targets vector uniqueness
+    values = map(x -> (x[:polygon_structure], x[:structure_value], x[:target_concentration]), aux_data)
+
+    unique_scenes_idxs = findfirst.(isequal.(unique(values)), [values])
+    n_unique_scenes = length(unique_scenes_idxs)
+    println("NUMBER OF UNIQUE SCENES GENERATED: ", n_unique_scenes)
+
+    cms = cms[unique_scenes_idxs]
+    aux_data = aux_data[unique_scenes_idxs]
+    gms = Vector{HGMParams}(undef, n_unique_scenes)
+
+    for i=1:n_unique_scenes
+        n_trackers = length(aux_data[i][:polygon_structure])
+        gms[i] = HGMParams(n_trackers = n_trackers,
+                           distractor_rate = 0.0,
+                           targets = aux_data[i][:targets])
+    end
+     
+    rs = map(d -> d[:rel_structure], aux_data)
+    p = sortperm(rs, rev=true)
+
+    # taking top five, bottom five and random from middle
+    top = p[1:5]
+    bottom = p[end-4:end]
+    middle = shuffle(p[6:end-5])[1:(n_scenes-10)]
+    scenes = [top; middle; bottom]
+
+    scene_prereqs = Dict([:aux_data => aux_data[scenes],
+                          :cms => cms[scenes],
+                          :gms => gms[scenes]])
+    return scene_prereqs
 end
 
-MOT.generate_dataset(dataset_path, n_unique_scenes, k, gms, motion;
-                     min_distance = 50.0,
+n_targets = [4, 6, 8]
+n_scenes_per_nt = 22
+aux_data = []
+cms = ChoiceMap[]
+gms = []
+for nt in n_targets
+    scene_prereqs = get_scene_prereqs(nt, n_scenes_per_nt;
+                                      alpha = 1.0,
+                                      beta = 0.25)
+    append!(aux_data, scene_prereqs[:aux_data])
+    append!(cms, scene_prereqs[:cms])
+    append!(gms, scene_prereqs[:gms])
+end
+
+MOT.generate_dataset(dataset_path, length(gms), k, gms, motion;
+                     min_distance = 60.0,
                      cms=cms,
                      aux_data=aux_data)
 
