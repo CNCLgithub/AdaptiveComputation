@@ -25,8 +25,6 @@ function sample_polygon_structure(n_dots_limit::Int)::Vector{Int}
 end
 
 
-
-
 motion = HGMDynamicsModel()
 
 

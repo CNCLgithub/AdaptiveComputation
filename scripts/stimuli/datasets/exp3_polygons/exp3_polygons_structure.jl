@@ -70,7 +70,7 @@ end
 get_polygon_structure(scene_data) = scene_data[:aux_data][:polygon_structure]
 get_targets(scene_data) = scene_data[:aux_data][:targets]
 
-function quantify_structure(dataset_path::String,
+function quantify_structure_old(dataset_path::String,
                             output_path::String;
                             alpha::Float64 = 1.0,
                             beta::Float64 = 1.0)
@@ -83,6 +83,7 @@ function quantify_structure(dataset_path::String,
     polygons = map(i -> get_polygon_structure(scenes[i]), 1:n_scenes)
     targets = map(i -> get_targets(scenes[i]), 1:n_scenes)
     structure_values = map(i -> get_structure_value(scenes[i]), 1:n_scenes)
+    structure_values = fill(1.0, n_scenes)
     target_concentrations = map(i -> get_target_concentration(polygons[i], targets[i]), 1:n_scenes)
 
     rel_structures = (alpha .* structure_values + beta .* target_concentrations)/(alpha + beta)
@@ -94,6 +95,37 @@ function quantify_structure(dataset_path::String,
                    n_targets = map(sum, targets),
                    structure_value = structure_values,
                    target_concentration = target_concentrations,
+                   rel_structure = rel_structures)
+    df |> CSV.write(output_path)
+end
+
+
+struct StructureParams
+    cost_d_lin::Float64
+    cost_d_ang::Float64
+    cost_vert::Float64
+end
+
+
+
+"""
+    new structure quantification based on value and cost
+"""
+function quantify_structure(dataset_path::String,
+                            output_path::String;
+                            p::StructureParams)
+    file = jldopen(dataset_path, "r")
+    n_scenes = file["n_scenes"]
+    close(file)
+    scenes = map(i -> MOT.load_scene(i, dataset_path, default_hgm; generate_masks=false), 1:n_scenes)
+    polygons = map(i -> get_polygon_structure(scenes[i]), 1:n_scenes)
+    targets = map(i -> get_targets(scenes[i]), 1:n_scenes)
+    rel_structures = ...
+    
+    df = DataFrame(scene = 1:n_scenes,
+                   polygons = polygons,
+                   targets = targets,
+                   n_targets = map(sum, targets),
                    rel_structure = rel_structures)
     df |> CSV.write(output_path)
 end
