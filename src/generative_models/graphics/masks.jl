@@ -54,10 +54,11 @@ drawing a gaussian dot with two components:
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
-                                dot_p::Float64,
+                                gauss_r_multiple::Float64,
                                 gauss_amp::Float64, gauss_std::Float64)
     scaled_sd = r * gauss_std
-    threshold = r * dot_p
+    threshold = r * gauss_r_multiple
+    println(threshold)
     mask = zeros(h, w)
     # mask = fill(1.0/(h*w), h, w)
     for i=1:h

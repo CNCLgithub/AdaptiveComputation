@@ -8,11 +8,12 @@ receptive_fields_map = Gen.Map(sample_masks)
                                       prev_state::FullState,
                                       dynamics_model::AbstractDynamicsModel,
                                       receptive_fields::Vector{AbstractReceptiveField},
+                                      prob_threshold::Float64,
                                       gm::GMMaskParams)
     # using ISR Dynamics
     new_graph = @trace(isr_update(dynamics_model, prev_state.graph, gm), :dynamics)
     objects = new_graph.elements
-    rfs_vec = get_rfs_vec(receptive_fields, objects, gm)
+    rfs_vec = get_rfs_vec(receptive_fields, objects, prob_threshold, gm)
     @trace(receptive_fields_map(rfs_vec), :receptive_fields)
 
     # returning this to get target designation and assignment
@@ -25,9 +26,10 @@ receptive_fields_chain = Gen.Unfold(receptive_fields_kernel)
 @gen function gm_receptive_fields(k::Int,
                                   dynamics_model::AbstractDynamicsModel,
                                   receptive_fields::Vector{AbstractReceptiveField},
+                                  prob_threshold::Float64,
                                   gm::GMMaskParams)
     init_state = @trace(sample_init_state(gm), :init_state)
-    states = @trace(receptive_fields_chain(k, init_state, dynamics_model, receptive_fields, gm), :kernel)
+    states = @trace(receptive_fields_chain(k, init_state, dynamics_model, receptive_fields, prob_threshold, gm), :kernel)
 
     result = (init_state, states)
     return result

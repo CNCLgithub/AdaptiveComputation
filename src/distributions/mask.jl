@@ -14,13 +14,7 @@ end
 
 b_pdf(x::Bool, p::Float64) = Gen.logpdf(bernoulli, x, p)
 
-#Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64}) = sum(b_pdf.(image, ps))
-function Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64})
-    println("image size ", size(image))
-    println("probs size ", size(ps))
-    sum(b_pdf.(image, ps))
-end
-
+Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64}) = sum(b_pdf.(image, ps))
 
 (::Mask)(ps) = Gen.random(Mask(), ps)
 

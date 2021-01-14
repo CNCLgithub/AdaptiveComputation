@@ -24,8 +24,9 @@ function get_masks_rvs_args(positions, params::AbstractGMParams)
         
         mask = draw_gaussian_dot_mask([x,y], r,
                                  params.img_height, params.img_width,
-                                 params.dot_p,
+                                 params.gauss_r_multiple,
                                  params.gauss_amp, params.gauss_std)
+        display(unique(mask))
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 
