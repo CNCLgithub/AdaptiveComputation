@@ -26,7 +26,10 @@ end
 
 function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
                                  state::Gen.ParticleFilterState)
-    rtrace = proc.rejuvenation(state, proc.rejuv_args...)
+    rtrace = nothing
+    if !isnothing(proc.rejuvenation)
+        rtrace = proc.rejuvenation(state, proc.rejuv_args...)
+    end
     return rtrace
 end
 

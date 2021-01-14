@@ -19,7 +19,7 @@ end
 
 function retrieve_latents(tr::Gen.Trace)
     args = Gen.get_args(tr)
-    ntrackers = last(args).n_trackers
+    ntrackers = args[3].n_trackers
     collect(1:ntrackers)
 end
 
@@ -189,8 +189,6 @@ function early_stopping(att::MapSensitivity, new_stats, prev_stats)
 end
 
 # Objectives
-
-
 function _td(tr::Gen.Trace, t::Int)
     xs = get_choices(tr)[:kernel => t => :masks]
     pmbrfs = Gen.get_retval(tr)[2][t].rfs

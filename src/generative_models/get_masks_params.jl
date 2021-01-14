@@ -26,7 +26,6 @@ function get_masks_rvs_args(positions, params::AbstractGMParams)
                                  params.img_height, params.img_width,
                                  params.gauss_r_multiple,
                                  params.gauss_amp, params.gauss_std)
-        display(unique(mask))
         mask = subtract_images(mask, img_so_far)
         img_so_far = add_images(img_so_far, mask)
 

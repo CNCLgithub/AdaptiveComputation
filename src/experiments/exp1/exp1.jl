@@ -11,7 +11,6 @@ export Exp1
     fmasks::Bool = false
     fmasks_decay_function::Function = x->x
     fmasks_n::Int = 5
-
 end
 
 get_name(::Exp1) = "exp1"
@@ -31,7 +30,6 @@ function run_inference(q::Exp1,
     end
 
     display(gm)
-
     
     scene_data = load_scene(q.scene, q.dataset_path, gm;
                             generate_masks=true)

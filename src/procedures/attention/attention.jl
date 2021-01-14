@@ -19,8 +19,10 @@ function early_stopping(::AbstractAttentionModel, prev_stats, new_stats)
 end
 
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
-
-    t, motion, gm = get_args(first(pf_state.traces))
+    
+    args = get_args(first(pf_state.traces))
+    println(args)
+    t, motion, gm = args
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 

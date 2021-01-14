@@ -23,11 +23,11 @@ end
 
 receptive_fields_chain = Gen.Unfold(receptive_fields_kernel)
 
-@gen function gm_receptive_fields(k::Int,
+@gen static function gm_receptive_fields(k::Int,
                                   dynamics_model::AbstractDynamicsModel,
+                                  gm::GMMaskParams,
                                   receptive_fields::Vector{AbstractReceptiveField},
-                                  prob_threshold::Float64,
-                                  gm::GMMaskParams)
+                                  prob_threshold::Float64)
     init_state = @trace(sample_init_state(gm), :init_state)
     states = @trace(receptive_fields_chain(k, init_state, dynamics_model, receptive_fields, prob_threshold, gm), :kernel)
 
