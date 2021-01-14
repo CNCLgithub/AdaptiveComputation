@@ -85,7 +85,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
     exp0 = fill(gm.exp0, gm.n_trackers)
     trackers = @trace(init_trackers_map(trackers_gm, exp0), :trackers)
-    trackers = collect(Dot, trackers)
+    trackers = collect(Object, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
     pmbrfs = RFSElements{Array}(undef, 0)
@@ -102,7 +102,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     else
         flow_masks = nothing
     end
-
+    
     FullState(graph, pmbrfs, flow_masks)
 end
 
