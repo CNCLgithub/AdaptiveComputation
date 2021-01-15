@@ -65,7 +65,6 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     end
 
 
-
     aux_contex = Gen_Compose.rejuvenate!(proc, state)
     
     println()

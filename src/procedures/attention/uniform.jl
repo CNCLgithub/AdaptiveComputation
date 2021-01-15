@@ -2,6 +2,7 @@ export UniformAttention
 
 @with_kw struct UniformAttention <: AbstractAttentionModel
     sweeps::Int = 0
+    ancestral_steps::Int = 3
 end
 
 function get_stats(::UniformAttention, state::Gen.ParticleFilterState)

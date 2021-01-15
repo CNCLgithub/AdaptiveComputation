@@ -58,14 +58,20 @@ function get_pmbrfs(rf::AbstractReceptiveField,
                     mds::Vector{Matrix{Float64}},
                     gm::AbstractGMParams) where {T <: AbstractReceptiveField}
     existence_prob = 0.99 # TODO remove constant?
+
     n = length(mds) + 1 # |mbrfs| + 1 for PPP
     
-    # TODO fix clutter mask with proper probability
-    # and potentially subtract tracker img
-    clutter_mask = fill(0.01, get_dimensions(rf)...)
+    # this is not completely correct, but maybe a fine approximation
+    rf_n_pixels = reduce(*, get_dimensions(rf))
+    rf_proportion_of_img = rf_n_pixels/gm.img_width*gm.img_height
+    rf_distractor_rate = gm.distractor_rate / rf_proportion_of_img
+
+    radius_scaled = gm.dot_radius/gm.area_width*gm.img_width
+    clutter_pixel_prob = (rf_distractor_rate*pi*(radius_scaled)^2) / (rf_n_pixels)
+    clutter_mask = fill(clutter_pixel_prob, get_dimensions(rf)...)
     
     pmbrfs = RFSElements{Array}(undef, n)
-    pmbrfs[1] = PoissonElement{Array}(gm.distractor_rate, mask, (clutter_mask,))
+    pmbrfs[1] = PoissonElement{Array}(rf_distractor_rate, mask, (clutter_mask,))
     for i=2:n
         pmbrfs[i] = BernoulliElement{Array}(existence_prob, mask, (mds[i-1],))
     end

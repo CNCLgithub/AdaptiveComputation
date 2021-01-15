@@ -189,9 +189,7 @@ function early_stopping(att::MapSensitivity, new_stats, prev_stats)
 end
 
 # Objectives
-function _td(tr::Gen.Trace, t::Int)
-    xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].rfs
+function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
@@ -205,8 +203,11 @@ function _td(tr::Gen.Trace, t::Int)
 end
 
 function target_designation(tr::Gen.Trace)
-    k = first(Gen.get_args(tr))
-    current_td = _td(tr, k)
+    t = first(Gen.get_args(tr))
+    xs = get_choices(tr)[:kernel => t => :masks]
+    pmbrfs = Gen.get_retval(tr)[2][t].rfs
+
+    current_td = _td(xs, pmbrfs, k)
 end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)

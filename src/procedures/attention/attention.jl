@@ -19,16 +19,14 @@ function early_stopping(::AbstractAttentionModel, prev_stats, new_stats)
 end
 
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
-    
     args = get_args(first(pf_state.traces))
-    println(args)
     t, motion, gm = args
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
-    rtrace.stats = get_stats(attention, pf_state)
-    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) :
-        get_weights(attention, rtrace.stats)
+    #rtrace.stats = get_stats(attention, pf_state) # TODO implement TD for receptive_fields
+    rtrace.stats = zeros(gm.n_trackers)
+    weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : get_weights(attention, rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
     println("categorical weights: $weights")
@@ -43,7 +41,6 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
         rtrace.acceptance += acceptance
         rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
-
     end
 
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
@@ -54,9 +51,9 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     println("timestep: $t")
 
     order = sortperm(pf_state.log_weights, rev=true)
-    assocs = extract_assignments(pf_state.traces[first(order)])
-    println("top assocs")
-    display(Dict(zip(assocs...)))
+    #assocs = extract_assignments(pf_state.traces[first(order)])
+    #println("top assocs")
+    #display(Dict(zip(assocs...)))
     return rtrace
 end
 

@@ -4,7 +4,7 @@ using Random
 using Images, FileIO, PaddedViews
 Random.seed!(1)
 
-r_fields_dim = (4, 4)
+r_fields_dim = (2, 2)
 k = 3
 prob_threshold = 0.001
 dynamics_model = ISRDynamics()
@@ -24,7 +24,6 @@ gt_causal_graphs = Vector{CausalGraph}(undef, k+1)
 gt_causal_graphs[1] = init_state.graph
 foreach(t -> gt_causal_graphs[t+1] = states[t].graph, 1:k)
 render(gm, k; gt_causal_graphs = gt_causal_graphs)
-
 
 # looking at sampled masks for receptive fields
 function save_img(t, rf, choices, out_dir)
