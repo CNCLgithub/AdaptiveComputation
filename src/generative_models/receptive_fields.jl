@@ -53,10 +53,14 @@ end
 """
     simple, nonhierarchical case
 """
-function get_mask_distributions(objects, gm::GMMaskParams)
+function get_mask_distributions(objects, gm::GMMaskParams; flow_masks=nothing)
     pos = map(o->o.pos, objects)
     mask_args, trackers_img = get_masks_rvs_args(pos, gm)
+    if !isnothing(flow_masks)
+        flow_masks, mask_args = add_flow_masks(flow_masks, mask_args)
+    end
     mask_distributions = map(first, mask_args)
+    return (mask_distributions, flow_masks)
 end
 
 
@@ -93,10 +97,12 @@ end
 function get_rfs_vec(rec_fields::Vector{T},
                      objects::Vector{Object},
                      prob_threshold::Float64,
-                     gm::AbstractGMParams) where T <: AbstractReceptiveField
-    mds = get_mask_distributions(objects, gm)
+                     gm::AbstractGMParams;
+                     flow_masks=nothing) where T <: AbstractReceptiveField
+    mds, flow_masks = get_mask_distributions(objects, gm, flow_masks=flow_masks)
     mds_rf = map(rf -> get_mds_rf(rf, mds, prob_threshold), rec_fields)
     rfs_vec = map(get_pmbrfs, rec_fields, mds_rf, fill(gm, length(rec_fields)))
+    return rfs_vec, flow_masks
 end
 
 

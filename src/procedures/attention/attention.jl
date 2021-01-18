@@ -24,8 +24,8 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
 
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
 
-    #rtrace.stats = get_stats(attention, pf_state) # TODO implement TD for receptive_fields
-    rtrace.stats = zeros(gm.n_trackers)
+    rtrace.stats = get_stats(attention, pf_state) # TODO implement TD for receptive_fields
+    #rtrace.stats = zeros(gm.n_trackers)
     weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : get_weights(attention, rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 

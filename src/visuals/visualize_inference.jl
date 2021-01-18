@@ -22,27 +22,27 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     k = size(causal_graphs, 1)
     tracker_masks = render_tracker_masks ? extracted["unweighted"][:tracker_masks] : nothing
     
-    # aux_state = extracted["aux_state"]
-    # attention_weights = [aux_state[t].stats for t = 1:k]
-    # attention_weights = collect(hcat(attention_weights...)')
+    aux_state = extracted["aux_state"]
+    attention_weights = [aux_state[t].stats for t = 1:k]
+    attention_weights = collect(hcat(attention_weights...)')
     
-    # plot_compute_weights(attention_weights, path)
+    plot_compute_weights(attention_weights, path)
 
-    # attempts = Vector{Int}(undef, k)
-    # attended = Vector{Vector{Float64}}(undef, k)
-    # for t=1:k
-        # attempts[t] = aux_state[t].attempts
-        # attended[t] = aux_state[t].attended_trackers
-    # end
-    # MOT.plot_attention(attended, attention.sweeps, path)
-    # plot_rejuvenation(attempts, path)
+    attempts = Vector{Int}(undef, k)
+    attended = Vector{Vector{Float64}}(undef, k)
+    for t=1:k
+        attempts[t] = aux_state[t].attempts
+        attended[t] = aux_state[t].attended_trackers
+    end
+    MOT.plot_attention(attended, attention.sweeps, path)
+    plot_rejuvenation(attempts, path)
     
     println(path)
     # visualizing inference on stimuli
     render(gm, k;
            gt_causal_graphs=gt_causal_graphs,
            causal_graphs=causal_graphs,
-           #attended=attended/attention.sweeps,
+           attended=attended/attention.sweeps,
            tracker_masks=tracker_masks,
            path = joinpath(path, "render"),
            receptive_fields=receptive_fields,
