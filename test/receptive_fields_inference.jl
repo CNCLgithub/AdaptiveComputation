@@ -7,7 +7,8 @@ Random.seed!(1)
 
 using StatProfilerHTML
 
-r_fields = (5, 5)
+r_fields = (4, 4)
+overlap = 3
 
 # genearate data
 k = 80
@@ -18,8 +19,8 @@ gm = GMMaskParams(gauss_r_multiple = 2.0,
                   fmasks_n = 8,
                   img_height = 50,
                   img_width = 50,
-                  n_trackers = 6,
-                  distractor_rate = 6.0)
+                  n_trackers = 4,
+                  distractor_rate = 4.0)
 
 motion = ISRDynamics()
 prob_threshold = 0.01
@@ -27,8 +28,8 @@ scene_data = dgp(k, gm, motion; generate_masks = true)
 
 #gm="/project/scripts/inference/exp1_isr/gm.json"
 #attention = MOT.load(MapSensitivity, "/project/scripts/inference/exp1/td.json", sweeps=0)
-attention = UniformAttention(sweeps = 0,
-                             ancestral_steps = 2)
+attention = UniformAttention(sweeps = 10,
+                             ancestral_steps = 3)
 proc_json = "/project/scripts/inference/exp1/proc.json"
 path = joinpath("output", "experiments", "receptive_fields", "test")
 try
@@ -63,7 +64,7 @@ for i=1:gm.n_trackers
 end
     
 # crop observations into receptive fields
-receptive_fields = get_rectangle_receptive_fields(r_fields..., gm)
+receptive_fields = get_rectangle_receptive_fields(r_fields..., gm, overlap = overlap)
 
 args = [(t, motion_inference, gm, receptive_fields, prob_threshold) for t in 1:k]
 observations = Vector{Gen.ChoiceMap}(undef, k)
@@ -84,7 +85,7 @@ query = Gen_Compose.SequentialQuery(latent_map,
                                     observations)
 
 proc = MOT.load(PopParticleFilter, proc_json;
-                particles = 1000,
+                particles = 10,
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
 
@@ -93,5 +94,7 @@ results = sequential_monte_carlo(proc, query,
                                  path = joinpath(path, "results.jld2"))
     
 visualize_inference(results, gt_causal_graphs,
-                    gm, attention, dirname(path))
+                    gm, attention, dirname(path),
+                    receptive_fields = r_fields,
+                    receptive_fields_overlap = overlap)
 

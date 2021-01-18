@@ -15,8 +15,8 @@ end
     p2 = (xmax, ymax)
 """
 struct RectangleReceptiveField <: AbstractReceptiveField
-    p1::Tuple{Int, Int}
-    p2::Tuple{Int, Int}
+    p1::Tuple{Int64, Int64}
+    p2::Tuple{Int64, Int64}
 end
 
 function crop(rf::RectangleReceptiveField,
@@ -31,15 +31,24 @@ function get_dimensions(rf::RectangleReceptiveField)
 end
 
 # gets the mask distributions for a given receptive field
-function get_mds_rf(rf::T,
+function get_mds_rf(rf::AbstractReceptiveField,
                     mds::Vector{Matrix{Float64}},
-                    prob_threshold) where {T <: AbstractReceptiveField}
-    # cropping each mask according to the receptive field
-    cropped_mds = map(md -> crop(rf, md), mds)
-    # filtering masks that have at least one pixel above prob_threshold
-    filter(md -> any(md .> prob_threshold), cropped_mds)
+                    prob_threshold::Float64)
+    error("not implemented")
 end
 
+function get_mds_rf(rf::RectangleReceptiveField,
+                    mds::Vector{Matrix{Float64}},
+                    prob_threshold::Float64)
+    # cropping masks to receptive fields and filtering only with mass
+    @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> prob_threshold))
+    
+    # alternative
+    # x = @>> mds begin
+        # map(md -> crop(rf, md))
+        # filter(md -> any(md .> prob_threshold))
+    # end
+end
 
 """
     simple, nonhierarchical case
@@ -55,14 +64,14 @@ end
     gets
 """
 function get_pmbrfs(rf::AbstractReceptiveField,
-                    mds::Vector{Matrix{Float64}},
-                    gm::AbstractGMParams) where {T <: AbstractReceptiveField}
+                    mds::Vector{Matrix{Float64}}, # maybe define VecMat
+                    gm::AbstractGMParams)
     existence_prob = 0.99 # TODO remove constant?
 
     n = length(mds) + 1 # |mbrfs| + 1 for PPP
     
     # this is not completely correct, but maybe a fine approximation
-    rf_n_pixels = reduce(*, get_dimensions(rf))
+    rf_n_pixels = prod(get_dimensions(rf))
     rf_proportion_of_img = rf_n_pixels/gm.img_width*gm.img_height
     rf_distractor_rate = gm.distractor_rate / rf_proportion_of_img
 
@@ -95,12 +104,25 @@ end
 # A FEW UTILS for automatic generation of receptive
 # fields given generative model params
 ###############
-function get_rectangle_receptive_field(xy, n_x, n_y, gm)
+
+function bound(x, a, b)
+    min(max(x, a), b)
+end
+
+function bound_point(p, w, h)
+    (bound(p[1], 1, w), bound(p[2], 1, h))
+end
+
+function get_rectangle_receptive_field(xy, n_x, n_y, gm;
+                                       overlap = 0)
     w = floor(Int, gm.img_width/n_y)
     h = floor(Int, gm.img_height/n_x)
 
-    p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1)
-    p2 = p1 .+ (w-1, h-1)
+    p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1) .- (overlap, overlap)
+    p2 = p1 .+ (w-1, h-1) .+ (overlap, overlap)
+
+    p1 = bound_point(p1, gm.img_width, gm.img_height)
+    p2 = bound_point(p2, gm.img_width, gm.img_height)
 
     return RectangleReceptiveField(p1, p2)
 end
@@ -114,9 +136,11 @@ end
         gm - generative model parameters
 
 """
-function get_rectangle_receptive_fields(n_x, n_y, gm)
+function get_rectangle_receptive_fields(n_x, n_y, gm;
+                                        overlap = 0)
     rf_idx = Iterators.product(1:n_x, 1:n_y)
-    receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, gm), rf_idx)
+    receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, gm; overlap=overlap), rf_idx)
+    println(receptive_fields)
     receptive_fields = map(i -> receptive_fields[i], 1:n_x*n_y) # I can't find a way to flatten ://///
 end
 

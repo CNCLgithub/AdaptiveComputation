@@ -7,12 +7,22 @@ using Luxor, ImageMagick
     position at (0,0) and set background color
 """
 function _init_drawing(frame, path, gm;
-                       background_color="ghostwhite")
+                       background_color="ghostwhite",
+                       receptive_fields = nothing,
+                       receptive_fields_overlap = 0)
     fname = "$(lpad(frame, 3, "0")).png"
     Drawing(gm.area_width, gm.area_height,
             joinpath(path, fname))
     origin()
     background(background_color)
+
+    # drawing receptive_fields
+    sethue("black")
+    tiles = Tiler(gm.area_width, gm.area_height, receptive_fields[1], receptive_fields[2], margin=0)
+    foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+    setopacity(0.1)
+    setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
+    foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
 end
 
 """
@@ -242,6 +252,7 @@ end
     stimuli - true if we want to render without timestep and inference information
     freeze_time - time before and after movement (for highlighting targets and querying)
     highlighted - array 
+    receptive_fields - Tuple{Int} specifying how many tiles in the x and y dimensions
 """
 function render(gm, k;
                 gt_causal_graphs=nothing,
@@ -256,14 +267,19 @@ function render(gm, k;
                 array=false,
                 tracker_masks=nothing,
                 background_color="#7079f2",
-                path="render")
+                path="render",
+                receptive_fields=nothing,
+                receptive_fields_overlap=0.0)
     
     # if returning array of images as matrices, then make vector
     array ? imgs = [] : mkpath(path)
 
     # stopped at beginning
     for t=1:freeze_time
-        _init_drawing(t, path, gm, background_color = background_color)
+        _init_drawing(t, path, gm,
+                      background_color = background_color,
+                      receptive_fields = receptive_fields,
+                      receptive_fields_overlap = receptive_fields_overlap)
         
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[1], gm;
@@ -278,7 +294,9 @@ function render(gm, k;
     for t=1:k
         print("render timestep: $t/$k \r")
         _init_drawing(t+freeze_time, path, gm,
-                      background_color = background_color)
+                      background_color = background_color,
+                      receptive_fields = receptive_fields,
+                      receptive_fields_overlap = receptive_fields_overlap)
 
         if !stimuli
             _draw_text("$t", [gm.area_width/2 - 100, gm.area_height/2 - 100], size=50)
@@ -303,7 +321,9 @@ function render(gm, k;
     # final freeze showing the query
     for t=1:freeze_time
         _init_drawing(t+k+freeze_time, path, gm,
-                      background_color = background_color)
+                      background_color = background_color,
+                      receptive_fields = receptive_fields,
+                      receptive_fields_overlap = receptive_fields_overlap)
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[k+1], gm;
                        highlighted=highlighted,
