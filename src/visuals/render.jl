@@ -257,7 +257,7 @@ function render(gm, k;
                 tracker_masks=nothing,
                 background_color="#7079f2",
                 path="render")
-    
+
     # if returning array of images as matrices, then make vector
     array ? imgs = [] : mkpath(path)
 

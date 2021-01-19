@@ -22,13 +22,27 @@ function are_dots_inside(scene_data, gm)
     all(satisfied)    
 end
 
-function is_min_distance_satisfied(scene_data, min_distance)
+function is_min_distance_satisfied(scene_data, min_distance;
+                                   polygon_min_distance = 2.5 * min_distance)
     cg = first(scene_data[:gt_causal_graphs])
-    n_dots = sum(map(x -> _n_dots(x), cg.elements))
+    n_dots = @>> cg.elements map(x -> _n_dots(x)) sum
     positions = get_hgm_positions(cg, fill(true, n_dots))
-
-    distances = map(x -> map(y -> MOT.dist(positions[x][1:2], positions[y][1:2]), 1:n_dots), 1:n_dots)
-    satisfied = map(distance -> distance == 0.0 || distance > min_distance, Iterators.flatten(distances))
+    
+    # checking whether polygons are at the right distance if there are any
+    if @>> cg.elements map(x -> x isa Polygon) any
+        pos_pols = @>> cg.elements filter(x -> x isa Polygon) map(x->x.pos)
+        n_pols = length(pos_pols)
+        distances_idxs = Iterators.product(1:n_pols, 1:n_pols)
+        distances = @>> distances_idxs map(xy -> MOT.dist(pos_pols[xy[1]][1:2], pos_pols[xy[2]][1:2]))
+        satisfied = @>> distances map(distance -> distance == 0.0 || distance > polygon_min_distance)
+        if !all(satisfied)
+            return false
+        end
+    end
+    
+    distances_idxs = Iterators.product(1:n_dots, 1:n_dots)
+    distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
+    satisfied = @>> distances map(distance -> distance == 0.0 || distance > min_distance)
     all(satisfied)
 end
 
@@ -45,8 +59,11 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
 
             # if no choicemaps, then create an empty one
             cm = isnothing(cms) ? choicemap() : cms[i]
-
+            
+            tries = 0
             while true
+                tries += 1
+                println("$tries \r")
                 scene_data = dgp(k, gms[i], motion;
                                  generate_masks=false,
                                  cm=cm)

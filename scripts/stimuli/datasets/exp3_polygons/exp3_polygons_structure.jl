@@ -3,6 +3,7 @@
 """
 
 using MOT
+using Lazy
 using DataFrames
 using JLD2
 using CSV
@@ -120,7 +121,9 @@ function quantify_structure(dataset_path::String,
     scenes = map(i -> MOT.load_scene(i, dataset_path, default_hgm; generate_masks=false), 1:n_scenes)
     polygons = map(i -> get_polygon_structure(scenes[i]), 1:n_scenes)
     targets = map(i -> get_targets(scenes[i]), 1:n_scenes)
-    rel_structures = ...
+
+    # TODO write function with fit parameters for relevant structure
+    rel_structures = @>> 1:n_scenes map(s -> get_rel_structure(s)) 
     
     df = DataFrame(scene = 1:n_scenes,
                    polygons = polygons,
