@@ -4,7 +4,9 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              render_tracker_masks=false,
                              render_model=false,
                              render_map=false,
-                             masks=nothing)
+                             masks=nothing,
+                             receptive_fields=nothing,
+                             receptive_fields_overlap = 0)
     extracted = extract_chain(results)
     causal_graphs = extracted["unweighted"][:causal_graph]
     
@@ -34,14 +36,17 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     end
     MOT.plot_attention(attended, attention.sweeps, path)
     plot_rejuvenation(attempts, path)
-
+    
+    println(path)
     # visualizing inference on stimuli
     render(gm, k;
            gt_causal_graphs=gt_causal_graphs,
            causal_graphs=causal_graphs,
            attended=attended/attention.sweeps,
            tracker_masks=tracker_masks,
-           path = joinpath(path, "render"))
+           path = joinpath(path, "render"),
+           receptive_fields=receptive_fields,
+           receptive_fields_overlap = receptive_fields_overlap)
     
     render_model || return
 

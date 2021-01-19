@@ -26,7 +26,10 @@ end
 
 function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
                                  state::Gen.ParticleFilterState)
-    rtrace = proc.rejuvenation(state, proc.rejuv_args...)
+    rtrace = nothing
+    if !isnothing(proc.rejuvenation)
+        rtrace = proc.rejuvenation(state, proc.rejuv_args...)
+    end
     return rtrace
 end
 
@@ -60,7 +63,6 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
                                   proc.proposal,
                                   (query.observations, proc.prop_args...))
     end
-
 
 
     aux_contex = Gen_Compose.rejuvenate!(proc, state)

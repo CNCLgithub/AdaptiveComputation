@@ -14,5 +14,8 @@ include("probe_brownian.jl")
 # include("gm_positions_cbm_static.jl")
 include("hgm.jl")
 
+include("receptive_fields.jl")
+include("gm_receptive_fields.jl")
+
 include("data_generating_procedures/data_generating_procedures.jl")
 

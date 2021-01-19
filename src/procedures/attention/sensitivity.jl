@@ -19,7 +19,7 @@ end
 
 function retrieve_latents(tr::Gen.Trace)
     args = Gen.get_args(tr)
-    ntrackers = last(args).n_trackers
+    ntrackers = args[3].n_trackers
     collect(1:ntrackers)
 end
 
@@ -173,14 +173,12 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    # amp = att.x0 * exp(-(x - att.k)^2 / (2*att.scale^2))
-    # amp = att.x0 - att.k*(1 - exp(att.scale*x))
-    # amp = att.x0*exp(att.k*x)
-    amp = att.sweeps*exp(att.k*x)
+    amp = att.sweeps*exp(att.k*min(x, 0.0))
+    println("k: $(att.k)")
     println("x: $(x), amp: $(amp)")
-    Int64(round(clamp(amp, 0.0, att.sweeps)))
-    # sweeps = min(att.sweeps, sum(stats))
-    # round(Int, sweeps)
+    sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
+    println("sweeps: $sweeps")
+    return sweeps
 end
 
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
@@ -189,11 +187,7 @@ function early_stopping(att::MapSensitivity, new_stats, prev_stats)
 end
 
 # Objectives
-
-
-function _td(tr::Gen.Trace, t::Int)
-    xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].rfs
+function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
     tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
@@ -206,9 +200,20 @@ function _td(tr::Gen.Trace, t::Int)
     td
 end
 
+function target_designation_receptive_fields(tr::Gen.Trace)
+    t = first(Gen.get_args(tr))
+    rfs_vec = Gen.get_retval(tr)[2][t].rfs_vec
+    receptive_fields = get_submaps_shallow(get_submap(get_choices(tr), :kernel => t => :receptive_fields))
+    xss = @>> receptive_fields map(rf -> rf[2])
+    tds = @>> receptive_fields map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+end
+
 function target_designation(tr::Gen.Trace)
-    k = first(Gen.get_args(tr))
-    current_td = _td(tr, k)
+    t = first(Gen.get_args(tr))
+    xs = get_choices(tr)[:kernel => t => :masks]
+    pmbrfs = Gen.get_retval(tr)[2][t].rfs
+
+    current_td = _td(xs, pmbrfs, t)
 end
 
 function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
@@ -256,12 +261,19 @@ function resolve_correspondence(p::T, q::T) where T<:Dict
     (s, vals)
 end
 
+# this is for receptive fields
+function relative_entropy(p::T, q::T) where T<:Array
+    kls = @>> zip(p, q) map(x -> relative_entropy(x[1], x[2]; error_on_empty=false))
+    mean(kls)
+end
 
-function relative_entropy(p::T, q::T) where T<:Dict
+function relative_entropy(p::T, q::T;
+                         error_on_empty=true) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
     if isempty(labels)
         display(p); display(q)
-        error("empty intersect")
+        error_on_empty && error("empty intersect")
+        return 1.0
     end
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])

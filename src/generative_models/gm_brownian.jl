@@ -21,9 +21,9 @@ end
     area_width::Int = 800
 
     # parameters for the drawing the mask random variable arguments
-    dot_p::Float64 = 0.5 # prob of pixel on in the dot region
-    gauss_amp::Float64 = 0.5 # gaussian amplitude for the gaussian component of the mask
-    gauss_std::Float64 = 2.5 # standard deviation --||--
+    gauss_r_multiple::Float64 = 2.5 # multiple where to thershold the mask
+    gauss_amp::Float64 = 0.8 # gaussian amplitude for the gaussian component of the mask
+    gauss_std::Float64 = 1.0 # standard deviation --||--
 
     # rfs parameters
     record_size::Int = 100 # number of associations
@@ -85,7 +85,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
     exp0 = fill(gm.exp0, gm.n_trackers)
     trackers = @trace(init_trackers_map(trackers_gm, exp0), :trackers)
-    trackers = collect(Dot, trackers)
+    trackers = collect(Object, trackers)
     # add each tracker to the graph as independent vertices
     graph = CausalGraph(trackers, SimpleGraph)
     pmbrfs = RFSElements{Array}(undef, 0)
@@ -102,7 +102,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
     else
         flow_masks = nothing
     end
-
+    
     FullState(graph, pmbrfs, flow_masks)
 end
 
