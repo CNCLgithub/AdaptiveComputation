@@ -5,20 +5,24 @@ Random.seed!(4)
 include("exp3_polygons_structure.jl")
 dataset_path = joinpath("/datasets", "exp3_polygons.jld2")
 n_scenes_2_generate = 500000 # generate and remove non-unique scenes
+#n_scenes_2_generate = 5000 # generate and remove non-unique scenes
 k = 192
 
-function sample_polygon_structure(n_dots_limit::Int)::Vector{Int}
-    n_dots_remaining = n_dots_limit
-    polygon_structure = Int[]
+# samples symmetric structure
+function sample_polygon_structure(n_dots_limit::Int64)::Vector{Int64}
+    n_dots_remaining = convert(Int64, n_dots_limit/2)
+    polygon_structure = Int64[]
     while true
         polygon = bernoulli(0.8)
-        potential_object = polygon ? uniform_discrete(3, 5) : 1
+        potential_object = polygon ? uniform_discrete(2, 8) : 1
         if potential_object <= n_dots_remaining
             push!(polygon_structure, potential_object)
             n_dots_remaining -= potential_object
         end
         if n_dots_remaining == 0
             sort!(polygon_structure, rev=true)
+            polygon_structure = repeat(polygon_structure, 2)
+            #display(polygon_structure)
             return polygon_structure
         end
     end
@@ -91,8 +95,9 @@ end
 function get_scene_prereqs(n_targets, n_scenes;
                            alpha = 1.0,
                            beta = 1.0)
-    polygon_structures = map(_ -> sample_polygon_structure(n_targets*2), 1:n_scenes_2_generate)
 
+    polygon_structures = map(_ -> sample_polygon_structure(n_targets*2), 1:n_scenes_2_generate)
+    
     cms = Vector{ChoiceMap}(undef, n_scenes_2_generate*length(n_targets))
     for i=1:n_scenes_2_generate*length(n_targets)
         cm = Gen.choicemap()
@@ -122,7 +127,7 @@ function get_scene_prereqs(n_targets, n_scenes;
 
     unique_scenes_idxs = findfirst.(isequal.(unique(values)), [values])
     n_unique_scenes = length(unique_scenes_idxs)
-    println("NUMBER OF UNIQUE SCENES GENERATED: ", n_unique_scenes)
+    println("NUMBER OF UNIQUE SCENES GENERATED (n_targets = $n_targets): $n_unique_scenes")
 
     cms = cms[unique_scenes_idxs]
     aux_data = aux_data[unique_scenes_idxs]
@@ -139,9 +144,12 @@ function get_scene_prereqs(n_targets, n_scenes;
     p = sortperm(rs, rev=true)
 
     # taking top five, bottom five and random from middle
-    top = p[1:5]
-    bottom = p[end-4:end]
-    middle = shuffle(p[6:end-5])[1:(n_scenes-10)]
+    top = p[1:3]
+    bottom = p[end-2:end]
+    
+    # there may be fewer unique scenes than specified in the arguments
+    actual_n_scenes = min(n_scenes, length(p))
+    middle = shuffle(p[4:end-3])[1:(actual_n_scenes-6)]
     scenes = [top; middle; bottom]
 
     scene_prereqs = Dict([:aux_data => aux_data[scenes],
@@ -150,8 +158,8 @@ function get_scene_prereqs(n_targets, n_scenes;
     return scene_prereqs
 end
 
-n_targets = [4, 6, 8]
-n_scenes_per_nt = 22
+n_targets = [4, 5, 6, 7, 8]
+n_scenes_per_nt = 9
 aux_data = []
 cms = ChoiceMap[]
 gms = []
@@ -165,7 +173,7 @@ for nt in n_targets
 end
 
 MOT.generate_dataset(dataset_path, length(gms), k, gms, motion;
-                     min_distance = 60.0,
+                     min_distance=60.0,
                      cms=cms,
                      aux_data=aux_data)
 

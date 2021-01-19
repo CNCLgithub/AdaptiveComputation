@@ -270,7 +270,7 @@ function render(gm, k;
                 path="render",
                 receptive_fields=nothing,
                 receptive_fields_overlap=0.0)
-    
+
     # if returning array of images as matrices, then make vector
     array ? imgs = [] : mkpath(path)
 

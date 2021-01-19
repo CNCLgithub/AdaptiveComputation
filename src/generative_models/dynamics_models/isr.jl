@@ -39,7 +39,7 @@ end
 
 _isr_brownian_step = Map(isr_brownian_step)
 
-function get_repulsion_from_wall(min_distance, wall_repulsion, pos, gm_params)
+function get_repulsion_from_wall(distance, wall_repulsion, pos, gm_params)
     # repulsion from walls
     walls = Matrix{Float64}(undef, 4, 3)
     walls[1,:] = [gm_params.area_width/2, pos[2], pos[3]]
@@ -50,8 +50,9 @@ function get_repulsion_from_wall(min_distance, wall_repulsion, pos, gm_params)
     force = zeros(3)
     for j = 1:4
         v = pos - walls[j,:]
-        (norm(v) > min_distance) && continue
-        force .+= wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(min_distance^2)) * v / norm(v)
+        #(norm(v) > min_distance) && continue
+        absolute_force = wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2))
+        force .+= absolute_force * v/norm(v)
     end
     return force
 end
@@ -60,8 +61,9 @@ function get_repulsion_object_to_object(distance, repulsion, pos, other_pos)
     force = zeros(3)
     for j = 1:length(other_pos)
         v = pos - other_pos[j]
-        (norm(v) > distance) && continue
-        force .+= repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2)) * v / norm(v)
+        #(norm(v) > distance) && continue
+        absolute_force = repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2))
+        force .+= absolute_force * v/norm(v)
     end
     return force
 end
