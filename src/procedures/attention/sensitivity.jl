@@ -173,7 +173,7 @@ end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = att.sweeps*exp(att.k*min(x, 0.0))
+    amp = att.sweeps*exp(att.k*(x-att.x0))
     println("k: $(att.k)")
     println("x: $(x), amp: $(amp)")
     sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))

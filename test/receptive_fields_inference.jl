@@ -11,29 +11,48 @@ using StatProfilerHTML
 
 r_fields = (4, 4)
 overlap = 3
+n_particles = 15
+
+attention_type = :sensitivity
+attention_sweeps = 10
+attention_k = 0.03
+attention_x0 = 20
+
+attention_smoothness = 0.05
+attention_ancestral_steps = 3
+attention_samples = 10
 
 # genearate data
-k = 40
-gm = GMMaskParams(gauss_r_multiple = 2.0,
+k = 80
+gm = GMMaskParams(gauss_r_multiple = 8.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
                   fmasks = true,
                   fmasks_n = 8,
                   img_height = 50,
                   img_width = 50,
-                  n_trackers = 6,
-                  distractor_rate = 6.0)
+                  n_trackers = 4,
+                  distractor_rate = 4.0)
 
 motion = ISRDynamics()
 prob_threshold = 0.01
 scene_data = dgp(k, gm, motion; generate_masks = true)
 
-#gm="/project/scripts/inference/exp1_isr/gm.json"
-attention = MOT.load(MapSensitivity, "/project/scripts/inference/exp1/td.json", sweeps=0,
+if attention_type == :sensitivity
+    attention = MOT.load(MapSensitivity, "/project/scripts/inference/exp1/td.json", sweeps=attention_sweeps,
+                         smoothness = attention_smoothness,
+                         x0 = attention_x0,
                      objective=MOT.target_designation_receptive_fields,
-                     k = 0.2)
-# attention = UniformAttention(sweeps = 10,
-                             # ancestral_steps = 3)
+                     k = attention_k,
+                     ancestral_steps = attention_ancestral_steps,
+                     samples = attention_samples)
+elseif attention_type == :uniform
+    attention = UniformAttention(sweeps = attention_sweeps,
+                                 ancestral_steps = attention_ancestral_steps)
+else
+    attention = nothing
+end
+
 proc_json = "/project/scripts/inference/exp1/proc.json"
 path = joinpath("output", "experiments", "receptive_fields", "test")
 try
@@ -81,7 +100,7 @@ for t = 1:k
     
     cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
     # counting the non-zero masks in the timestep
-    display(@>> cropped_masks map(length) maximum)
+    #display(@>> cropped_masks map(length) maximum)
 
     for i=1:length(receptive_fields)
         cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
@@ -97,11 +116,11 @@ query = Gen_Compose.SequentialQuery(latent_map,
                                     observations)
 
 proc = MOT.load(PopParticleFilter, proc_json;
-                particles = 100,
+                particles = n_particles,
                 rejuvenation = rejuvenate_attention!,
                 rejuv_args = (attention,))
 
-results = sequential_monte_carlo(proc, query,
+@time results = sequential_monte_carlo(proc, query,
                                  buffer_size = k,
                                  path = joinpath(path, "results.jld2"))
     
