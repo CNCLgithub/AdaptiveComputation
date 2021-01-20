@@ -14,18 +14,17 @@ function generate_dataset(dataset_path, n_scenes, k, gm, motion;
         for i=1:n_scenes
             scene_data = nothing
             while true
-                scene_data = dgp(k, gm, motion;
-                                 generate_masks=false)
+                scene_data = dgp(k, gm, motion)
                 if is_min_distance_satisfied(scene_data, min_distance)
                     break
                 end
-                println("scene $i min_distance $min_distance not satisfied")
             end
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gm
             scene["motion"] = motion
 
             gt_cgs = scene_data[:gt_causal_graphs]
+
             # fixing z according to the time 0
             z = map(x->x.pos[3], gt_cgs[1].elements)
             map(cg -> map(i -> cg.elements[i].pos[3] = z[i],

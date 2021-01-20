@@ -1,8 +1,6 @@
 module MOT
 
 using Gen
-using Gen_Compose
-using GenRFS
 using Parameters: @with_kw
 
 function __init__()

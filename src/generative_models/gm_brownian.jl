@@ -44,7 +44,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(gm::GMParams)
     init_pos_spread_vec = fill(gm.init_pos_spread, gm.n_trackers)
-    trackers = @trace(init_trackers_map(init_pos_spread), :trackers)
+    trackers = @trace(init_trackers_map(init_pos_spread_vec), :trackers)
     trackers = collect(Dot, trackers)
 
     # add each tracker to the graph as independent vertices
@@ -66,7 +66,7 @@ end
 brownian_chain = Gen.Unfold(brownian_kernel)
 
 # generative model for the brownian motion
-@gen static function gm_brownian(k::Int, motion::BrownianDynamics,
+@gen static function gm_brownian(T::Int, motion::BrownianDynamics,
                                  params::GMParams)
     init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(brownian_chain(T, init_state, motion, params), :kernel)

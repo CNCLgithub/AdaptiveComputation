@@ -85,7 +85,7 @@ end
         dots = isr_repulsion_step(model, dots, gm_params)
     end
 
-    dots = @trace(_isr_step(fill(model, length(dots)), dots), :brownian)
+    dots = @trace(_isr_brownian_step(fill(model, length(dots)), dots), :brownian)
 
     dots = collect(Dot, dots)
     cg = update(cg, dots)
