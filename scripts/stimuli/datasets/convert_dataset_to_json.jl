@@ -1,7 +1,6 @@
 using MOT
 using JSON
 
-
 function convert_dataset_to_json(dataset_path, json_path)
     n_scenes = MOT.get_n_scenes(dataset_path)
 

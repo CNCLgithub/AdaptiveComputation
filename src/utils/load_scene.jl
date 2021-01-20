@@ -1,4 +1,12 @@
-export load_scene
+export load_scene, get_n_scenes
+
+
+function get_n_scenes(dataset_path::String)
+	file = jldopen(dataset_path, "r")
+    n_scenes = file["n_scenes"]
+    close(file)
+    return n_scenes
+end
 
 """
 loads gt causal graphs and motion

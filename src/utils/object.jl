@@ -1,6 +1,5 @@
 export Object,
-        Dot,
-        BDot
+        Dot
 
 # objects are things that dynamics models and generative processes
 # work over (e.g. Dot)
@@ -21,10 +20,3 @@ Dot(pos::Vector{Float64}, vel::Vector{Float64}, radius::Float64) = Dot(pos = pos
                                                                        radius = radius,
                                                                        width = radius*2,
                                                                        height = radius*2)
-
-# dot with bearing
-mutable struct BDot <: Object
-    pos::Vector{Float64}
-    bearing::Float64
-    vel::Float64
-end

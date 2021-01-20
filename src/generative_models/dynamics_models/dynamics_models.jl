@@ -2,8 +2,5 @@ export AbstractDynamicsModel
 
 abstract type AbstractDynamicsModel end
 
-include("brownian_dynamics_model.jl")
-include("cbm.jl")
-include("isr.jl")
-include("radial_motion.jl")
-include("inertia.jl")
+include("brownian_dynamics.jl")
+include("isr_dynamics.jl")

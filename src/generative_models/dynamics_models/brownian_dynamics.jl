@@ -1,17 +1,17 @@
-export BrownianDynamicsModel
+export BrownianDynamics
 
-@with_kw struct BrownianDynamicsModel <: AbstractDynamicsModel
+@with_kw struct BrownianDynamics <: AbstractDynamicsModel
     inertia::Float64 = 0.9
     spring::Float64 = 0.002
     sigma_x::Float64 = 2.5
     sigma_y::Float64 = 2.5
 end
 
-function load(::Type{BrownianDynamicsModel}, path::String)
-    BrownianDynamicsModel(;read_json(path)...)
+function load(::Type{BrownianDynamics}, path::String)
+    BrownianDynamics(;read_json(path)...)
 end
 
-@gen function brownian_step(model::BrownianDynamicsModel, dot::Dot)
+@gen function brownian_step(model::BrownianDynamics, dot::Dot)
     _x, _y, _ = dot.pos
     _vx, _vy = dot.vel
 
@@ -30,7 +30,7 @@ end
 
 _brownian_step = Map(brownian_step)
 
-@gen function brownian_update(model::BrownianDynamicsModel, cg::CausalGraph)
+@gen function brownian_update(model::BrownianDynamics, cg::CausalGraph)
     dots = cg.elements
     new_dots = @trace(_brownian_step(fill(model, length(dots)), dots), :brownian)
     new_dots = collect(Dot, new_dots)

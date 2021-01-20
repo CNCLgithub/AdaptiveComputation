@@ -19,7 +19,7 @@ function load(::Type{ISRDynamics}, path::String)
     ISRDynamics(;read_json(path)...)
 end
 
-@gen function isr_step(model::ISRDynamics, dot::Dot)
+@gen function isr_brownian_step(model::ISRDynamics, dot::Dot)
     _x, _y, _z = dot.pos
     vx, vy = dot.vel
     
@@ -36,7 +36,7 @@ end
     return Dot([x,y,_z], [vx,vy])
 end
 
-_isr_step = Map(isr_step)
+_isr_brownian_step = Map(isr_brownian_step)
 
 function isr_repulsion_step(model, dots, gm_params)
     n = length(dots)
@@ -47,7 +47,6 @@ function isr_repulsion_step(model, dots, gm_params)
         for j = 1:n
             i == j && continue
             v = dot.pos - dots[j].pos
-            (norm(v) > model.distance) && continue
             force .+= model.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.dot_repulsion^2)) * v / norm(v)
         end
         dot_applied_force = force
@@ -62,7 +61,6 @@ function isr_repulsion_step(model, dots, gm_params)
         force = zeros(3)
         for j = 1:4
             v = dot.pos - walls[j,:]
-            (norm(v) > model.distance) && continue
             force .+= model.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(2*model.wall_repulsion^2)) * v / norm(v)
         end
         wall_applied_force = force
@@ -80,9 +78,9 @@ function isr_repulsion_step(model, dots, gm_params)
 end
 
 
-@gen function isr_update(model::ISRDynamics, cg::CausalGraph, gm_params) #gm_params::GMMaskParams)
+@gen function isr_update(model::ISRDynamics, cg::CausalGraph, gm_params)
     dots = cg.elements
-
+    
     if model.repulsion
         dots = isr_repulsion_step(model, dots, gm_params)
     end
