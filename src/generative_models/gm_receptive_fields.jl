@@ -50,7 +50,7 @@ receptive_fields_map = Gen.Map(sample_masks)
     @trace(receptive_fields_map(rfs_vec), :receptive_fields)
 
     # returning this to get target designation and assignment
-    new_state = ReceptiveFieldsState(new_graph, rfs_vec, prev_state.flow_masks)
+    new_state = ReceptiveFieldsState(new_graph, rfs_vec, flow_masks)
     return new_state
 end
 
