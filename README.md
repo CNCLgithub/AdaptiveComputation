@@ -9,3 +9,7 @@ This branch includes the basic data generating procedures (found under `src/gene
 3. Run `./setup.sh cont_pull conda julia` to pull the container and setup Conda and Julia environments.
 4. Enter `./run.sh julia` to get into Julia REPL
 5. Enter `include("test/demo.jl")` in the Julia REPL to see how you can generate a dataset and render it using the codebase.
+
+One useful script can be found under `scripts/convert_dataset_to_json.jl` that can convert the HDF5 dataset generated using the codebase to a JSON file with an array of object positions for each scene.
+
+Please do not hesitate to reach out if you need help with anything.
