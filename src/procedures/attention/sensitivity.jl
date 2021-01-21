@@ -151,6 +151,14 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         end
         display(kls)
         display(lls)
+        
+        # good old interpretation of lls as acceptance probability
+        # if ll > 0, then constrain to 0 since in that case move would be definitely accepted
+        # we cannot (!) multiply directly alpha in metropolis-hastings with the quantity
+        # (symmteric KL in our case):
+        # probability of acceptance = alpha if alpha < 1.0 else 1.0
+        lls = @>> lls map(x -> x > 0.0 ? 0.0 : x)
+
         gs = Vector{Float64}(undef, n_latents)
         lse = Vector{Float64}(undef, n_latents)
         for i = 1:n_latents
@@ -275,22 +283,20 @@ function relative_entropy(p::T, q::T;
         error_on_empty && error("empty intersect")
         return 1.0
     end
+
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
-    # display(p); display(q)
     order = sortperm(probs[:, 1], rev= true)
-    # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
-    # println("new set")
     kl = 0.0
     for i in order
         _kl = 0.0
         _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
         kl += isnan(_kl) ? 0.0 : _kl
-        # println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
-
     end
+
+    #kl = kl < 1e-6 ? 0.0 : kl
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
 
