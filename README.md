@@ -10,6 +10,8 @@ This branch includes the basic data generating procedures (found under `src/gene
 4. Enter `./run.sh julia` to get into Julia REPL
 5. Enter `include("scripts/demo/demo.jl")` in the Julia REPL to see how you can generate a dataset and render it using the codebase.
 
+The code includes two motion models (`ISRDynamics` and `BrownianDynamics`).
+
 One useful script can be found under `scripts/convert_dataset_to_json.jl` that can convert the HDF5 dataset generated using the codebase to a JSON file with an array of object positions for each scene. For instance, we use the JSON datasets in our JavaScript interactive animated experiments.
 
 Please do not hesitate to reach out if you need help with anything.
