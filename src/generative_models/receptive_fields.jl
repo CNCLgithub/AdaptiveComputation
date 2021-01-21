@@ -125,9 +125,9 @@ function get_rectangle_receptive_field(xy, n_x, n_y, gm;
     h = floor(Int, gm.img_height/n_x)
 
     p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1) .- (overlap, overlap)
-    p2 = p1 .+ (w-1, h-1) .+ (overlap, overlap)
-
     p1 = bound_point(p1, gm.img_width, gm.img_height)
+
+    p2 = p1 .+ (w-1, h-1) .+ (overlap, overlap)
     p2 = bound_point(p2, gm.img_width, gm.img_height)
 
     return RectangleReceptiveField(p1, p2)
