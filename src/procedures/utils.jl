@@ -76,6 +76,12 @@ function extract_assignments(trace::Gen.Trace)
     (record.table, record.logscores)
 end
 
+function extract_rfs_vec(trace::Gen.Trace)
+    t, motion, gm = Gen.get_args(trace)
+    ret = Gen.get_retval(trace)
+    ret[2][t].rfs_vec
+end
+
 function extract_assignments_receptive_fields(trace::Gen.Trace)
     return nothing
     t, motion, gm = Gen.get_args(trace)

@@ -9,28 +9,29 @@ Random.seed!(1)
 
 using StatProfilerHTML
 
-r_fields = (4, 4)
-overlap = 3
+r_fields = (5, 5)
+overlap = 2
 n_particles = 15
 
 attention_type = :sensitivity
-attention_sweeps = 10
-attention_k = 0.03
-attention_x0 = 20
+#attention_type = :uniform
+attention_sweeps = 20
+attention_k = 0.05
+attention_x0 = 0
 
-attention_smoothness = 0.05
+attention_smoothness = 0.1
 attention_ancestral_steps = 3
 attention_samples = 10
 
 # genearate data
 k = 80
-gm = GMMaskParams(gauss_r_multiple = 8.0,
+gm = GMMaskParams(gauss_r_multiple = 4.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
                   fmasks = true,
-                  fmasks_n = 8,
-                  img_height = 50,
-                  img_width = 50,
+                  fmasks_n = 20,
+                  img_height = 60,
+                  img_width = 60,
                   n_trackers = 4,
                   distractor_rate = 4.0)
 
@@ -74,7 +75,8 @@ motion_inference = InertiaModel(vel = 10.0,
 # inference prep
 latent_map = MOT.LatentMap(Dict(
                             :causal_graph => MOT.extract_causal_graph,
-                            :assignments => MOT.extract_assignments_receptive_fields
+                            :assignments => MOT.extract_assignments_receptive_fields,
+                            :rfs_vec => MOT.extract_rfs_vec
                            ))
 
 constraints = Gen.choicemap()
@@ -88,6 +90,7 @@ end
     
 # crop observations into receptive fields
 receptive_fields = get_rectangle_receptive_fields(r_fields..., gm, overlap = overlap)
+display(receptive_fields)
 function cropfilter(rf, masks)
     cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
     croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
@@ -123,9 +126,47 @@ proc = MOT.load(PopParticleFilter, proc_json;
 @time results = sequential_monte_carlo(proc, query,
                                  buffer_size = k,
                                  path = joinpath(path, "results.jld2"))
-    
+
 visualize_inference(results, gt_causal_graphs,
                     gm, attention, dirname(path),
                     receptive_fields = r_fields,
                     receptive_fields_overlap = overlap)
 
+
+# rendering the masks from the receptive field rfs
+
+function pad_mask(mask; pad=1)
+    h, w = size(mask)
+    PaddedView(1, mask, (1:h+pad*2, 1:w+pad*2), (pad+1:h+pad, pad+1:w+pad))
+end
+
+function extract_mask_distributions(rfs)
+    mask_distributions = @>> rfs map(x -> first(x.args))
+end
+
+# concatenates masks from different receptive fields into one image
+function concatenate(masks)
+    @>> begin 1:size(masks, 1)
+        map(i -> hcat(masks[i,:]...)) # concatenating horizontally
+        h_masks->vcat(h_masks...) # concatenating vertically
+    end
+end
+
+function save_img(t, results, r_fields, out_dir)
+    rfs_vec = results.buffer[t]["unweighted"][:rfs_vec][:,1]
+    rfs_vec = @> rfs_vec reshape(r_fields)
+    image = @>> begin rfs_vec
+            map(rfs -> extract_mask_distributions(rfs))
+            map(x -> pad_mask.(x))
+            map(rf -> mean(rf))
+            concatenate
+        end
+
+    fn = joinpath(out_dir, "$(lpad(t,3,'0')).png")
+    save(fn, image)
+end
+    
+out_dir = joinpath("output", "experiments", "receptive_fields", "mask_distributions")
+ispath(out_dir) && rm(out_dir, recursive=true)
+mkpath(out_dir)
+@>> 1:k foreach(t -> save_img(t, results, r_fields, out_dir))

@@ -37,14 +37,15 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     MOT.plot_attention(attended, attention.sweeps, path)
     plot_rejuvenation(attempts, path)
     
-    println(path)
+    render_path = joinpath(path, "render")
+    ispath(render_path) && rm(render_path, recursive=true)
     # visualizing inference on stimuli
     render(gm, k;
            gt_causal_graphs=gt_causal_graphs,
            causal_graphs=causal_graphs,
            attended=attended/attention.sweeps,
            tracker_masks=tracker_masks,
-           path = joinpath(path, "render"),
+           path = render_path,
            receptive_fields=receptive_fields,
            receptive_fields_overlap = receptive_fields_overlap)
     
