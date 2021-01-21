@@ -6,7 +6,8 @@ export softmax,
     retrieve_obs,
     dist,
     find_distance_to_nd,
-    findnearest
+    findnearest,
+    read_json
 
 
 # stable softmax
@@ -106,4 +107,23 @@ end
 # cribbed from https://github.com/JuliaDynamics/DrWatson.jl/blob/abed4bc699d5c6049c6010a5bc78ca62149a3cc9/src/saving_tools.jl#L300-L307
 function struct2dict(s)
     Dict(x => getfield(s, x) for x in fieldnames(typeof(s)))
+end
+
+"""
+    read_json(path)
+    opens the file at path, parses as JSON and returns a dictionary
+"""
+function read_json(path)
+    open(path, "r") do f
+        global data
+        data = JSON.parse(f)
+    end
+    
+    # converting strings to symbols
+    sym_data = Dict()
+    for (k, v) in data
+        sym_data[Symbol(k)] = v
+    end
+
+    return sym_data
 end

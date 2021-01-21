@@ -1,5 +1,3 @@
-export BrownianDynamics
-
 @with_kw struct BrownianDynamics <: AbstractDynamicsModel
     inertia::Float64 = 0.9
     spring::Float64 = 0.002
@@ -37,3 +35,6 @@ _brownian_step = Map(brownian_step)
     cg = update(cg, new_dots)
     return cg
 end
+
+
+export BrownianDynamics

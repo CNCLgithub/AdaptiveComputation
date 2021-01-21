@@ -8,6 +8,7 @@ position at (0,0) and set background color
 """
 function _init_drawing(frame, path, gm;
                        background_color="ghostwhite")
+    ispath(path) || mkpath(path)
     fname = "$(lpad(frame, 3, "0")).png"
     Drawing(gm.area_width, gm.area_height,
             joinpath(path, fname))
@@ -109,7 +110,7 @@ function render_cg(cg::CausalGraph, gm::GMParams;
 
     for i in depth_perm
         render_object(objects[i])
-        if show_label && !isa(objects[i], Pylon)
+        if show_label
             _draw_text("$i", objects[i].pos[1:2] .+ [objects[i].width/2, objects[i].height/2])
         end
         if i in highlighted
@@ -128,9 +129,12 @@ renders detailed information about inference on top of stimuli
 gm - generative model parameters
 
 optional:
-stimuli - true if we want to render without timestep and inference information
+stimuli - true if we want to render without timestep
 freeze_time - time before and after movement (for highlighting targets and querying)
-highlighted - array 
+highlighted_start - array with indices of dots that we want to highlight at the beginning
+highlighted_end - same but for the end
+highlighted_start_color - color of the highlight at the beggining
+highlighted_end_color - same but for the end
 """
 function render(gm, T;
                 gt_causal_graphs=nothing,
@@ -138,7 +142,10 @@ function render(gm, T;
                 probes=nothing,
                 stimuli=false,
                 freeze_time=0,
-                highlighted=Int[],
+                highlighted_start=Int[],
+                highlighted_end=Int[],
+                highlighted_start_color="blue",
+                highlighted_end_color="yellow",
                 background_color="#7079f2",
                 path="render")
 
@@ -149,7 +156,8 @@ function render(gm, T;
 
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[1], gm;
-                      highlighted=highlighted,
+                      highlighted=highlighted_start,
+                      highlighted_color=highlighted_start_color,
                       show_label=!stimuli)
         end
         finish()
@@ -170,6 +178,7 @@ function render(gm, T;
             render_cg(gt_causal_graphs[t+1], gm;
                       show_label=!stimuli)
         end
+        finish()
     end
 
     # final freeze showing the query
@@ -179,8 +188,8 @@ function render(gm, T;
 
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[T+1], gm;
-                      highlighted=highlighted,
-                      highlighted_color="#d2f72a",
+                      highlighted=highlighted_end,
+                      highlighted_color=highlighted_end_color,
                       show_label=!stimuli)
         end
 

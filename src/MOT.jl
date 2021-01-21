@@ -1,6 +1,7 @@
 module MOT
 
 using Gen
+using JSON
 using Parameters: @with_kw
 
 function __init__()

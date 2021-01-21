@@ -1,4 +1,4 @@
-export ISRDynamics
+using LinearAlgebra
 
 @with_kw struct ISRDynamics <: AbstractDynamicsModel
     repulsion::Bool = true
@@ -71,6 +71,7 @@ function isr_repulsion_step(model, dots, gm_params)
         end
         vel *= model.rep_inertia
         vel += (1.0-model.rep_inertia)*(dot_applied_force[1:2]+wall_applied_force[1:2])
+        #println("vel $vel")
         dots[i] = Dot(dot.pos, vel)
     end
     
@@ -86,8 +87,10 @@ end
     end
 
     dots = @trace(_isr_brownian_step(fill(model, length(dots)), dots), :brownian)
-
+    
     dots = collect(Dot, dots)
     cg = update(cg, dots)
     return cg
 end
+
+export ISRDynamics
