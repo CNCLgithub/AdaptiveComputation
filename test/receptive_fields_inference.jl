@@ -24,7 +24,7 @@ attention_ancestral_steps = 3
 attention_samples = 10
 
 # genearate data
-k = 80
+k = 60
 gm = GMMaskParams(gauss_r_multiple = 4.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
@@ -32,8 +32,8 @@ gm = GMMaskParams(gauss_r_multiple = 4.0,
                   fmasks_n = 20,
                   img_height = 60,
                   img_width = 60,
-                  n_trackers = 4,
-                  distractor_rate = 4.0)
+                  n_trackers = 8,
+                  distractor_rate = 8.0)
 
 motion = ISRDynamics()
 prob_threshold = 0.01
