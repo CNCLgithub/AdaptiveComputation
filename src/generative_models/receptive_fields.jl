@@ -156,4 +156,70 @@ function crop(rf::RectangleReceptiveField,
     mask_distribution[idxs]
 end
 
+function cropfilter(rf, masks)
+    cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
+    croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
+end
+
+
+### target designation utils
+
+# gets indices of masks that fall into the receptive field
+function cropindices(rf, masks)
+    cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
+    indices = filter(i -> any(cropped_masks[i] .!= 0), 1:length(cropped_masks))
+    @>> indices x -> (x, collect(1:length(x)))
+end
+
+"""
+    gets the score for the particular target designation, e.g.
+    td = [1,2,3,8]
+    indices = 
+    rf_assignment = 
+"""
+function get_td_score(td, indices, rf_assignment)
+    # finding the intersecting global mask indices with each rf
+    intersections_global = @>> indices map(idx -> intersect(idx[1], td))
+
+    # mapping the intersections to the local level mask indices
+    intersections_local = []
+    for (i, intersection) in enumerate(intersections_global)
+        intersection_indices = findall(x -> x in intersection, indices[i][1])
+        push!(intersections_local, indices[i][2][intersection_indices])
+    end
+    
+    td_score = 0.0
+    for (i, intersection) in enumerate(intersections_local)
+        dc = rf_assignment[i][1] # data correspondence
+        scores = rf_assignment[i][2] # scores for data correspondence
+
+        score = -Inf
+        for j=1:length(dc)
+            targets = unique(Iterators.flatten(dc[j][2:end]))
+            if issetequal(targets, intersection)
+                score = logsumexp(score, scores[j])
+            end
+        end
+
+        td_score += score
+    end
+    return td_score
+end
+
+"""
+    returns the target designation distribution
+"""
+function get_target_designation(n_targets,
+                                receptive_field_assignment,
+                                masks,
+                                receptive_fields)
+    indices = @>> receptive_fields map(rf -> cropindices(rf, masks))    
+    indices = reshape(indices, size(receptive_field_assignment))
+   
+    # all possible target designations
+    tds = collect(combinations(1:length(masks), n_targets))
+    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
+    perm = sortperm(scores, rev=true)
+    @>> perm map(i -> (tds[i], scores[i]))
+end
 export RectangleReceptiveField, get_rectangle_receptive_fields

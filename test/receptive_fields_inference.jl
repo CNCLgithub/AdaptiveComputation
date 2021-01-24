@@ -4,6 +4,7 @@ using Gen_Compose
 using Random
 using Lazy
 using Statistics
+using Combinatorics
 using Images, FileIO, PaddedViews
 Random.seed!(1)
 
@@ -11,7 +12,7 @@ using StatProfilerHTML
 
 r_fields = (5, 5)
 overlap = 2
-n_particles = 15
+n_particles = 10
 
 attention_type = :sensitivity
 #attention_type = :uniform
@@ -24,7 +25,7 @@ attention_ancestral_steps = 3
 attention_samples = 10
 
 # genearate data
-k = 60
+k = 80
 gm = GMMaskParams(gauss_r_multiple = 4.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
@@ -32,8 +33,8 @@ gm = GMMaskParams(gauss_r_multiple = 4.0,
                   fmasks_n = 20,
                   img_height = 60,
                   img_width = 60,
-                  n_trackers = 8,
-                  distractor_rate = 8.0)
+                  n_trackers = 4,
+                  distractor_rate = 4.0)
 
 motion = ISRDynamics()
 prob_threshold = 0.01
@@ -75,7 +76,7 @@ motion_inference = InertiaModel(vel = 10.0,
 # inference prep
 latent_map = MOT.LatentMap(Dict(
                             :causal_graph => MOT.extract_causal_graph,
-                            :assignments => MOT.extract_assignments_receptive_fields,
+                            #:assignments => MOT.extract_assignments_receptive_fields,
                             :rfs_vec => MOT.extract_rfs_vec
                            ))
 
@@ -90,7 +91,6 @@ end
     
 # crop observations into receptive fields
 receptive_fields = get_rectangle_receptive_fields(r_fields..., gm, overlap = overlap)
-display(receptive_fields)
 function cropfilter(rf, masks)
     cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
     croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
@@ -127,10 +127,16 @@ proc = MOT.load(PopParticleFilter, proc_json;
                                  buffer_size = k,
                                  path = joinpath(path, "results.jld2"))
 
+
+
+
+
 visualize_inference(results, gt_causal_graphs,
                     gm, attention, dirname(path),
                     receptive_fields = r_fields,
                     receptive_fields_overlap = overlap)
+
+
 
 
 # rendering the masks from the receptive field rfs
@@ -170,3 +176,67 @@ out_dir = joinpath("output", "experiments", "receptive_fields", "mask_distributi
 ispath(out_dir) && rm(out_dir, recursive=true)
 mkpath(out_dir)
 @>> 1:k foreach(t -> save_img(t, results, r_fields, out_dir))
+
+
+### target designation extraction
+traces = results.buffer[end]["traces"]
+log_scores = results.buffer[end]["log_scores"][1,:]
+
+map_trace = traces[argmax(log_scores)]
+map_assignment = MOT.extract_assignments_receptive_fields(map_trace)
+map_assignment = reshape(map_assignment, r_fields)
+
+#assignments = @>> traces map(x->MOT.extract_assignments_receptive_fields(x)) first
+
+# gets indices of masks that fall into the receptive field
+function cropindices(rf, masks)
+    cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
+    indices = filter(i -> any(cropped_masks[i] .!= 0), 1:length(cropped_masks))
+    @>> indices x -> (x, collect(1:length(x)))
+end
+
+
+function get_td_score(td, indices, rf_assignment)
+    # finding the intersecting global mask indices with each rf
+    intersections_global = @>> indices map(idx -> intersect(idx[1], td))
+
+    # mapping the intersections to the local level mask indices
+    intersections_local = []
+    for (i, intersection) in enumerate(intersections_global)
+        intersection_indices = findall(x -> x in intersection, indices[i][1])
+        push!(intersections_local, indices[i][2][intersection_indices])
+    end
+    
+    td_score = 0.0
+    for (i, intersection) in enumerate(intersections_local)
+        dc = rf_assignment[i][1] # data correspondence
+        scores = rf_assignment[i][2] # scores for data correspondence
+
+        score = -Inf
+        for j=1:length(dc)
+            targets = unique(Iterators.flatten(dc[j][2:end]))
+            if issetequal(targets, intersection)
+                score = logsumexp(score, scores[j])
+            end
+        end
+
+        td_score += score
+    end
+    return td_score
+end
+
+function get_target_designation(n_targets,
+                                receptive_field_assignment,
+                                masks,
+                                receptive_fields)
+    indices = @>> receptive_fields map(rf -> cropindices(rf, masks))    
+    indices = reshape(indices, size(receptive_field_assignment))
+   
+    # all possible target designations
+    tds = collect(combinations(1:length(masks), n_targets))
+    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
+    perm = sortperm(scores, rev=true)
+    @>> perm map(i -> (tds[i], scores[i]))
+end
+
+get_target_designation(gm.n_trackers, map_assignment, masks[end], receptive_fields)

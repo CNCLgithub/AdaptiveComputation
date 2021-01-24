@@ -83,21 +83,27 @@ function extract_rfs_vec(trace::Gen.Trace)
 end
 
 function extract_assignments_receptive_fields(trace::Gen.Trace)
-    return nothing
+    #return nothing
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
     rfs_vec = ret[2][t].rfs_vec
      
-    records = Vector{AssociationRecord(5)}(undef, length(rfs_vec))
+    records = Vector{AssociationRecord}(undef, length(rfs_vec))
     for i=1:length(rfs_vec)
+        display(i)
+        display(rfs_vec[i])
+        record = AssociationRecord(10)
         xs = get_choices(trace)[:kernel => t => :receptive_fields => i => :masks]
-        Gen.logpdf(rfs, xs, rfs_vec[i], records[i])
+        Gen.logpdf(rfs, xs, rfs_vec[i], record)
+        println()
+        display(record)
+        println()
+        records[i] = record
     end
 
-   # xs = get_choices(trace)[:kernel => t => :masks]
-    @>> records map(record -> (record.table, record.logscores))
-
-    (record.table, record.logscores)
+    # xs = get_choices(trace)[:kernel => t => :masks]
+    # (record.table, record.logscores)
+    asssignments = @>> records map(record -> (record.table, record.logscores))
 end
 
 function extract_tracker_masks(trace::Gen.Trace)
