@@ -152,7 +152,7 @@ function get_masks(cgs::Vector{CausalGraph}, gm::AbstractGMParams;
         if isa(gm, GMMaskParams)
             positions = map(x->x.pos, cgs[t].elements)
         elseif isa(gm, HGMParams)
-            positions = get_hgm_positions(cgs[t], gm.targets)
+            positions = get_hgm_positions(cgs[t], :all)
         end
 
         # sorting according to depth

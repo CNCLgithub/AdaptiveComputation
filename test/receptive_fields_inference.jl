@@ -3,7 +3,6 @@ using Gen
 using Gen_Compose
 using Random
 using Lazy
-using Statistics
 using Images, FileIO, PaddedViews
 Random.seed!(2)
 

@@ -15,7 +15,6 @@ function add_flow_masks(flow_masks::FlowMasks, masks)
     new_masks = Vector{Tuple{Array{Float64}}}(undef, n_trackers)
     new_fmasks = Array{Matrix{Float64}}(undef, n_trackers, n_fmasks)
 
-
     # going through trackers
     for i=1:n_trackers
         new_fmasks[i,1] = masks[i][1]

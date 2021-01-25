@@ -14,7 +14,7 @@ using LinearAlgebra
     area_width::Int = 800
 
     # parameters for the drawing the mask random variable arguments
-    dot_p::Float64 = 0.5 # prob of pixel on in the dot region
+    gauss_r_multiple::Float64 = 0.5 # prob of pixel on in the dot region
     gauss_amp::Float64 = 0.5 # gaussian amplitude for the gaussian component of the mask
     gauss_std::Float64 = 2.5 # standard deviation --||--
 
@@ -138,7 +138,9 @@ hgm_pos_chain = Gen.Unfold(hgm_pos_kernel)
     return result
 end
 
-function get_hgm_positions(cg::CausalGraph, targets::Vector{Bool})
+# TODO potentially make faster
+function get_hgm_positions(cg::CausalGraph, targets::Union{Symbol, Vector{Bool}})
+    
     positions = []
     for e in cg.elements
         if isa(e, Polygon)
@@ -147,9 +149,12 @@ function get_hgm_positions(cg::CausalGraph, targets::Vector{Bool})
             push!(positions, e.pos)
         end
     end
-
-    positions = positions[targets]
-    return positions
+    
+    if targets == :all
+        return positions
+    else
+        return positions[targets]
+    end
 end
 
 

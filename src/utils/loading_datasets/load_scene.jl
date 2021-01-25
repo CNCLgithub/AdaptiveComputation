@@ -10,11 +10,7 @@ function load_scene(scene, dataset_path, gm;
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
     motion = scene["motion"]
-    #gm = scene["gm"]
     gt_causal_graphs = scene["gt_causal_graphs"]
-    
-    # new entry in scene data, perhaps try block
-    # would be good
     
     aux_data = nothing
     try
@@ -32,8 +28,7 @@ function load_scene(scene, dataset_path, gm;
     else
         masks = nothing
     end
-    
-    
+
     if gm.fmasks
         fmasks = Vector{Vector{BitArray{2}}}(undef, length(masks))
 
@@ -64,7 +59,6 @@ function load_scene(scene, dataset_path, gm;
 
     scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
                        :motion => motion,
-                       #:gm => gm,
                        :masks => masks,
                        :aux_data => aux_data])
 end

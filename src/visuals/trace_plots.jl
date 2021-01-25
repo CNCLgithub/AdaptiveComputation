@@ -9,7 +9,7 @@ using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 
-using Plots # for the color scheme
+using Plots: palette # for the color scheme
 default_colors = palette(:tab20)
 
 import Cairo
@@ -27,7 +27,7 @@ function plot_score(log_weights)
     for t=1:timesteps
         x[t,:] .= t
     end
-    p = plot(x=x, y=log_weights, Geom.histogram2d, Theme(background_color="white"))
+    p = Gadfly.plot(x=x, y=log_weights, Geom.histogram2d, Theme(background_color="white"))
     Gadfly.draw(SVG("scores.svg", 6Gadfly.inch, 4Gadfly.inch), p)
 end
 
@@ -37,7 +37,7 @@ Creates a heatmap based on z values for given (x,y).
 """
 function heatmap(df, x, y, z; points=false)
     println("creating heatmap...")
-    p = plot(df, x=x, y=y, color=z,
+    p = Gadfly.plot(df, x=x, y=y, color=z,
              points ? Geom.point : Geom.rectbin,
              Scale.color_continuous(minvalue=0.5),
              Theme(background_color="white"))
@@ -55,7 +55,7 @@ function plot_compute_weights(weights::Matrix{Float64}, path::String)
         end
     end
     data = DataFrame(data)
-    plt = plot(data,
+    plt = Gadfly.plot(data,
                x = :t, y = :weight, color = :tracker,
                Geom.line,
                # Scale.y_continuous(minvalue=0, maxvalue=15),

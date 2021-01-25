@@ -96,8 +96,6 @@ function extract_assignments_receptive_fields(trace::Gen.Trace)
         records[i] = record
     end
 
-    # xs = get_choices(trace)[:kernel => t => :masks]
-    # (record.table, record.logscores)
     asssignments = @>> records map(record -> (record.table, record.logscores))
     reshape(asssignments, (1,1,size(asssignments)...))
 end

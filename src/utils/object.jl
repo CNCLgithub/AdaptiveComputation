@@ -1,5 +1,6 @@
 export Object,
         Dot,
+        Polygon,
         BDot
 
 # objects are things that dynamics models and generative processes

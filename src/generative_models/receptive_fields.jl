@@ -2,6 +2,7 @@ abstract type AbstractReceptiveField end
 
 using Combinatorics
 using Statistics
+using Images, FileIO, PaddedViews
 
 function crop(rf::T,
               mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
@@ -45,18 +46,12 @@ function get_mds_rf(rf::RectangleReceptiveField,
                     prob_threshold::Float64)
     # cropping masks to receptive fields and filtering only with mass
     @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> prob_threshold))
-    
-    # alternative
-    # x = @>> mds begin
-        # map(md -> crop(rf, md))
-        # filter(md -> any(md .> prob_threshold))
-    # end
 end
 
 """
     simple, nonhierarchical case
 """
-function get_mask_distributions(objects, gm::GMMaskParams; flow_masks=nothing)
+function get_mask_distributions(objects, gm; flow_masks=nothing)
     pos = map(o->o.pos, objects)
     mask_args, trackers_img = get_masks_rvs_args(pos, gm)
     if !isnothing(flow_masks)
@@ -149,14 +144,14 @@ function get_rectangle_receptive_fields(n_x, n_y, gm;
                                         overlap = 0)
     rf_idx = Iterators.product(1:n_x, 1:n_y)
     receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, gm; overlap=overlap), rf_idx)
-    println(receptive_fields)
     receptive_fields = map(i -> receptive_fields[i], 1:n_x*n_y) # I can't find a way to flatten ://///
 end
 
 function crop(rf::RectangleReceptiveField,
-              mask_distribution::BitArray{2})
+              mask_bits::BitArray{2})
     idxs = CartesianIndices((rf.p1[1]:rf.p2[1], rf.p1[2]:rf.p2[2]))
-    mask_distribution[idxs]
+    mask_bits[idxs]
+    #mask_bits[1:32, 1:32]
 end
 
 function cropfilter(rf, masks)
@@ -169,7 +164,7 @@ end
 
 # gets indices of masks that fall into the receptive field
 function cropindices(rf, masks)
-    cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
+    cropped_masks = map(m -> MOT.crop(rf, m), masks)
     indices = filter(i -> any(cropped_masks[i] .!= 0), 1:length(cropped_masks))
     @>> indices x -> (x, collect(1:length(x)))
 end
@@ -190,7 +185,7 @@ function get_td_score(td, indices, rf_assignment)
         intersection_indices = findall(x -> x in intersection, indices[i][1])
         push!(intersections_local, indices[i][2][intersection_indices])
     end
-    
+
     td_score = 0.0
     for (i, intersection) in enumerate(intersections_local)
         dc = rf_assignment[i][1] # data correspondence
@@ -216,11 +211,17 @@ function get_target_designation(n_targets,
                                 receptive_field_assignment,
                                 masks,
                                 receptive_fields)
-    indices = @>> receptive_fields map(rf -> cropindices(rf, masks))    
+    indices = @>> receptive_fields map(rf -> cropindices(rf, masks))
     indices = reshape(indices, size(receptive_field_assignment))
+    
+    display(n_targets)
+    display(receptive_field_assignment)
+    display(receptive_fields)
+    display(indices)
    
     # all possible target designations
     tds = collect(combinations(1:length(masks), n_targets))
+    tds = [[1,2,3,4]]
     scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))

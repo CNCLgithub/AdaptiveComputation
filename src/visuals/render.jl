@@ -216,9 +216,15 @@ function render_pf(causal_graph, gm;
 
         for i=1:length(objects)
             # drawing the predicted position of this tracker in particle
+            pred_pos = objects[i].pos
+
             if render_pos
-                pred_pos = objects[i].pos
-                _draw_circle(pred_pos, gm.dot_radius/3, pf_color, opacity=1.0)
+                pos = objects[i] isa Polygon ? map(x->x.pos, objects[i].dots) : [pred_pos]
+                @>> pos foreach(x -> _draw_circle(x, gm.dot_radius/3, pf_color, opacity=1.0))
+            end
+            
+            if objects[i] isa Polygon
+                _draw_circle(objects[i].pos, gm.dot_radius/2, "green", opacity=1.0)
             end
             
             if render_vel
