@@ -1,5 +1,7 @@
 abstract type AbstractReceptiveField end
 
+using Combinatorics
+
 function crop(rf::T,
               mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
     println("not implemented")
@@ -222,4 +224,5 @@ function get_target_designation(n_targets,
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))
 end
+
 export RectangleReceptiveField, get_rectangle_receptive_fields

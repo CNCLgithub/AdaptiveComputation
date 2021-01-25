@@ -69,5 +69,4 @@ receptive_fields_chain = Gen.Unfold(receptive_fields_kernel)
 end
 
 
-
 export gm_receptive_fields

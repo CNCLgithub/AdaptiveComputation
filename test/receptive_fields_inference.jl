@@ -4,9 +4,8 @@ using Gen_Compose
 using Random
 using Lazy
 using Statistics
-using Combinatorics
 using Images, FileIO, PaddedViews
-Random.seed!(1)
+Random.seed!(2)
 
 using StatProfilerHTML
 
@@ -33,8 +32,8 @@ gm = GMMaskParams(gauss_r_multiple = 4.0,
                   fmasks_n = 20,
                   img_height = 60,
                   img_width = 60,
-                  n_trackers = 4,
-                  distractor_rate = 4.0)
+                  n_trackers = 8,
+                  distractor_rate = 8.0)
 
 motion = ISRDynamics()
 prob_threshold = 0.01
@@ -79,6 +78,9 @@ latent_map = MOT.LatentMap(Dict(
                             #:assignments => MOT.extract_assignments_receptive_fields,
                             :rfs_vec => MOT.extract_rfs_vec
                            ))
+latent_map_end = MOT.LatentMap(Dict(
+                                :assignments => MOT.extract_assignments_receptive_fields
+                               ))
 
 constraints = Gen.choicemap()
 init_dots = gt_causal_graphs[1].elements
@@ -97,7 +99,7 @@ observations = Vector{Gen.ChoiceMap}(undef, k)
 for t = 1:k
     cm = Gen.choicemap()
     
-    cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
+    cropped_masks = @>> receptive_fields map(rf -> MOT.cropfilter(rf, masks[t]))
     # counting the non-zero masks in the timestep
     #display(@>> cropped_masks map(length) maximum)
 
@@ -108,6 +110,7 @@ for t = 1:k
 end
    
 query = Gen_Compose.SequentialQuery(latent_map,
+                                    latent_map_end,
                                     gm_receptive_fields,
                                     (0, motion_inference, gm, receptive_fields, prob_threshold),
                                     constraints,
@@ -122,9 +125,6 @@ proc = MOT.load(PopParticleFilter, proc_json;
 @time results = sequential_monte_carlo(proc, query,
                                  buffer_size = k,
                                  path = joinpath(path, "results.jld2"))
-
-
-
 
 
 visualize_inference(results, gt_causal_graphs,
@@ -155,7 +155,7 @@ function concatenate(masks)
 end
 
 function save_img(t, results, r_fields, out_dir)
-    rfs_vec = results.buffer[t]["unweighted"][:rfs_vec][:,1]
+    rfs_vec = results.buffer[t]["unweighted"][:rfs_vec][1,1,:]
     rfs_vec = @> rfs_vec reshape(r_fields)
     image = @>> begin rfs_vec
             map(rfs -> extract_mask_distributions(rfs))
@@ -175,14 +175,14 @@ mkpath(out_dir)
 
 
 ### target designation extraction
-traces = results.buffer[end]["traces"]
+#traces = results.buffer[end]["traces"]
 log_scores = results.buffer[end]["log_scores"][1,:]
-
-map_trace = traces[argmax(log_scores)]
-map_assignment = MOT.extract_assignments_receptive_fields(map_trace)
+map_assignment = results.buffer[end]["weighted"][:assignments][1,argmax(log_scores),:]
+display(size(map_assignment))
+#map_trace = traces[argmax(log_scores)]
+#map_assignment = MOT.extract_assignments_receptive_fields(map_trace)
 map_assignment = reshape(map_assignment, r_fields)
 
 #assignments = @>> traces map(x->MOT.extract_assignments_receptive_fields(x)) first
 
-
-get_target_designation(gm.n_trackers, map_assignment, masks[end], receptive_fields)
+MOT.get_target_designation(gm.n_trackers, map_assignment, masks[end], receptive_fields)
