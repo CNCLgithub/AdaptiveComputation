@@ -51,3 +51,4 @@ end
     radius::Float64
     dots::Vector{Dot}
 end
+

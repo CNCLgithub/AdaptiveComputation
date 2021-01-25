@@ -32,14 +32,13 @@ end
 
 masks = scene_data[:masks][2:end]
 gt_causal_graphs = scene_data[:gt_causal_graphs]
-motion_inference = scene_data[:motion]
 
 # # using inertia motion model for inference
-# motion_inference = InertiaModel(vel = 10.0,
-                                # low_w = 0.001,
-                                # high_w = 3.5,
-                                # a = 0.1,
-                                # b = 0.4)
+motion_inference = HGMInertiaDynamicsModel(vel = 10.0,
+                                low_w = 0.001,
+                                high_w = 3.5,
+                                a = 0.1,
+                                b = 0.4)
 
 # inference prep
 latent_map = MOT.LatentMap(Dict(

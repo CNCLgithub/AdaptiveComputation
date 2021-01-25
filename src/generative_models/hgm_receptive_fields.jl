@@ -50,7 +50,7 @@ end
                                       prob_threshold::Float64,
                                       hgm::HGMParams)
     # using ISR Dynamics
-    new_graph = @trace(hgm_update(dynamics_model, prev_state.graph, hgm), :dynamics)
+    new_graph = @trace(hgm_inertia_update(dynamics_model, prev_state.graph), :dynamics)
     dots = collect(Object, get_rendered_dots(new_graph, hgm.targets))
      
     rfs_vec, flow_masks = get_rfs_vec(receptive_fields, dots, prob_threshold, hgm, flow_masks=prev_state.flow_masks)
