@@ -24,7 +24,7 @@ attention_ancestral_steps = 3
 attention_samples = 10
 
 # genearate data
-k = 20
+k = 2
 gm = GMMaskParams(gauss_r_multiple = 4.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
@@ -134,55 +134,20 @@ visualize_inference(results, gt_causal_graphs,
 
 
 
-
 # rendering the masks from the receptive field rfs
-
-function pad_mask(mask; pad=1)
-    h, w = size(mask)
-    PaddedView(1, mask, (1:h+pad*2, 1:w+pad*2), (pad+1:h+pad, pad+1:w+pad))
-end
-
-function extract_mask_distributions(rfs)
-    mask_distributions = @>> rfs map(x -> first(x.args))
-end
-
-# concatenates masks from different receptive fields into one image
-function concatenate(masks)
-    @>> begin 1:size(masks, 1)
-        map(i -> hcat(masks[i,:]...)) # concatenating horizontally
-        h_masks->vcat(h_masks...) # concatenating vertically
-    end
-end
-
-function save_img(t, results, r_fields, out_dir)
-    rfs_vec = results.buffer[t]["unweighted"][:rfs_vec][1,1,:]
-    rfs_vec = @> rfs_vec reshape(r_fields)
-    image = @>> begin rfs_vec
-            map(rfs -> extract_mask_distributions(rfs))
-            map(x -> pad_mask.(x))
-            map(rf -> mean(rf))
-            concatenate
-        end
-
-    fn = joinpath(out_dir, "$(lpad(t,3,'0')).png")
-    save(fn, image)
-end
-    
 out_dir = joinpath("output", "experiments", "receptive_fields", "mask_distributions")
 ispath(out_dir) && rm(out_dir, recursive=true)
 mkpath(out_dir)
-@>> 1:k foreach(t -> save_img(t, results, r_fields, out_dir))
 
+rfs_vecs = @>> begin results.buffer
+    map(x -> x["unweighted"][:rfs_vec][1,1,:])
+    map(x -> reshape(x, r_fields))
+end
+@>> 1:k foreach(t -> MOT.save_receptive_fields_img(rfs_vecs[t], t, out_dir))
 
 ### target designation extraction
-#traces = results.buffer[end]["traces"]
 log_scores = results.buffer[end]["log_scores"][1,:]
 map_assignment = results.buffer[end]["weighted"][:assignments][1,argmax(log_scores),:]
-display(size(map_assignment))
-#map_trace = traces[argmax(log_scores)]
-#map_assignment = MOT.extract_assignments_receptive_fields(map_trace)
 map_assignment = reshape(map_assignment, r_fields)
-
-#assignments = @>> traces map(x->MOT.extract_assignments_receptive_fields(x)) first
 
 MOT.get_target_designation(gm.n_trackers, map_assignment, masks[end], receptive_fields)

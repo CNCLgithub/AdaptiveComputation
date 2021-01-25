@@ -1,6 +1,7 @@
 abstract type AbstractReceptiveField end
 
 using Combinatorics
+using Statistics
 
 function crop(rf::T,
               mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
@@ -223,6 +224,38 @@ function get_target_designation(n_targets,
     scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))
+end
+
+# concatenates masks from different receptive fields into one image
+function concatenate(masks)
+    @>> begin 1:size(masks, 1)
+        map(i -> hcat(masks[i,:]...)) # concatenating horizontally
+        h_masks->vcat(h_masks...) # concatenating vertically
+    end
+end
+
+function pad_mask(mask; pad=1)
+    h, w = size(mask)
+    PaddedView(1, mask, (1:h+pad*2, 1:w+pad*2), (pad+1:h+pad, pad+1:w+pad))
+end
+
+function _extract_mask_distributions(rfs)
+    mask_distributions = @>> rfs map(x -> first(x.args))
+end
+
+"""
+    rfs_vec = shape(n_receptive_fields_x, n_receptive_fields_y)
+"""
+function save_receptive_fields_img(rfs_mat, t, out_dir)
+    image = @>> begin rfs_mat
+            map(rfs -> _extract_mask_distributions(rfs))
+            map(x -> pad_mask.(x))
+            map(rf -> mean(rf))
+            concatenate
+        end
+
+    fn = joinpath(out_dir, "$(lpad(t,3,'0')).png")
+    save(fn, image)
 end
 
 export RectangleReceptiveField, get_rectangle_receptive_fields
