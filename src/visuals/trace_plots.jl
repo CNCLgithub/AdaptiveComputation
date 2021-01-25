@@ -8,6 +8,10 @@ export plot_score,
 using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
+
+using Plots # for the color scheme
+default_colors = palette(:tab20)
+
 import Cairo
 using DataFrames
 
@@ -85,7 +89,6 @@ end
 """
 Plots distribution of attention accross time
 """
-default_colors = ["indigo", "green", "blue", "yellow", "red", "orange", "black", "gray"]
 function plot_attention(attended, max_sweeps::Int, path::String;
                         tracker_colors=default_colors)
     mkpath(path)

@@ -24,7 +24,7 @@ attention_ancestral_steps = 3
 attention_samples = 10
 
 # genearate data
-k = 80
+k = 20
 gm = GMMaskParams(gauss_r_multiple = 4.0,
                   gauss_std = 0.5,
                   gauss_amp = 0.8,
