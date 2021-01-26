@@ -41,7 +41,8 @@ const default_hgm = HGMParams()
 
 
 @dist function sample_n_dots()
-    categorical(fill(1.0/3, 3)) + 2
+    max_dots = 7
+    categorical(fill(1.0/max_dots, max_dots)) + 1
 end
 
 ##### INIT STATE ######
@@ -60,7 +61,7 @@ end
         r = gmh.polygon_radius
         rot = @trace(uniform(0, 2*pi), :rot)
 
-        # 3, 4 or 5 dots in the polygon
+        # 2-8 dots in the polygon
         n_dots = @trace(sample_n_dots(), :n_dots)
         
         dots = Vector{Dot}(undef, n_dots)

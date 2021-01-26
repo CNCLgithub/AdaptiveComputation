@@ -14,9 +14,9 @@ n_particles = 10
 
 # load data
 hgm = MOT.load(HGMParams, joinpath("$(@__DIR__)", "hgm.json"))
-scene_data = MOT.load_scene(1, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
+scene_data = MOT.load_scene(10, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
 
-k = 60
+k = 80
 prob_threshold = 0.01
 
 attention = MOT.load(MapSensitivity, joinpath("$(@__DIR__)", "attention.json"),
@@ -67,21 +67,19 @@ for i=1:length(polygon_structure)
     end
 end
 
-n_tracked_dots = @>> trackers map(i -> polygon_structure[i]) sum
-distractor_rate = length(targets) - n_tracked_dots
-println("DISTRACTOR RATE $distractor_rate, n_tracked_dots $n_tracked_dots")
+println("DISTRACTOR RATE $(sum(targets))")
 
 hgm = MOT.load(HGMParams, joinpath("$(@__DIR__)", "hgm.json"),
                targets = targets_in_tracked,
                n_trackers = length(trackers),
-               distractor_rate = distractor_rate)
+               distractor_rate = sum(targets))
 
 constraints = Gen.choicemap()
 
 # constraining to initial positions
 init_objects = gt_causal_graphs[1].elements
-for i in trackers
-    n_dots = polygon_structure[i]
+for (i, j) in enumerate(trackers)
+    n_dots = polygon_structure[j]
     if n_dots > 1
         constraints[:init_state => :trackers => i => :polygon] = true
         constraints[:init_state => :trackers => i => :n_dots] = n_dots

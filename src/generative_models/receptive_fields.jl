@@ -221,7 +221,6 @@ function get_target_designation(n_targets,
    
     # all possible target designations
     tds = collect(combinations(1:length(masks), n_targets))
-    tds = [[1,2,3,4]]
     scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))

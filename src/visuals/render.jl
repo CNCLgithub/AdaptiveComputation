@@ -17,12 +17,14 @@ function _init_drawing(frame, path, gm;
     background(background_color)
 
     # drawing receptive_fields
-    sethue("black")
-    tiles = Tiler(gm.area_width, gm.area_height, receptive_fields[1], receptive_fields[2], margin=0)
-    foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
-    setopacity(0.1)
-    setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
-    foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+    if !isnothing(receptive_fields)
+        sethue("black")
+        tiles = Tiler(gm.area_width, gm.area_height, receptive_fields[1], receptive_fields[2], margin=0)
+        foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+        setopacity(0.1)
+        setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
+        foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+    end
 end
 
 """

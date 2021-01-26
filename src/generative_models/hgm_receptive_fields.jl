@@ -6,10 +6,10 @@ function get_rendered_dots(cg, targets)
         if isa(e, Polygon)
             dots = [dots; e.dots]
         else
-            push!(dots, e.pos)
+            push!(dots, e)
         end
     end
-
+    
     dots[targets]
 end
 
@@ -23,7 +23,8 @@ end
 
     rfs_vec = RFSElements{Array}(undef, 0)
     
-    n_rendered_dots = length(get_rendered_dots(graph, hgm.targets))
+    #n_rendered_dots = length(get_rendered_dots(graph, hgm.targets))
+    n_rendered_dots = sum(hgm.targets)
 
     if hgm.fmasks
         fmasks = Array{Matrix{Float64}}(undef, n_rendered_dots, hgm.fmasks_n)
@@ -44,6 +45,7 @@ end
 
 
 @gen static function hgm_receptive_fields_kernel(t::Int,
+#@gen function hgm_receptive_fields_kernel(t::Int,
                                       prev_state::ReceptiveFieldsState,
                                       dynamics_model::AbstractDynamicsModel,
                                       receptive_fields::Vector{RectangleReceptiveField},
@@ -64,6 +66,7 @@ end
 hgm_receptive_fields_chain = Gen.Unfold(hgm_receptive_fields_kernel)
 
 @gen static function hgm_receptive_fields(k::Int,
+#@gen function hgm_receptive_fields(k::Int,
                                    dynamics_model::AbstractDynamicsModel,
                                    hgm::HGMParams,
                                    receptive_fields::Vector{RectangleReceptiveField},
