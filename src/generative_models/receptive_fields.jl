@@ -68,7 +68,7 @@ end
 function get_pmbrfs(rf::AbstractReceptiveField,
                     mds::Vector{Matrix{Float64}}, # maybe define VecMat
                     gm::AbstractGMParams)
-    existence_prob = 0.99 # TODO remove constant?
+    existence_prob = 1.0 - 1e-10 # TODO remove constant?
 
     n = length(mds) + 1 # |mbrfs| + 1 for PPP
     

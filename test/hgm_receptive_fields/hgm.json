@@ -4,11 +4,9 @@
     "gauss_std" : 0.5,
     "gauss_amp" : 0.8,
     "fmasks" : true,
-    "fmasks_n" : 20,
+    "fmasks_n" : 15,
     "img_height" : 60,
     "img_width" : 60,
     "n_trackers" : 8,
     "distractor_rate" : 8.0
 }
-    
-

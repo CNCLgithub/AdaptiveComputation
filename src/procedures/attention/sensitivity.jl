@@ -51,8 +51,8 @@ function pos_objective(traces, weights, tracker)
         positions[1:2,i] = trackers[tracker].pos[1:2]
     end
     
-    display(positions)
-    display(weights)
+    #display(positions)
+    #display(weights)
     distribution = fit_mle(MvNormal, positions, weights)
     return mean(distribution), cov(distribution)
 end
@@ -123,13 +123,13 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
             end
         end
         gs = Vector{Float64}(undef, n_latents)
-        display(kls)
-        display(lls)
+        #display(kls)
+        #display(lls)
         for i = 1:n_latents
             weights = exp.(min(zeros(att.samples), lls[:, i]))
             gs[i] = log(sum(kls[:, i] .* weights))
         end
-        println("weights: $(gs)")
+        #println("weights: $(gs)")
         return gs
         
     # attending to TD or DC
@@ -149,8 +149,8 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
                           jittered_obj)
             kls[i, :] = collect(ẟs)
         end
-        display(kls)
-        display(lls)
+        #display(kls)
+        #display(lls)
         
         # good old interpretation of lls as acceptance probability
         # if ll > 0, then constrain to 0 since in that case move would be definitely accepted
@@ -175,17 +175,17 @@ end
 function get_weights(att::MapSensitivity, stats)
     # # making it smoother
     gs = att.smoothness.*stats
-    println("smoothed weights: $(gs)")
+    #println("smoothed weights: $(gs)")
     softmax(gs)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = logsumexp(stats)
+    x = logsumexp(stats/length(stats))
     amp = att.sweeps*exp(att.k*(x-att.x0))
-    println("k: $(att.k)")
-    println("x: $(x), amp: $(amp)")
+    #println("k: $(att.k)")
+    #println("x: $(x), amp: $(amp)")
     sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
-    println("sweeps: $sweeps")
+    #println("sweeps: $sweeps")
     return sweeps
 end
 

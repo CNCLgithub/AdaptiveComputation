@@ -14,7 +14,7 @@ n_particles = 15
 
 # load data
 hgm = MOT.load(HGMParams, joinpath("$(@__DIR__)", "hgm.json"))
-scene_data = MOT.load_scene(42, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
+scene_data = MOT.load_scene(2, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
 
 k = 80
 prob_threshold = 0.01
@@ -34,11 +34,8 @@ masks = scene_data[:masks][2:end]
 gt_causal_graphs = scene_data[:gt_causal_graphs]
 
 # # using inertia motion model for inference
-motion_inference = HGMInertiaDynamicsModel(vel = 10.0,
-                                low_w = 0.001,
-                                high_w = 3.5,
-                                a = 0.1,
-                                b = 0.4)
+motion_inference = MOT.load(HGMInertiaDynamicsModel, joinpath("$(@__DIR__)", "motion.json"))
+display(motion_inference)
 
 # inference prep
 latent_map = MOT.LatentMap(Dict(
@@ -66,6 +63,8 @@ for i=1:length(polygon_structure)
         push!(trackers, i)
     end
 end
+
+#targets_in_tracked = ones(8)
 
 println("DISTRACTOR RATE $(sum(targets))")
 

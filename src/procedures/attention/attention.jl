@@ -29,7 +29,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : get_weights(attention, rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("categorical weights: $weights")
+    #println("categorical weights: $weights")
     println("sweeps: $sweeps")
 
     fails = 0
