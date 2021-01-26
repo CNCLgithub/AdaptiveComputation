@@ -9,8 +9,6 @@ using Gadfly
 Gadfly.push_theme(Theme(background_color = colorant"white"))
 using Compose
 
-using Plots: palette # for the color scheme
-default_colors = palette(:tab20)
 
 import Cairo
 using DataFrames

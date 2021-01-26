@@ -6,7 +6,10 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              render_map=false,
                              masks=nothing,
                              receptive_fields=nothing,
-                             receptive_fields_overlap = 0)
+                             receptive_fields_overlap = 0,
+                             freeze_time = 0,
+                             highlighted = highlighted)
+
     extracted = extract_chain(results)
     causal_graphs = extracted["unweighted"][:causal_graph]
     
@@ -47,7 +50,9 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
            tracker_masks=tracker_masks,
            path = render_path,
            receptive_fields=receptive_fields,
-           receptive_fields_overlap = receptive_fields_overlap)
+           receptive_fields_overlap = receptive_fields_overlap,
+           freeze_time=freeze_time,
+           highlighted=highlighted)
     
     render_model || return
 

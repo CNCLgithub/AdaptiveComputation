@@ -226,7 +226,8 @@ function render_pf(causal_graph, gm;
             end
             
             if objects[i] isa Polygon
-                _draw_circle(objects[i].pos, gm.dot_radius/2, "green", opacity=1.0)
+                @>> objects[i].dots foreach(x -> _draw_arrow(objects[i].pos, x.pos,
+                                                             "black", opacity=0.05))
             end
             
             if render_vel

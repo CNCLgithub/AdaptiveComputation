@@ -10,11 +10,11 @@ using Images, FileIO, PaddedViews
 
 r_fields = (5, 5)
 overlap = 2
-n_particles = 10
+n_particles = 15
 
 # load data
 hgm = MOT.load(HGMParams, joinpath("$(@__DIR__)", "hgm.json"))
-scene_data = MOT.load_scene(10, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
+scene_data = MOT.load_scene(42, joinpath("/datasets", "exp3_polygons.jld2"), hgm)
 
 k = 80
 prob_threshold = 0.01
@@ -78,6 +78,8 @@ constraints = Gen.choicemap()
 
 # constraining to initial positions
 init_objects = gt_causal_graphs[1].elements
+println("polygon_structure $polygon_structure")
+println("trackers $trackers")
 for (i, j) in enumerate(trackers)
     n_dots = polygon_structure[j]
     if n_dots > 1
@@ -88,19 +90,19 @@ for (i, j) in enumerate(trackers)
     end
 
     addr = :init_state => :trackers => i => :x
-    constraints[addr] = init_objects[i].pos[1]
+    constraints[addr] = init_objects[j].pos[1]
     addr = :init_state => :trackers => i => :y
-    constraints[addr] = init_objects[i].pos[2]
+    constraints[addr] = init_objects[j].pos[2]
 
-    if init_objects[i] isa Polygon
+    if init_objects[j] isa Polygon
         addr = :init_state => :trackers => i => :rot
-        constraints[addr] = init_objects[i].rot
-        pol_dots = init_objects[i].dots
-        for j=1:length(pol_dots)
-            addr = :init_state => :trackers => i => j => :x
-            constraints[addr] = pol_dots[j].pos[1]
-            addr = :init_state => :trackers => i => j => :y
-            constraints[addr] = pol_dots[j].pos[2]
+        constraints[addr] = init_objects[j].rot
+        pol_dots = init_objects[j].dots
+        for k=1:length(pol_dots)
+            addr = :init_state => :trackers => i => k => :x
+            constraints[addr] = pol_dots[k].pos[1]
+            addr = :init_state => :trackers => i => k => :y
+            constraints[addr] = pol_dots[k].pos[2]
         end
     end
 end
@@ -141,7 +143,9 @@ proc = MOT.load(PopParticleFilter, joinpath("$(@__DIR__)", "proc.json"),
 visualize_inference(results, gt_causal_graphs,
                     hgm, attention, dirname(path),
                     receptive_fields = r_fields,
-                    receptive_fields_overlap = overlap)
+                    receptive_fields_overlap = overlap,
+                    freeze_time = 10,
+                    highlighted = findall(x-> x== 1, targets))
 
 
 # rendering the masks from the receptive field rfs
@@ -163,3 +167,10 @@ map_assignment = reshape(map_assignment, r_fields)
 # @>> 1:length(masks[end]) foreach(i -> save("test_$i.png", masks[end][i]))
 td = MOT.get_target_designation(sum(hgm.targets), map_assignment, masks[k], receptive_fields)
 
+pred_targets = zeros(Bool, length(targets))
+pred_targets[first(td)[1]] .= 1
+accuracy = sum(targets .& pred_targets)/sum(targets)
+
+println("ground truth targets: \n$targets")
+println("model prodiction: \n$pred_targets")
+println("accuracy: $accuracy")

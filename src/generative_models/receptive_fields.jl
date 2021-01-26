@@ -213,11 +213,6 @@ function get_target_designation(n_targets,
                                 receptive_fields)
     indices = @>> receptive_fields map(rf -> cropindices(rf, masks))
     indices = reshape(indices, size(receptive_field_assignment))
-    
-    display(n_targets)
-    display(receptive_field_assignment)
-    display(receptive_fields)
-    display(indices)
    
     # all possible target designations
     tds = collect(combinations(1:length(masks), n_targets))
