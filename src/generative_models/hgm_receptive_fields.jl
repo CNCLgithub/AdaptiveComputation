@@ -1,16 +1,11 @@
 
-# TODO maybe make faster
-function get_rendered_dots(cg, targets)
-    dots = []
-    for e in cg.elements
-        if isa(e, Polygon)
-            dots = [dots; e.dots]
-        else
-            push!(dots, e)
-        end
+# flatten objects to dot level
+function flatten(objects::Vector{Object})
+    dots = @>> begin objects
+        map(x -> x isa Dot ? x : x.dots)
+        x->vcat(x...)
+        collect(Object)
     end
-    
-    dots[targets]
 end
 
 @gen function sample_init_hgm_receptive_fields_state(hgm::HGMParams)
@@ -23,8 +18,8 @@ end
 
     rfs_vec = RFSElements{Array}(undef, 0)
     
-    #n_rendered_dots = length(get_rendered_dots(graph, hgm.targets))
-    n_rendered_dots = sum(hgm.targets)
+    #n_rendered_dots = sum(hgm.targets)
+    n_rendered_dots = length(hgm.targets) # rendering all dots in tracked objects
 
     if hgm.fmasks
         fmasks = Array{Matrix{Float64}}(undef, n_rendered_dots, hgm.fmasks_n)
@@ -43,9 +38,8 @@ end
 end
 
 
-
-@gen static function hgm_receptive_fields_kernel(t::Int,
-#@gen function hgm_receptive_fields_kernel(t::Int,
+#@gen static function hgm_receptive_fields_kernel(t::Int,
+@gen function hgm_receptive_fields_kernel(t::Int,
                                       prev_state::ReceptiveFieldsState,
                                       dynamics_model::AbstractDynamicsModel,
                                       receptive_fields::Vector{RectangleReceptiveField},
@@ -53,7 +47,12 @@ end
                                       hgm::HGMParams)
     # using ISR Dynamics
     new_graph = @trace(hgm_inertia_update(dynamics_model, prev_state.graph), :dynamics)
-    dots = collect(Object, get_rendered_dots(new_graph, hgm.targets))
+    #dots = flatten(new_graph.elements)[hgm.targets]
+
+    # we want to permute the elements so that
+    # targets come after the PPP component and distractors MBRFS
+    perm = sortperm(hgm.targets)
+    dots = flatten(new_graph.elements)[perm]
      
     rfs_vec, flow_masks = get_rfs_vec(receptive_fields, dots, prob_threshold, hgm, flow_masks=prev_state.flow_masks)
     @trace(receptive_fields_map(rfs_vec), :receptive_fields)
@@ -65,8 +64,8 @@ end
 
 hgm_receptive_fields_chain = Gen.Unfold(hgm_receptive_fields_kernel)
 
-@gen static function hgm_receptive_fields(k::Int,
-#@gen function hgm_receptive_fields(k::Int,
+#@gen static function hgm_receptive_fields(k::Int,
+@gen function hgm_receptive_fields(k::Int,
                                    dynamics_model::AbstractDynamicsModel,
                                    hgm::HGMParams,
                                    receptive_fields::Vector{RectangleReceptiveField},

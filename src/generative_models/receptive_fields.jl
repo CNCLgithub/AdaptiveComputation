@@ -175,9 +175,10 @@ end
     indices = 
     rf_assignment = 
 """
-function get_td_score(td, indices, rf_assignment)
+function get_td_score(td, indices, rf_assignment, n_distractors_tracked)
     # finding the intersecting global mask indices with each rf
     intersections_global = @>> indices map(idx -> intersect(idx[1], td))
+    display(intersections_global)
 
     # mapping the intersections to the local level mask indices
     intersections_local = []
@@ -185,6 +186,10 @@ function get_td_score(td, indices, rf_assignment)
         intersection_indices = findall(x -> x in intersection, indices[i][1])
         push!(intersections_local, indices[i][2][intersection_indices])
     end
+
+    display(reshape(intersections_local, size(intersections_global)))
+    
+    display(rf_assignment)
 
     td_score = 0.0
     for (i, intersection) in enumerate(intersections_local)
@@ -208,15 +213,19 @@ end
     returns the target designation distribution
 """
 function get_target_designation(n_targets,
+                                n_distractors_tracked,
                                 receptive_field_assignment,
                                 masks,
                                 receptive_fields)
+    println("n_targets $n_targets")
+    println("n_distractors_tracked $n_distractors_tracked")
     indices = @>> receptive_fields map(rf -> cropindices(rf, masks))
     indices = reshape(indices, size(receptive_field_assignment))
    
     # all possible target designations
     tds = collect(combinations(1:length(masks), n_targets))
-    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
+    tds = [[4,5,9,10]]
+    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment, n_distractors_tracked))
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))
 end

@@ -180,7 +180,10 @@ function get_weights(att::MapSensitivity, stats)
 end
 
 function get_sweeps(att::MapSensitivity, stats)
-    x = logsumexp(stats/length(stats))
+    # TODO check if this is proper normalization
+    # maybe no normalization????????????????????
+    #x = logsumexp(stats/length(stats))
+    x = logsumexp(stats)
     amp = att.sweeps*exp(att.k*(x-att.x0))
     #println("k: $(att.k)")
     #println("x: $(x), amp: $(amp)")
@@ -198,6 +201,7 @@ end
 function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
+    # TODO fix indices to extract which pmbrfs elements are targets
     tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
     unique_tracker_assocs = unique(tracker_assocs)
     td = Dict{Set{Int64}, Float64}()
@@ -213,7 +217,9 @@ function target_designation_receptive_fields(tr::Gen.Trace)
     rfs_vec = Gen.get_retval(tr)[2][t].rfs_vec
     receptive_fields = get_submaps_shallow(get_submap(get_choices(tr), :kernel => t => :receptive_fields))
     xss = @>> receptive_fields map(rf -> rf[2])
-    tds = @>> receptive_fields map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+    tds = @>> begin receptive_fields
+        map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+    end
 end
 
 function target_designation(tr::Gen.Trace)

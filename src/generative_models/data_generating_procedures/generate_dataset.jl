@@ -87,3 +87,11 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
         end
     end
 end
+
+
+function get_n_scenes(dataset_path::String)
+    file = jldopen(dataset_path, "r")
+    n_scenes = file["n_scenes"]
+    close(file)
+    return n_scenes
+end
