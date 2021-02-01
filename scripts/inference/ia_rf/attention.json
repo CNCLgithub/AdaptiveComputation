@@ -1,0 +1,8 @@
+{
+    "sweeps" : 20,
+    "k" : 0.05,
+    "x0" : 0,
+    "smoothness" : 0.1,
+    "ancestral_steps" : 3,
+    "samples" : 10
+}

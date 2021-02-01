@@ -57,7 +57,8 @@ function pos_from_cgs(cg)
 end
 
 function analyze_chain_receptive_fields(chain,
-                                        n_trackers::Int64 = 4,
+                                        n_trackers = 4,
+                                        n_dots = 8,
                                         receptive_fields = nothing,
                                         masks_end = nothing)
 
@@ -80,10 +81,13 @@ function analyze_chain_receptive_fields(chain,
     td = @>> 1:n_particles begin
         map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
     end
+    # taking the top designation for each particle (or sampling random if top logscore is Inf)
     display(td[1][1:5])
-    top_td = @>> td map(x-> x[1][1]) # taking the top designation for each particle
+    top_td = @>> td map(x-> isinf(x[1][2]) ? collect(combinations(n_dots, n_trackers)) : x[1][1])
     display(top_td)
-    td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+    td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+    
+    println(td_acc)
 
     for frame = 1:size(causal_graphs)[1], tracker = 1:n_trackers
         att = aux_state[frame].attended_trackers[tracker]
@@ -140,6 +144,7 @@ end
 function merge_experiment(exp_path::String)
     trials = filter(isdir, readdir(exp_path, join = true))
     df = vcat(map(merge_trial, trials)...)
-    CSV.write("$(exp_path).csv", df)
+    display(df)
+    CSV.write(joinpath(exp_path, "merged_results.csv"), df)
     return nothing
 end
