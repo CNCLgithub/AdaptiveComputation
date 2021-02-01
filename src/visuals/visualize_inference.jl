@@ -8,7 +8,7 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
                              receptive_fields=nothing,
                              receptive_fields_overlap = 0,
                              freeze_time = 0,
-                             highlighted = highlighted)
+                             highlighted = collect(1:gm.n_trackers))
 
     extracted = extract_chain(results)
     causal_graphs = extracted["unweighted"][:causal_graph]

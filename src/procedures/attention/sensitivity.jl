@@ -226,7 +226,6 @@ function target_designation(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
     xs = get_choices(tr)[:kernel => t => :masks]
     pmbrfs = Gen.get_retval(tr)[2][t].rfs
-
     current_td = _td(xs, pmbrfs, t)
 end
 

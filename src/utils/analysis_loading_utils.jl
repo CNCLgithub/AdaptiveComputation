@@ -56,6 +56,45 @@ function pos_from_cgs(cg)
     map(x -> x.pos[1:2], cg.elements)
 end
 
+function analyze_chain_receptive_fields(chain,
+                                        n_trackers::Int64 = 4,
+                                        receptive_fields = nothing,
+                                        masks_end = nothing)
+
+    # reading the file of memory buffer
+    extracted = extract_chain(chain)
+    
+    df = DataFrame(frame = Int64[],
+                   tracker = Int64[],
+                   attention = Float64[],
+                   td_acc = Float64[])
+
+    aux_state = extracted["aux_state"]
+    correspondence = extracted["unweighted"][:assignments] # t x particle
+    causal_graphs = extracted["unweighted"][:causal_graph] # t x particle
+
+    display(correspondence[1,1,:])
+    
+    # just average td_acc across particles for the last step
+    n_particles = size(correspondence)[2]
+    td = @>> 1:n_particles begin
+        map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
+    end
+    display(td[1][1:5])
+    top_td = @>> td map(x-> x[1][1]) # taking the top designation for each particle
+    display(top_td)
+    td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+
+    for frame = 1:size(causal_graphs)[1], tracker = 1:n_trackers
+        att = aux_state[frame].attended_trackers[tracker]
+        #probs = td[frame, particle][tracker]
+        #pos = positions[frame, particle][tracker]
+        push!(df, (frame, tracker, att, td_acc))
+    end
+    return df
+end
+
+
 function analyze_chain(chain, n_trackers::Int64 = 4)
 
     # reading the file of memory buffer
@@ -80,6 +119,7 @@ function analyze_chain(chain, n_trackers::Int64 = 4)
     # time x particle x tracker
     positions = causal_graphs .|> pos_from_cgs
     td = correspondence .|> x -> map(y -> tracker_probs(y, x...), 1:n_trackers)
+
     inds = CartesianIndices(td)
     for idx in inds, tracker = 1:n_trackers
         (frame, particle) = Tuple(inds[idx])

@@ -4,6 +4,21 @@ using Combinatorics
 using Statistics
 using Images, FileIO, PaddedViews
 
+abstract type AbstractRFParams end
+
+@with_kw struct RectRFParams <: AbstractRFParams
+    n_x::Int64 = 5
+    n_y::Int64 = 5
+    overlap::Int64 = 2
+end
+
+function load(::Type{RectRFParams}, path; kwargs...)
+    RectRFParams(;read_json(path)..., kwargs...)
+end
+function load(::Type{RectRFParams}, path::String)
+    RectRFParams(;read_json(path)...)
+end
+
 function crop(rf::T,
               mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
     println("not implemented")
@@ -175,10 +190,9 @@ end
     indices = 
     rf_assignment = 
 """
-function get_td_score(td, indices, rf_assignment, n_distractors_tracked)
+function get_td_score(td, indices, rf_assignment)
     # finding the intersecting global mask indices with each rf
     intersections_global = @>> indices map(idx -> intersect(idx[1], td))
-    display(intersections_global)
 
     # mapping the intersections to the local level mask indices
     intersections_local = []
@@ -186,11 +200,7 @@ function get_td_score(td, indices, rf_assignment, n_distractors_tracked)
         intersection_indices = findall(x -> x in intersection, indices[i][1])
         push!(intersections_local, indices[i][2][intersection_indices])
     end
-
-    display(reshape(intersections_local, size(intersections_global)))
     
-    display(rf_assignment)
-
     td_score = 0.0
     for (i, intersection) in enumerate(intersections_local)
         dc = rf_assignment[i][1] # data correspondence
@@ -213,19 +223,15 @@ end
     returns the target designation distribution
 """
 function get_target_designation(n_targets,
-                                n_distractors_tracked,
                                 receptive_field_assignment,
                                 masks,
                                 receptive_fields)
-    println("n_targets $n_targets")
-    println("n_distractors_tracked $n_distractors_tracked")
     indices = @>> receptive_fields map(rf -> cropindices(rf, masks))
     indices = reshape(indices, size(receptive_field_assignment))
    
     # all possible target designations
     tds = collect(combinations(1:length(masks), n_targets))
-    tds = [[4,5,9,10]]
-    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment, n_distractors_tracked))
+    scores = @>> tds map(td -> get_td_score(td, indices, receptive_field_assignment))
     perm = sortperm(scores, rev=true)
     @>> perm map(i -> (tds[i], scores[i]))
 end
@@ -262,4 +268,4 @@ function save_receptive_fields_img(rfs_mat, t, out_dir)
     save(fn, image)
 end
 
-export RectangleReceptiveField, get_rectangle_receptive_fields
+export RectangleReceptiveField, get_rectangle_receptive_fields, RectRFParams

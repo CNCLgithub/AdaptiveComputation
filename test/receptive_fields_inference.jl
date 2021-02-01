@@ -132,7 +132,6 @@ visualize_inference(results, gt_causal_graphs,
                     receptive_fields_overlap = overlap)
 
 
-
 # rendering the masks from the receptive field rfs
 out_dir = joinpath("output", "experiments", "receptive_fields", "mask_distributions")
 ispath(out_dir) && rm(out_dir, recursive=true)

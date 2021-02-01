@@ -26,11 +26,6 @@ end
     vel *= model.vel/norm(vel)
     vel = @trace(broadcasted_normal(vel, model.low_w), :v)
 
-    # vel_sd = min(model.low_w/acc, model.high_w)
-    # vx = @trace(normal(acc * _vx, vel_sd), :vx)
-    # vy = @trace(normal(acc * _vy, vel_sd), :vy)
-    # vel = [vx, vy]
-
     x = _x + vel[1]
     y = _y + vel[2]
     z = @trace(uniform(0, 1), :z)

@@ -13,18 +13,17 @@ function run_inference(query::SequentialQuery,
                                      path = path)
 end
 
-function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
-                           gm = gm_brownian_mask, motion = nothing) where {T<:String, K<:Int}
+function query_from_params(gm_params, dataset::T, scene::K, k::K;
+                           gm = gm_brownian_mask, motion = nothing,
+                           receptive_fields = nothing,
+                           prob_threshold = 0.0001,
+                           lm::Dict = Dict(),
+                           lm_end::Dict = Dict()) where {T<:String, K<:Int}
 
-    _lm = Dict(:tracker_positions => extract_tracker_positions,
-               :assignments => extract_assignments,
-               :causal_graph => extract_causal_graph)
-               # :tracker_masks => extract_tracker_masks)
-               # :trace => extract_trace)
+    latent_map = LatentMap(lm)
+    latent_map_end = LatentMap(lm_end)
 
-    latent_map = LatentMap(_lm)
-
-    gm_params = load(GMMaskParams, gm_params_path)
+    #gm_params = load(GMMaskParams, gm_params_path)
 
     scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true)
@@ -44,24 +43,41 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
         addr = :init_state => :trackers => i => :y
         constraints[addr] = init_dots[i].pos[2]
     end
+    
+    if isnothing(receptive_fields)
+        # compiling further observations for the model
+        args = [(t, motion, gm_params) for t in 1:k]
+        observations = Vector{Gen.ChoiceMap}(undef, k)
+        for t = 1:k
+            cm = Gen.choicemap()
+            cm[:kernel => t => :masks] = masks[t]
+            observations[t] = cm
+        end
+        extra_gm_args = ()
+    else
+        args = [(t, motion, gm_params, receptive_fields, prob_threshold) for t in 1:k]
+        observations = Vector{Gen.ChoiceMap}(undef, k)
+        for t = 1:k
+            cm = Gen.choicemap()
+            cropped_masks = @>> receptive_fields map(rf -> MOT.cropfilter(rf, masks[t]))
 
-    # compiling further observations for the model
-    args = [(t, motion, gm_params) for t in 1:k]
-    observations = Vector{Gen.ChoiceMap}(undef, k)
-    for t = 1:k
-        cm = Gen.choicemap()
-        cm[:kernel => t => :masks] = masks[t]
-        observations[t] = cm
+            for i=1:length(receptive_fields)
+                cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
+            end
+            observations[t] = cm
+        end
+        extra_gm_args = (receptive_fields, prob_threshold)
     end
 
     query = Gen_Compose.SequentialQuery(latent_map,
+                                        latent_map_end,
                                         gm,
-                                        (0, motion, gm_params),
+                                        (0, motion, gm_params, extra_gm_args...),
                                         constraints,
                                         args,
                                         observations)
 
-    return query, gt_causal_graphs, gm_params
+    return query, gt_causal_graphs, masks
 end
 
 export run_inference, query_from_params
