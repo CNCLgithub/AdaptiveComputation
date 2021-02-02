@@ -2,6 +2,7 @@ export read_json, merge_trial, merge_experiment
 
 using CSV
 using JSON
+using Random
 
 """
     read_json(path)
@@ -83,7 +84,7 @@ function analyze_chain_receptive_fields(chain,
     end
     # taking the top designation for each particle (or sampling random if top logscore is Inf)
     display(td[1][1:5])
-    top_td = @>> td map(x-> isinf(x[1][2]) ? collect(combinations(n_dots, n_trackers)) : x[1][1])
+    top_td = @>> td map(x-> isinf(x[1][2]) ? randperm(Int(n_dots))[1:n_trackers] : x[1][1])
     display(top_td)
     td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
     

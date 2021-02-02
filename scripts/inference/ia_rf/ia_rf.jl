@@ -7,6 +7,7 @@
 
 using CSV
 using MOT
+using Random
 using ArgParse
 
 function parse_commandline()
@@ -88,7 +89,7 @@ function main()
     dir = "$(@__DIR__)"
     args = Dict("scene" => 1,
                 "chain" => 1,
-                "compute" => 5,
+                "compute" => 20,
                 "n_targets" => 3,
                 "viz" => true,
                 "gm" => "$(dir)/gm.json",
@@ -99,6 +100,8 @@ function main()
                 "dataset" => "/datasets/ia_mot.jld2",
                 "time" => 299,
                 "restart" => true)
+
+    Random.seed!(1)
     
     prob_threshold = 0.01
     n_targets = args["n_targets"]
@@ -114,8 +117,8 @@ function main()
                    objective = MOT.target_designation_receptive_fields,
                    sweeps = args["compute"])
     #att = UniformAttention(sweeps = 2)
-    #motion = MOT.load(InertiaModel, args["motion"])
-    motion = MOT.load(BrownianDynamicsModel, args["motion"])
+    motion = MOT.load(InertiaModel, args["motion"])
+    #motion = MOT.load(BrownianDynamicsModel, args["motion"])
     rf_params = MOT.load(RectRFParams, args["rf_params"])
 
     lm = Dict(:causal_graph => MOT.extract_causal_graph)
@@ -128,7 +131,8 @@ function main()
 
     query, gt_causal_graphs, masks = query_from_params(gm_params, args["dataset"],
                                                 args["scene"], args["time"],
-                                                gm = gm_receptive_fields_brownian,
+                                                #gm = gm_receptive_fields_brownian,
+                                                gm = gm_receptive_fields,
                                                 motion = motion,
                                                 lm = lm,
                                                 lm_end = lm_end,

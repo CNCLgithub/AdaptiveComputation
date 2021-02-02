@@ -1,13 +1,14 @@
+
 {
-    "gauss_r_multiple" : 8.0,
+    "gauss_r_multiple" : 4.0,
     "gauss_std" : 0.5,
     "gauss_amp" : 0.8,
     "fmasks" : true,
     "fmasks_n" : 15,
     "img_height" : 60,
     "img_width" : 60,
-    "area_height": 600,
+    "n_trackers" : 8,
+    "distractor_rate" : 8.0,
     "area_width": 600,
-    "n_trackers" : 6,
-    "distractor_rate" : 6.0
+    "area_height": 600
 }
