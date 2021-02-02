@@ -76,7 +76,6 @@ function parse_commandline()
         help = "Number of targets"
         arg_type = Int
         required = true
-
     end
 
     return parse_args(s)
@@ -86,6 +85,8 @@ experiment_name = "individual_attention_receptive_fields"
 
 function main()
     #args = parse_commandline()
+    
+    ############## comment out ########################
     dir = "$(@__DIR__)"
     args = Dict("scene" => 1,
                 "chain" => 1,
@@ -100,8 +101,9 @@ function main()
                 "dataset" => "/datasets/ia_mot.jld2",
                 "time" => 299,
                 "restart" => true)
-
     Random.seed!(1)
+    ###################################################
+
     
     prob_threshold = 0.01
     n_targets = args["n_targets"]
