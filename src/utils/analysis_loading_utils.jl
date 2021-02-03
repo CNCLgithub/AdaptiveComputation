@@ -3,6 +3,7 @@ export read_json, merge_trial, merge_experiment
 using CSV
 using JSON
 using Random
+using LinearAlgebra
 
 """
     read_json(path)
@@ -57,11 +58,38 @@ function pos_from_cgs(cg)
     map(x -> x.pos[1:2], cg.elements)
 end
 
+
+"""
+    simplified target designation using the Hungarian algorithm
+    (or a simple version of the Hungarian algorithm)
+"""
+function get_simplified_target_designation(cg, gt_cg)
+    pos = @>> cg.elements map(x->x.pos)
+    gt_pos = @>> gt_cg.elements map(x->x.pos)
+    
+    inds = Iterators.product(1:length(cg.elements), 1:length(gt_cg.elements))
+    distances = @>> inds map(i -> norm(pos[i[1]] - gt_pos[i[2]]))
+
+    td = []
+    for i=1:length(cg.elements)
+        perm = sortperm(distances[i,:])
+        for j in perm
+            if !(j in td)
+                push!(td, j)
+                break
+            end
+        end
+    end
+
+    return td
+end
+
 function analyze_chain_receptive_fields(chain,
                                         n_trackers = 4,
                                         n_dots = 8,
                                         receptive_fields = nothing,
-                                        masks_end = nothing)
+                                        masks_end = nothing,
+                                        gt_cg_end = nothing)
 
     # reading the file of memory buffer
     extracted = extract_chain(chain)
@@ -80,13 +108,18 @@ function analyze_chain_receptive_fields(chain,
     # just average td_acc across particles for the last step
     n_particles = size(correspondence)[2]
     td = @>> 1:n_particles begin
-        map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
+        #map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
+        map(i -> get_simplified_target_designation(causal_graphs[end,i], gt_cg_end))
     end
     # taking the top designation for each particle (or sampling random if top logscore is Inf)
+    """
     display(td[1][1:5])
     top_td = @>> td map(x-> isinf(x[1][2]) ? randperm(Int(n_dots))[1:n_trackers] : x[1][1])
     display(top_td)
     td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+    """
+    display(td)
+    td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
     
     println(td_acc)
 
@@ -145,7 +178,6 @@ end
 function merge_experiment(exp_path::String)
     trials = filter(isdir, readdir(exp_path, join = true))
     df = vcat(map(merge_trial, trials)...)
-    display(df)
     CSV.write(joinpath(exp_path, "merged_results.csv"), df)
-    return nothing
+    return df
 end

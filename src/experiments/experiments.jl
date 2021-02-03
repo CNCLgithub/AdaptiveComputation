@@ -77,7 +77,7 @@ function query_from_params(gm_params, dataset::T, scene::K, k::K;
                                         args,
                                         observations)
 
-    return query, gt_causal_graphs, masks
+    return query, gt_causal_graphs, masks, scene_data
 end
 
 export run_inference, query_from_params
