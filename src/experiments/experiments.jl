@@ -15,6 +15,7 @@ end
 
 function query_from_params(gm_params, dataset::T, scene::K, k::K;
                            gm = gm_brownian_mask, motion = nothing,
+                           point_observations = false,
                            receptive_fields = nothing,
                            prob_threshold = 0.0001,
                            lm::Dict = Dict(),
@@ -26,7 +27,7 @@ function query_from_params(gm_params, dataset::T, scene::K, k::K;
     #gm_params = load(GMMaskParams, gm_params_path)
 
     scene_data = load_scene(scene, dataset, gm_params;
-                            generate_masks=true)
+                            generate_masks=!point_observations)
 
     motion = isnothing(motion) ? scene_data[:motion] : motion
     masks = scene_data[:masks]
@@ -55,18 +56,27 @@ function query_from_params(gm_params, dataset::T, scene::K, k::K;
         end
         extra_gm_args = ()
     else
-        args = [(t, motion, gm_params, receptive_fields, prob_threshold) for t in 1:k]
+        args = [(t, motion, gm_params, receptive_fields) for t in 1:k]
         observations = Vector{Gen.ChoiceMap}(undef, k)
         for t = 1:k
             cm = Gen.choicemap()
-            cropped_masks = @>> receptive_fields map(rf -> MOT.cropfilter(rf, masks[t]))
 
-            for i=1:length(receptive_fields)
-                cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
+            if point_observations
+                points = @>> scene_data[:gt_causal_graphs][t].elements map(x -> x.pos)
+                points_rf = @>> receptive_fields map(rf -> filter(p -> MOT.within(p, rf), points))
+                display(points_rf)
+                for i=1:length(receptive_fields)
+                    cm[:kernel => t => :receptive_fields => i => :points] = points_rf[i]
+                end
+            else
+                cropped_masks = @>> receptive_fields map(rf -> MOT.cropfilter(rf, masks[t]))
+                for i=1:length(receptive_fields)
+                    cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
+                end
             end
             observations[t] = cm
         end
-        extra_gm_args = (receptive_fields, prob_threshold)
+        extra_gm_args = (receptive_fields,)
     end
 
     query = Gen_Compose.SequentialQuery(latent_map,

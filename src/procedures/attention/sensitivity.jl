@@ -212,6 +212,30 @@ function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     td
 end
 
+function _td_points(xs::Vector{Vector{Float64}}, pmbrfs::RFSElements, t::Int)
+    record = AssociationRecord(200)
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    # TODO fix indices to extract which pmbrfs elements are targets
+    tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
+    unique_tracker_assocs = unique(tracker_assocs)
+    td = Dict{Set{Int64}, Float64}()
+    for tracker_assoc in unique_tracker_assocs
+        idxs = findall(map(x -> x == tracker_assoc, tracker_assocs))
+        td[tracker_assoc] = logsumexp(record.logscores[idxs])
+    end
+    td
+end
+
+function target_designation_receptive_fields_points(tr::Gen.Trace)
+    t = first(Gen.get_args(tr))
+    rfs_vec = Gen.get_retval(tr)[2][t].rfs_vec
+    receptive_fields = get_submaps_shallow(get_submap(get_choices(tr), :kernel => t => :receptive_fields))
+    xss = @>> receptive_fields map(rf -> rf[2])
+    tds = @>> begin receptive_fields
+        map(rf -> _td_points(convert(Vector{Vector{Float64}}, rf[2][:points]), rfs_vec[rf[1]], t))
+    end
+end
+
 function target_designation_receptive_fields(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
     rfs_vec = Gen.get_retval(tr)[2][t].rfs_vec

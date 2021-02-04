@@ -33,7 +33,7 @@ function load_scene(scene, dataset_path, gm;
         masks = nothing
     end
 
-    if gm.fmasks
+    if generate_masks && gm.fmasks
         fmasks = Vector{Vector{BitArray{2}}}(undef, length(masks))
 
         # for each mask, generate a new mask that takes history into account

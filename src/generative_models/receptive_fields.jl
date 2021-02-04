@@ -89,8 +89,8 @@ function get_pmbrfs(rf::AbstractReceptiveField,
     
     # this is not completely correct, but maybe a fine approximation
     rf_n_pixels = prod(get_dimensions(rf))
-    rf_proportion_of_img = rf_n_pixels/gm.img_width*gm.img_height
-    rf_distractor_rate = gm.distractor_rate / rf_proportion_of_img
+    rf_proportion_of_img = rf_n_pixels/gm.img_width/gm.img_height
+    rf_distractor_rate = gm.distractor_rate * rf_proportion_of_img
 
     radius_scaled = gm.dot_radius/gm.area_width*gm.img_width
     clutter_pixel_prob = (rf_distractor_rate*pi*(radius_scaled)^2) / (rf_n_pixels)
@@ -118,10 +118,56 @@ function get_rfs_vec(rec_fields::Vector{T},
     return rfs_vec, flow_masks
 end
 
+# returns true if the object position is within rf
+function within(point, rf)
+    x, y, _ = point
+    x > rf.p1[1] && x < rf.p2[1] && y > rf.p1[2] && y < rf.p2[2]
+end
+
+#struct Gen.BroadcastedUniform <: Gen.Distribution{Array} end
+
+function get_pmbrfs_points(rf, points, gm)
+    existence_prob = 1.0 - 1e-10 # TODO remove constant?
+
+    n = length(points) + 1 # |mbrfs| + 1 for PPP
+    
+    # this is not completely correct, but maybe a fine approximation
+    rf_area = prod(get_dimensions(rf))
+    rf_proportion = rf_area/gm.area_width/gm.area_height
+    rf_distractor_rate = gm.distractor_rate * rf_proportion
+
+    pmbrfs = RFSElements{Array}(undef, n)
+    
+    lows = [rf.p1[1], rf.p1[2], 0.0]
+    highs = [rf.p2[1], rf.p2[2], 1.0]
+    pmbrfs[1] = PoissonElement{Array}(rf_distractor_rate, broadcasted_uniform, (lows, highs))
+    for i=2:n
+        pmbrfs[i] = BernoulliElement{Array}(existence_prob, my_broadcasted_normal,
+                                            (points[i-1], [gm.obs_noise, gm.obs_noise, 1.0]))
+    end
+
+    return pmbrfs
+    
+end
+
+"""
+    gets the vector of random finite sets for each receptive field
+    for generative model that has point observations
+"""
+function get_rfs_vec_points(rec_fields::Vector{RectangleReceptiveField},
+                            objects::Vector{Object},
+                            gm)
+    points = @>> objects map(x->x.pos)
+    points_rf = @>> rec_fields map(rf -> filter(p -> within(p, rf), points))
+    rfs_vec = map(get_pmbrfs_points, rec_fields, points_rf, fill(gm, length(rec_fields)))
+    return rfs_vec
+end
+
 
 ###############
 # A FEW UTILS for automatic generation of receptive
 # fields given generative model params
+# and some other utils haha
 ###############
 
 function bound(x, a, b)
@@ -132,19 +178,28 @@ function bound_point(p, w, h)
     (bound(p[1], 1, w), bound(p[2], 1, h))
 end
 
-function get_rectangle_receptive_field(xy, n_x, n_y, gm;
-                                       overlap = 0)
-    w = floor(Int, gm.img_width/n_y)
-    h = floor(Int, gm.img_height/n_x)
+function get_rectangle_receptive_field(xy, n_x, n_y, width, height;
+                                       overlap = 0,
+                                       point_observations = false)
+
+    w = floor(Int, width/n_y)
+    h = floor(Int, height/n_x)
 
     p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1) .- (overlap, overlap)
-    p1 = bound_point(p1, gm.img_width, gm.img_height)
+    p1 = bound_point(p1, width, height)
 
     p2 = p1 .+ (w-1, h-1) .+ (overlap, overlap)
-    p2 = bound_point(p2, gm.img_width, gm.img_height)
+    p2 = bound_point(p2, width, height)
+    
+    # if observations are points, then shift fields so that
+    # center of the whole area is at origin
+    if point_observations
+        shift = (-width/2.0, -height/2.0)
+        p1 = p1 .+ shift
+        p2 = p2 .+ shift
+    end
 
-    return RectangleReceptiveField(p1, p2)
-end
+    return RectangleReceptiveField(p1, p2) end
 
 """
     get_rectangle_receptive_fields(n_x, n_y, gm)
@@ -155,10 +210,13 @@ end
         gm - generative model parameters
 
 """
-function get_rectangle_receptive_fields(n_x, n_y, gm;
-                                        overlap = 0)
+function get_rectangle_receptive_fields(n_x, n_y, width, height;
+                                        overlap = 0,
+                                        point_observations = false)
     rf_idx = Iterators.product(1:n_x, 1:n_y)
-    receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, gm; overlap=overlap), rf_idx)
+    receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, width, height;
+                                                               overlap=overlap,
+                                                              point_observations = point_observations), rf_idx)
     receptive_fields = map(i -> receptive_fields[i], 1:n_x*n_y) # I can't find a way to flatten ://///
 end
 

@@ -88,7 +88,7 @@ function analyze_chain_receptive_fields(chain,
                                         n_trackers = 4,
                                         n_dots = 8,
                                         receptive_fields = nothing,
-                                        masks_end = nothing,
+                                        #masks_end = nothing,
                                         gt_cg_end = nothing)
 
     # reading the file of memory buffer
@@ -100,13 +100,14 @@ function analyze_chain_receptive_fields(chain,
                    td_acc = Float64[])
 
     aux_state = extracted["aux_state"]
-    correspondence = extracted["unweighted"][:assignments] # t x particle
+    #correspondence = extracted["unweighted"][:assignments] # t x particle
     causal_graphs = extracted["unweighted"][:causal_graph] # t x particle
 
-    display(correspondence[1,1,:])
+    #display(correspondence[1,1,:])
     
     # just average td_acc across particles for the last step
-    n_particles = size(correspondence)[2]
+    #n_particles = size(correspondence)[2]
+    n_particles = size(causal_graphs)[2]
     td = @>> 1:n_particles begin
         #map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
         map(i -> get_simplified_target_designation(causal_graphs[end,i], gt_cg_end))

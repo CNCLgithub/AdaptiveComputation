@@ -16,6 +16,7 @@ include("hgm.jl")
 
 include("receptive_fields.jl")
 include("gm_receptive_fields.jl")
+include("gm_receptive_fields_points.jl")
 include("gm_receptive_fields_brownian.jl")
 include("hgm_receptive_fields.jl")
 
