@@ -1,6 +1,6 @@
 
 {
-    "obs_noise": 3.0,
+    "obs_noise": 5.0,
     "area_width": 600,
     "area_height": 600,
     "img_width": 600,

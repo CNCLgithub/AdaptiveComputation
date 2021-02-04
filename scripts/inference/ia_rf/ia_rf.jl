@@ -88,10 +88,10 @@ function main()
     
     ############## comment out ########################
     dir = "$(@__DIR__)"
-    args = Dict("scene" => 3,
+    args = Dict("scene" => 2,
                 "chain" => 2,
-                "compute" => 1,
-                "n_targets" => 5,
+                "compute" => 20,
+                "n_targets" => 3,
                 "viz" => true,
                 "gm" => "$(dir)/gm.json",
                 "proc" => "$(dir)/proc.json",
@@ -104,7 +104,6 @@ function main()
     Random.seed!(1)
     ###################################################
 
-    
     prob_threshold = 0.01
     n_targets = args["n_targets"]
     n_dots = 12.0
@@ -118,8 +117,8 @@ function main()
                    objective = MOT.target_designation_receptive_fields_points,
                    sweeps = args["compute"])
     #att = UniformAttention(sweeps = 2)
-    motion = MOT.load(InertiaModel, args["motion"])
-    #motion = MOT.load(BrownianDynamicsModel, args["motion"])
+    #motion = MOT.load(InertiaModel, args["motion"])
+    motion = MOT.load(BrownianDynamicsModel, args["motion"])
     rf_params = MOT.load(RectRFParams, args["rf_params"])
 
     lm = Dict(:causal_graph => MOT.extract_causal_graph)
@@ -134,15 +133,14 @@ function main()
 
     query, gt_causal_graphs, masks, scene_data = query_from_params(gm_params, args["dataset"],
                                                 args["scene"], args["time"],
-                                                gm = gm_receptive_fields_points,
+                                                #gm = gm_receptive_fields_points,
+                                                gm = gm_receptive_fields_points_brownian,
                                                 point_observations = true,
                                                 motion = motion,
                                                 lm = lm,
                                                 lm_end = lm_end,
                                                 receptive_fields = receptive_fields,
                                                 prob_threshold = prob_threshold)
-    
-
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
