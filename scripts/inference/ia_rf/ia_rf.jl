@@ -88,8 +88,8 @@ function main()
     
     ############## comment out ########################
     dir = "$(@__DIR__)"
-    args = Dict("scene" => 1,
-                "chain" => 1,
+    args = Dict("scene" => 2,
+                "chain" => 2,
                 "compute" => 20,
                 "n_targets" => 3,
                 "viz" => true,
@@ -99,7 +99,7 @@ function main()
                 "attention" => "$(dir)/attention.json",
                 "rf_params" => "$(dir)/rf.json",
                 "dataset" => "/datasets/ia_mot.jld2",
-                "time" => 299,
+                "time" => 50,
                 "restart" => true)
     Random.seed!(1)
     ###################################################
@@ -109,39 +109,39 @@ function main()
     n_targets = args["n_targets"]
     n_dots = 12.0
     n_distractors = n_dots - n_targets
-
-    gm_params = MOT.load(GMMaskParams, args["gm"],
+    
+    gm_params = MOT.load(GMPointParams, args["gm"],
                          n_trackers = n_targets,
                          distractor_rate = n_distractors)
-    display(gm_params)
 
     att = MOT.load(MapSensitivity, args["attention"],
-                   objective = MOT.target_designation_receptive_fields,
+                   objective = MOT.target_designation_receptive_fields_points,
                    sweeps = args["compute"])
-    #att = UniformAttention(sweeps = 2)
+    att = UniformAttention(sweeps = 1)
     motion = MOT.load(InertiaModel, args["motion"])
     #motion = MOT.load(BrownianDynamicsModel, args["motion"])
     rf_params = MOT.load(RectRFParams, args["rf_params"])
 
     lm = Dict(:causal_graph => MOT.extract_causal_graph)
-    lm_end = Dict(:assignments => MOT.extract_assignments_receptive_fields)
-
+    #lm_end = Dict(:assignments => MOT.extract_assignments_receptive_fields)
+    lm_end = Dict()
+    
     # crop observations into receptive fields
     receptive_fields = get_rectangle_receptive_fields(rf_params.n_x, rf_params.n_y,
-                                                      gm_params,
-                                                      overlap = rf_params.overlap)
+                                                      gm_params.area_width, gm_params.area_height,
+                                                      overlap = rf_params.overlap,
+                                                      point_observations = true)
 
-    query, gt_causal_graphs, masks = query_from_params(gm_params, args["dataset"],
+    query, gt_causal_graphs, masks, scene_data = query_from_params(gm_params, args["dataset"],
                                                 args["scene"], args["time"],
-                                                #gm = gm_receptive_fields_brownian,
-                                                gm = gm_receptive_fields,
+                                                gm = gm_receptive_fields_points,
+                                                point_observations = true,
                                                 motion = motion,
                                                 lm = lm,
                                                 lm_end = lm_end,
                                                 receptive_fields = receptive_fields,
                                                 prob_threshold = prob_threshold)
     
-    display(gt_causal_graphs)
 
 
     proc = MOT.load(PopParticleFilter, args["proc"];
@@ -178,7 +178,8 @@ function main()
     df = MOT.analyze_chain_receptive_fields(results, n_targets,
                                             n_dots,
                                             receptive_fields,
-                                            masks[args["time"]])
+                                            #masks[args["time"]],
+                                            scene_data[:gt_causal_graphs][args["time"]])
                            
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= chain
