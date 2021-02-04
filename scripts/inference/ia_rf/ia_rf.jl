@@ -88,10 +88,10 @@ function main()
     
     ############## comment out ########################
     dir = "$(@__DIR__)"
-    args = Dict("scene" => 2,
+    args = Dict("scene" => 3,
                 "chain" => 2,
-                "compute" => 20,
-                "n_targets" => 3,
+                "compute" => 1,
+                "n_targets" => 5,
                 "viz" => true,
                 "gm" => "$(dir)/gm.json",
                 "proc" => "$(dir)/proc.json",
@@ -99,7 +99,7 @@ function main()
                 "attention" => "$(dir)/attention.json",
                 "rf_params" => "$(dir)/rf.json",
                 "dataset" => "/datasets/ia_mot.jld2",
-                "time" => 50,
+                "time" => 299,
                 "restart" => true)
     Random.seed!(1)
     ###################################################
@@ -117,7 +117,7 @@ function main()
     att = MOT.load(MapSensitivity, args["attention"],
                    objective = MOT.target_designation_receptive_fields_points,
                    sweeps = args["compute"])
-    att = UniformAttention(sweeps = 1)
+    #att = UniformAttention(sweeps = 2)
     motion = MOT.load(InertiaModel, args["motion"])
     #motion = MOT.load(BrownianDynamicsModel, args["motion"])
     rf_params = MOT.load(RectRFParams, args["rf_params"])
@@ -183,6 +183,7 @@ function main()
                            
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= chain
+    df[!, :compute] .= compute
     df[!, :compute] .= compute
     CSV.write(joinpath(path, "$(chain)_$(compute).csv"), df)
 
