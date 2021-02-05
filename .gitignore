@@ -17,3 +17,8 @@ user.conf
 
 *.png
 *.gif
+
+
+statprof/
+cogsci_figure_scripts/
+detectron2_test.sh
