@@ -9,8 +9,11 @@ script = 'bash {0!s}/run.sh julia -C "generic" -J /project/mot.so ' + \
          '/project/scripts/inference/ia_rf/ia_rf.jl'
 
 def get_tasks(args):
-    tasks = [(t,c) for c in range(1, args.chains + 1) 
-             for t in range(1, args.scenes+1)]
+    tasks = [(scene, chain, compute, n_targets)
+            for n_targets in [3, 5]
+            for compute in range(1, args.compute+1)
+            for chain in range(1, args.chains+1) 
+            for scene in range(1, args.scenes+1)]
     return (tasks, [], [])
     
 def main():
@@ -23,18 +26,21 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
+    parser.add_argument('--compute', type = int, default = 30,
+                        help = 'max compute value')
     parser.add_argument('--duration', type = int, default = 60,
                         help = 'job duration (min)')
-    parser_td.set_defaults(func=att_tasks)
+    parser.set_defaults(func=get_tasks)
     args = parser.parse_args()
 
-    n = args.scenes * args.chains
+    n = args.scenes * args.chains * args.compute * 2
     tasks, kwargs, extras = args.func(args)
+
 
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
-        'mem-per-cpu' : '4GB',
+        'mem-per-cpu' : '1GB',
         'time' : '{0:d}'.format(args.duration),
         'partition' : 'scavenge',
         'requeue' : None,
