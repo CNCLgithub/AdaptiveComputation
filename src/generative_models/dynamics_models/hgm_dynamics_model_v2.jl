@@ -1,4 +1,7 @@
 export HGMDynamicsModel
+using LightGraphs, MetaGraphs
+
+
 
 @with_kw struct HGMDynamicsModel <: AbstractDynamicsModel
     inertia::Float64 = 0.8
@@ -6,12 +9,12 @@ export HGMDynamicsModel
     sigma_x::Float64 = 0.005
     sigma_y::Float64 = 0.005
     
-    # brownian motion on a spring with regards to polygon positions
-    pol_inertia::Float64 = 0.00001
-    pol_spring::Float64 = 0.01
-    pol_sigma_x::Float64 = 0.001
-    pol_sigma_y::Float64 = 0.001
-    pol_ang_vel_sigma::Float64 = 0.005
+    # # brownian motion on a spring with regards to polygon positions
+    # pol_inertia::Float64 = 0.00001
+    # pol_spring::Float64 = 0.01
+    # pol_sigma_x::Float64 = 0.001
+    # pol_sigma_y::Float64 = 0.001
+    # pol_ang_vel_sigma::Float64 = 0.005
 
     # repulsion
     dot_repulsion::Float64 = 10.0
@@ -194,11 +197,31 @@ function hgm_repulsion_step(model, objects, hgm)
     return objects
 end
 
+get_n_dots(object) = object isa Dot ? 1 : length(object.dots)
+
+function create_hgm_graph(objects)
+    n_polygons = @>> objects map(x -> x isa Polygon) sum
+    n_dots = @>> objects map(get_n_dots) sum
+    g = MetaGraph(n_polygons + n_dots)
+
+    @>> 1:n_polygons foreach(i -> set_prop!(g, i, :type, :centroid))
+    @>> n_polygons+1:n_polygons+n_dots foreach(i -> set_prop!(g, i, :type, :dot))
+    @>> 1:nv(g) foreach(i -> display(get_prop(g, i, :type)))
+end
+
 @gen function hgm_update(model::HGMDynamicsModel, cg::CausalGraph, hgm)
     objects = cg.elements
+    hgm_graph = create_hgm_graph(objects)
+    error()
+    repulsion_forces = calculate_repulsion_forces(hgm_graph) 
+
     objects = hgm_repulsion_step(model, objects, hgm)
     objects = @trace(_hgm_brownian_step(fill(model, length(objects)), objects), :brownian)
     objects = collect(Object, objects)
     cg = update(cg, objects)
     return cg
 end
+
+
+
+

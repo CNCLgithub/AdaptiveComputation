@@ -1,7 +1,8 @@
 using MOT
 using JLD2
 
-function render_dataset(dataset_path, render_path)
+function render_dataset(dataset_path, render_path;
+                        freeze_time = 24)
     ispath(render_path) || mkpath(render_path)
 
     file = jldopen(dataset_path, "r")
@@ -27,7 +28,7 @@ function render_dataset(dataset_path, render_path)
         k = length(gt_cgs) - 1
         MOT.render(default_gm, k;
                    gt_causal_graphs=gt_cgs,
-                   freeze_time=24,
+                   freeze_time=freeze_time,
                    path=path,
                    stimuli=true,
                    highlighted=highlighted)

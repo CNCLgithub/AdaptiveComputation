@@ -4,9 +4,18 @@ using Random
 Random.seed!(4)
 include("exp3_polygons_structure.jl")
 dataset_path = joinpath("/datasets", "exp3_polygons.jld2")
-n_scenes_2_generate = 500000 # generate and remove non-unique scenes
+#n_scenes_2_generate = 500000 # generate and remove non-unique scenes
 #n_scenes_2_generate = 5000 # generate and remove non-unique scenes
+n_scenes_2_generate = 0 # generate and remove non-unique scenes
 k = 192
+
+
+# a, b, c have been fitted on me and Mario
+function get_structure(n_dots, n_vertices;
+              a = -0.0614062, b = -0.0155636, c = 1.1554)
+    structure = a * n_dots + b * n_vertices + c
+end
+
 
 # samples symmetric structure
 function sample_polygon_structure(n_dots_limit::Int64)::Vector{Int64}
@@ -31,6 +40,25 @@ end
 
 motion = HGMDynamicsModel()
 
+# get number of dots and vertices represented
+function get_num_d_v(polygons, targets)
+    num_d = 0
+    num_v = 0
+    index = 1
+    for pol in polygons
+        # just a dot
+        if pol == 1 && targets[index] == 1
+            num_d += 1
+        elseif any(targets[index:index+pol-1])
+            # polygon with at least one target
+            num_d += 1
+            num_v += pol
+        end
+        index += pol
+    end
+    
+    num_d, num_v
+end
 
 function describe_scene(polygon_structure,
                         alpha = 1.0,
@@ -39,15 +67,33 @@ function describe_scene(polygon_structure,
     n_targets = Int(n_dots/2)
     normal_targets = Bool[fill(1, n_targets); fill(0, n_targets)]
     targets = shuffle(normal_targets)
+
+    # we make sure that there are no sparse coding issues
+    # i.e. that all targets are clustered on polygons
+    index = 1
+    for pol in polygon_structure
+        if pol != 1
+            targets[index:index+pol-1] = sort(targets[index:index+pol-1], rev=true)
+        end
+        index += pol
+    end
+
+    ### old relevant structure quantification ####
     structure_value = 1/length(polygon_structure)
     target_concentration = get_target_concentration(polygon_structure, targets)
+    old_rel_structure = (alpha .* structure_value + beta .* target_concentration)/(alpha + beta)
+    ##############################################
     
-    rel_structure = (alpha .* structure_value + beta .* target_concentration)/(alpha + beta)
+    ### new relevant structure quantification based on cost ###
+    n_dots, n_vertices = get_num_d_v(polygon_structure, targets)
+    rel_structure = get_structure(n_dots, n_vertices)
+    ###########################################################
 
     Dict([:polygon_structure => polygon_structure,
           :targets => targets,
           :structure_value => structure_value,
           :target_concentration => target_concentration,
+          :old_rel_structure => old_rel_structure,
           :rel_structure => rel_structure])
 end
 
@@ -158,7 +204,8 @@ function get_scene_prereqs(n_targets, n_scenes;
     return scene_prereqs
 end
 
-n_targets = [4, 5, 6, 7, 8]
+#n_targets = [4, 5, 6, 7, 8]
+n_targets = []
 n_scenes_per_nt = 9
 aux_data = []
 cms = ChoiceMap[]
@@ -172,8 +219,27 @@ for nt in n_targets
     append!(gms, scene_prereqs[:gms])
 end
 
+# just generating this one scene for now
+polygon_structure = [8, 8]
+n_trackers = length(polygon_structure)
+gms = [HGMParams(n_trackers = n_trackers,
+                   distractor_rate = 0.0,
+                   targets = zeros(sum(polygon_structure)))]
+cm = Gen.choicemap()
+for (j, object) in enumerate(polygon_structure)
+    cm[:init_state => :trackers => j => :polygon] = object > 1
+    if object > 1
+        cm[:init_state => :trackers => j => :n_dots] = object
+    end
+end
+push!(cms, cm)
+push!(aux_data, [])
+aux_data = convert(Vector{Any}, aux_data)
+
 MOT.generate_dataset(dataset_path, length(gms), k, gms, motion;
                      min_distance=60.0,
                      cms=cms,
                      aux_data=aux_data)
 
+render_dataset(dataset_path, "output/renders/exp3_polygons";
+               freeze_time = 0)

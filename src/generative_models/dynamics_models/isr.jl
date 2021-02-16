@@ -68,18 +68,26 @@ function get_repulsion_object_to_object(distance, repulsion, pos, other_pos)
     return force
 end
 
-function get_repulsion_force(model, dots, gm_params)
+function get_repulsion_force_dots(model, objects, gm_params)
+    
+    n = length(objects)
+    #dots_inds = @>> 1:n filter(i -> objects[i] isa Dot)
+    rep_forces = fill(zeros(2), n)
+    positions = map(d->d.pos, objects)
 
-    n = length(dots)
-    rep_forces = Vector{Vector{Float64}}(undef, n)
-    positions = map(d->d.pos, dots)
-
+    #for i = dots_inds
     for i = 1:n
-        dot = dots[i]
+        dot = objects[i]
         
         other_pos = positions[map(j -> i != j, 1:n)]
         dot_applied_force = get_repulsion_object_to_object(model.distance, model.dot_repulsion, dot.pos, other_pos)
         wall_applied_force = get_repulsion_from_wall(model.distance, model.wall_repulsion, dot.pos, gm_params)
+        
+        println("WALLLLLL!!!")
+        println(wall_applied_force)
+        println("DOT!!!!!!")
+        println(dot_applied_force)
+        println()
 
         rep_forces[i] = dot_applied_force[1:2]+wall_applied_force[1:2]
     end
@@ -88,7 +96,7 @@ function get_repulsion_force(model, dots, gm_params)
 end
 
 function isr_repulsion_step(model, dots, gm_params)
-    rep_forces = get_repulsion_force(model, dots, gm_params)
+    rep_forces = get_repulsion_force_dots(model, dots, gm_params)
     n = length(dots)
 
     for i = 1:n

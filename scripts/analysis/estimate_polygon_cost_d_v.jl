@@ -5,6 +5,7 @@ using DataFrames
 using Lazy: @>>
 using GLM
 using Plots; pyplot()
+using Statistics
 
 dataset_path = "output/datasets/exp3_polygons.jld2"
 file = jldopen(dataset_path, "r")
@@ -45,7 +46,9 @@ df = CSV.File("output/subject/exp3_polygons_td.csv") |> DataFrame
 df[!, "n_d"] = @>> num_d_v map(first)
 df[!, "n_v"] = @>> num_d_v map(last)
 
-ols = lm(@formula(td ~ n_d + n_v), df)
+display(mean(df.td))
+ols = lm(@formula(td ~ n_d + n_v + 1), df)
 display(ols)
-scatter(df.td, predict(ols))
+scatter(predict(ols), df.td)
+#heatmap(df.n_d, df.n_v, df.td)
 
