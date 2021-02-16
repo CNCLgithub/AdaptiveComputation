@@ -115,15 +115,20 @@ function render_object(dot::Dot;
                        leading_edges=true,
                        dot_color="#e0b388",
                        leading_edge_color="#ee70f2",
-                       probe_color = "#e09b88")
-                       # probe_color="#c99665")
-                
-    color = dot.probe ? probe_color : dot_color
+                       probe_color = "#db9784")
+                       #probe_color = "#e09b88")
     
-    _draw_circle(dot.pos[1:2], dot.radius, color)
+
+    
+    _draw_circle(dot.pos[1:2], dot.radius, dot_color)
     if leading_edges
         _draw_circle(dot.pos[1:2], dot.radius, leading_edge_color, style=:stroke)
     end
+    
+    if dot.probe
+        _draw_circle(dot.pos[1:2], dot.radius/2, probe_color)
+    end
+    #color = dot.probe ? probe_color : dot_color
     
     return
     if (dot.pylon_interaction != 0)

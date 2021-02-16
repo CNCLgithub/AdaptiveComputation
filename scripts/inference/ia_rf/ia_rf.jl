@@ -101,7 +101,7 @@ function main()
                 "dataset" => "/datasets/ia_mot.jld2",
                 "time" => 299,
                 "restart" => true)
-    Random.seed!(1)
+    #Random.seed!(1)
     ###################################################
 
     prob_threshold = 0.01

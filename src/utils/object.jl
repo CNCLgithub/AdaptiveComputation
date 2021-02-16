@@ -15,11 +15,6 @@ abstract type Object end
     radius::Float64 = 20.0
     width::Float64 = 40.0
     height::Float64 = 40.0
-    # how it interacts with the pylons
-    # 0 - no interaction
-    # 1 - attraction
-    # -1 - repulsion
-    pylon_interaction::Int = 0
 end
 
 

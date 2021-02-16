@@ -1,4 +1,3 @@
-export read_json, merge_trial, merge_experiment
 
 using CSV
 using JSON
@@ -182,3 +181,26 @@ function merge_experiment(exp_path::String)
     CSV.write(joinpath(exp_path, "merged_results.csv"), df)
     return df
 end
+
+function simplify_trial(trial_dir::String)
+    runs = filter(x -> occursin("csv", x),
+                  readdir(trial_dir, join = true))
+    for run in runs
+        println(run)
+        df = DataFrame(CSV.File(run))
+        new_df = DataFrame(td_acc = unique(df.td_acc),
+                           scene = unique(df.scene),
+                           chain = unique(df.chain),
+                           compute = unique(df.compute),
+                           n_targets = unique(df.n_targets),
+                           attention = mean(df.attention))
+        CSV.write(run, new_df)
+    end
+end
+
+function simplify_experiment(exp_path::String)
+    trials = filter(isdir, readdir(exp_path, join = true))
+    simplify_trial.(trials)
+end
+
+export read_json, merge_trial, merge_experiment, simplify_experiment
