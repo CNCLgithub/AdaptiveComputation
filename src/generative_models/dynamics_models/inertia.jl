@@ -44,7 +44,7 @@ _inertial_step = Map(inertial_step)
 @gen function inertial_update(model::InertiaModel, cg::CausalGraph)
     dots = cg.elements
     new_dots = @trace(_inertial_step(fill(model, length(dots)), dots), :brownian)
-    new_dots = collect(Dot, new_dots)
+    new_dots = collect(Object, new_dots)
     cg = update(cg, new_dots)
     return cg
 end

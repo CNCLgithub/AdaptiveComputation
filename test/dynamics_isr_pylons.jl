@@ -32,7 +32,6 @@ function render_stimuli(k,
         is_min_distance_satisfied(scene_data, 80.0) && break
     end
         
-
     render(default_gm, k;
            gt_causal_graphs=scene_data[:gt_causal_graphs],
            path=joinpath("render", "$(name)_vel_$(vel)_force_$(pylon_strength)"),

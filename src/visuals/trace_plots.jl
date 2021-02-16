@@ -85,7 +85,7 @@ end
 """
 Plots distribution of attention accross time
 """
-default_colors = ["indigo", "green", "blue", "yellow"]
+default_colors = ["indigo", "green", "blue", "yellow", "red", "orange"]
 function plot_attention(attended, max_sweeps::Int, path::String;
                         tracker_colors=default_colors)
     mkpath(path)

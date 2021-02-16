@@ -9,9 +9,10 @@ using Setfield
 
 _dgp(k::Int, gm::GMMaskParams, motion::AbstractDynamicsModel, cm::ChoiceMap) = error("not implemented")
 _dgp(k::Int, gm::GMMaskParams, motion::BrownianDynamicsModel, cm::ChoiceMap) = gm_brownian_pos(k, motion, gm)
-_dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics, cm::ChoiceMap) = gm_isr_pos(k, motion, gm)
-_dgp(k::Int, gm::GMMaskParams, motion::ISRPylonsDynamics, cm::ChoiceMap) = Gen.generate(gm_isr_pylons_pos, (k, motion, gm), cm)
+#_dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics, cm::ChoiceMap) = gm_isr_pos(k, motion, gm)
 
+_dgp(k::Int, gm::GMMaskParams, motion::ISRDynamics, cm::ChoiceMap) = Gen.generate(gm_isr_pos, (k, motion, gm), cm)
+_dgp(k::Int, gm::GMMaskParams, motion::ISRPylonsDynamics, cm::ChoiceMap) = Gen.generate(gm_isr_pylons_pos, (k, motion, gm), cm)
 _dgp(k::Int, gm::HGMParams, motion::HGMDynamicsModel, cm::ChoiceMap) = Gen.generate(hgm_pos, (k, motion, gm), cm)
 
 
