@@ -16,6 +16,13 @@ abstract type Object end
     height::Float64 = 40.0
 end
 
+
+@with_kw struct Pylon <: Object
+    pos::Vector{Float64} = zeros(3)
+    radius::Float64 = 40.0
+    strength::Float64 = 10.0
+end
+
 Dot(pos::Vector{Float64}, vel::Vector{Float64}) = Dot(pos = pos, vel = vel)
 Dot(pos::Vector{Float64}, vel::Vector{Float64}, radius::Float64) = Dot(pos = pos, vel = vel,
                                                                        radius = radius,
@@ -27,4 +34,14 @@ mutable struct BDot <: Object
     pos::Vector{Float64}
     bearing::Float64
     vel::Float64
+end
+
+
+@with_kw mutable struct Polygon <: Object
+    pos::Vector{Float64}
+    vel::Vector{Float64}
+    rot::Float64
+    ang_vel::Float64
+    radius::Float64
+    dots::Vector{Dot}
 end

@@ -54,10 +54,10 @@ drawing a gaussian dot with two components:
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
                                 r::Real, h::Int, w::Int,
-                                dot_p::Float64,
+                                gauss_r_multiple::Float64,
                                 gauss_amp::Float64, gauss_std::Float64)
     scaled_sd = r * gauss_std
-    threshold = r * dot_p
+    threshold = r * gauss_r_multiple
     mask = zeros(h, w)
     # mask = fill(1.0/(h*w), h, w)
     for i=1:h
@@ -127,6 +127,7 @@ function get_masks(positions::Vector{Array{Float64}}, r, h, w, ah, aw;
     return masks
 end
 
+
 """
     get_masks(cgs::Vector{CausalGraph})
 
@@ -141,14 +142,18 @@ end
     background - true if you want background masks
 """
 # TODO make it draw more general objects
-function get_masks(cgs::Vector{CausalGraph}, gm;
+function get_masks(cgs::Vector{CausalGraph}, gm::AbstractGMParams;
                    background=false)
     k = length(cgs)
     masks = Vector{Vector{BitArray{2}}}(undef, k)
     
     for t=1:k
         print("get_masks timestep: $t \r")
-        positions = map(x->x.pos, cgs[t].elements)
+        if isa(gm, GMMaskParams)
+            positions = map(x->x.pos, cgs[t].elements)
+        elseif isa(gm, HGMParams)
+            positions = get_hgm_positions(cgs[t], gm.targets)
+        end
 
         # sorting according to depth
         depth_perm = sortperm(map(x->x[3], positions))
