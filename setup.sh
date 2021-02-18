@@ -50,7 +50,9 @@ supported targets:
     wget "https://yale.box.com/shared/static/75accvgspil2sr34tg2g3e37uvhjkxz6.jld2" \
         -O "output/datasets/exp1_isr.jld2" && \
     wget "https://yale.box.com/shared/static/wwpwkh7ara5wqmr8bde3jvvdael8x783.jld2" \
-        -O "output/datasets/exp1_brownian.jld2"
+        -O "output/datasets/exp1_brownian.jld2"  && \
+    wget "https://yale.box.com/shared/static/f7w0a43ubp8akiknemp77da1xg3gr64h.jld2" \
+        -O "output/datasets/exp1_isr_480.jld2"
 
 # checkpoints
 [[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || echo "Not touching checkpoints"
