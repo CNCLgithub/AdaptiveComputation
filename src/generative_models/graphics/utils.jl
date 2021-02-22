@@ -1,7 +1,8 @@
 export add_images,
        subtract_images,
        translate_area_to_img,
-       draw_circle!
+       draw_circle!,
+       get_full_imgs
 
 using Images
 

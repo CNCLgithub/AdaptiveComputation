@@ -4,6 +4,8 @@ using Gen
 using Gen_Compose
 using GenRFS
 using Parameters: @with_kw
+using Lazy: @>, @>>
+
 # using PyCall
 
 # mask_rcnn = PyNULL()
