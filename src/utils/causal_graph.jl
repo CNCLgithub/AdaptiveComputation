@@ -1,9 +1,10 @@
 export AbstractCausalGraph, CausalGraph
-
 using LightGraphs
 using MetaGraphs
 
+
 abstract type AbstractCausalGraph end
+
 
 struct CausalGraph{T, G<:AbstractGraph} <: AbstractCausalGraph
     elements::AbstractArray{T}

@@ -2,6 +2,10 @@ export Object,
         Dot,
         BDot
 
+using MetaGraphs
+#const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Vector{Float64}}
+const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Float64}
+
 # objects are things that dynamics models and generative processes
 # work over (e.g. Dot)
 abstract type Object end
@@ -37,21 +41,15 @@ mutable struct BDot <: Object
 end
 
 
-struct Wall <: Object
-    x::Float64
-    y::Float64
+@with_kw struct Wall <: Object
+    p1::Tuple{Float64}
+    p2::Tuple{Float64}
 end
 
 
 
 abstract type Polygon <: Object end
 
-nv(p::Polygon)::Int64
-nv(p::NGon) = p.nv
-nv(p::UGon) = 0
-
-radius(p::NGon) = p.radius
-radius(p::UGon) = 0
 
 
 @with_kw mutable struct NGon <: Polygon
@@ -64,14 +62,16 @@ radius(p::UGon) = 0
 end
 @with_kw mutable struct UGon <: Polygon
     pos::Vector{Float64}
-    rot::Float64
     vel::Vector{Float64}
-    ang_vel::Float64
-    radius::Float64
-    nv::Int64
 end
 
-const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Vector{Float64}}
+#nv(p::Polygon)::Int64
+nv(p::NGon) = p.nv
+nv(p::UGon) = 0
+
+radius(p::NGon) = p.radius
+radius(p::UGon) = 0
+
 
 # assuming first N vertices are walls
 walls(cg::CausalGraph) = get_prop(cg, :walls)

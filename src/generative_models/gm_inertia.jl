@@ -1,6 +1,6 @@
 
 @gen static function inertia_kernel(t::Int,
-                                 prev_state::FullState,
+                                 prev_state::State,
                                  dynamics_model::AbstractDynamicsModel,
                                  params::GMMaskParams)
     prev_graph = prev_state.graph
@@ -9,7 +9,7 @@
     pmbrfs, flow_masks = get_masks_params(new_trackers, params,
                                           flow_masks=prev_state.flow_masks)
     @trace(rfs(pmbrfs), :masks)
-    new_state = FullState(new_graph, pmbrfs, flow_masks)
+    new_state = State(new_graph, pmbrfs, flow_masks)
     return new_state
 end
 inertia_chain = Gen.Unfold(inertia_kernel)

@@ -1,18 +1,18 @@
 @gen static function isr_pos_kernel(t::Int,
-                                prev_state::FullState,
+                                prev_state::State,
                                 dynamics_model::AbstractDynamicsModel,
                                 params::GMMaskParams)
     prev_graph = prev_state.graph
     new_graph = @trace(isr_update(dynamics_model, prev_graph, params), :dynamics)
     new_trackers = new_graph.elements
     pmbrfs = prev_state.rfs # pass along this reference for effeciency
-    new_state = FullState(new_graph, pmbrfs, nothing)
+    new_state = State(new_graph, pmbrfs, nothing)
     return new_state
 end
 isr_pos_chain = Gen.Unfold(isr_pos_kernel)
 
 @gen static function isr_mask_kernel(t::Int,
-                                 prev_state::FullState,
+                                 prev_state::State,
                                  dynamics_model::AbstractDynamicsModel,
                                  params::GMMaskParams)
     prev_graph = prev_state.graph
@@ -20,7 +20,7 @@ isr_pos_chain = Gen.Unfold(isr_pos_kernel)
     new_trackers = new_graph.elements
     pmbrfs, flow_masks = get_masks_params(new_trackers, params, flow_masks=prev_state.flow_masks)
     @trace(rfs(pmbrfs), :masks)
-    new_state = FullState(new_graph, pmbrfs, flow_masks)
+    new_state = State(new_graph, pmbrfs, flow_masks)
     return new_state
 end
 isr_mask_chain = Gen.Unfold(isr_mask_kernel)

@@ -1,5 +1,6 @@
 struct ReceptiveFieldsState
-    graph::CausalGraph{Object, SimpleGraph}
+    #graph::CausalGraph{Object, SimpleGraph}
+    graph::CausalGraph
     rfs_vec::Vector{RFSElements{Array}}
     flow_masks::Union{Nothing, FlowMasks}
 end

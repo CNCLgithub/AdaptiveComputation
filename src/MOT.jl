@@ -3,7 +3,7 @@ module MOT
 using Gen
 using Gen_Compose
 using GenRFS
-using Parameters: @with_kw
+using Parameters: @with_kw, @unpack
 using Lazy: @>, @>>
 
 # using PyCall
