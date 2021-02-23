@@ -15,7 +15,7 @@ include("gm_isr.jl")
 #include("probe_brownian.jl")
 # include("gm_positions_cbm_static.jl")
 #include("hgm.jl")
-include("squishy_gm.jl")
+include("squishy/squishy.jl")
 
 include("receptive_fields.jl")
 include("gm_receptive_fields.jl")

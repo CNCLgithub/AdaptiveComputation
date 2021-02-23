@@ -1,10 +1,12 @@
 
+include("helpers.jl")
+
 @gen function sample_init_polygon(gmh)
     
     #n_dots = @trace(categorical([0.5; fill((1-0.5)/5, 5)]), :n_dots)
 
     max_dots = 5
-    n_dots = @trace(categorical(fill(1/max_dots, max_dots), :n_dots))
+    n_dots = @trace(Gen.categorical(fill(1/max_dots, max_dots)), :n_dots)
     
     x = @trace(uniform(-gmh.init_pos_spread, gmh.init_pos_spread), :x)
     y = @trace(uniform(-gmh.init_pos_spread, gmh.init_pos_spread), :y)
@@ -13,13 +15,13 @@
     
 
     if n_dots == 1
-        pol = UGon([x,y,z], zeros(3))
+        pol = UGon([x,y,z], zeros(2))
         dots = Dot[]
         return (pol, dots)
     else
         rot = @trace(uniform(0, 2*pi), :rot)
         r = gmh.polygon_radius
-        pol = NGon([x,y,z], rot, zeros(3), 0.0, r, n_dots)
+        pol = NGon([x,y,z], rot, zeros(2), 0.0, r, n_dots)
 
         dots = Vector{Dot}(undef, n_dots)
         for i=1:n_dots
@@ -39,24 +41,6 @@
 end
 
 
-function init_walls(hgm::HGMParams)
-    # getting wall points
-    wp = @>> Iterators.product((-1,1), (-1,1)) begin
-        map(x -> x .* (hgm.area_width/2, hgm.area_height/2))
-    end
-    
-    println(wp[1])
-    # getting the walls
-    ws = Vector{Wall}(undef, 4)
-    ws[1] = Wall(wp[1], wp[2])
-    ws[2] = Wall(wp[2], wp[3])
-    ws[3] = Wall(wp[3], wp[4])
-    ws[4] = Wall(wp[4], wp[1])
-    
-    println(ws)
-    return ws
-end
-
 @gen function sample_init_squishy_state(hgm::HGMParams,
                                         dm::SquishyDynamicsModel)
 
@@ -68,19 +52,19 @@ end
     cg = CausalGraph(SimpleDiGraph())
     for w in walls_idx(dm)
         add_vertex!(cg)
-        set_props!(cg, w, :object, ws[w])
+        set_prop!(cg, w, :object, ws[w])
     end
     set_prop!(cg, :walls, walls_idx(dm))
     for (poly, verts) in current_state
         add_vertex!(cg)
-        poly_v = nv(cg)
+        poly_v = MetaGraphs.nv(cg)
         set_prop!(cg, poly_v, :object, poly)
 
         for v in verts
             add_vertex!(cg)
-            vi = nv(cg)
+            vi = MetaGraphs.nv(cg)
             add_edge!(cg, poly_v, vi)
-            set_props!(cg, vi, :object, v)
+            set_prop!(cg, vi, :object, v)
             set_prop!(cg, Edge(poly_v, vi),
                       :parent, true)
         end

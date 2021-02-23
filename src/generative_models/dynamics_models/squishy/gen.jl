@@ -1,5 +1,6 @@
 
-@gen (static) function vert_step(dm::SquishyDynamicsModel,
+#@gen (static) function vert_step(dm::SquishyDynamicsModel,
+@gen function vert_step(dm::SquishyDynamicsModel,
                                  cg::CausalGraph, poly::Polygon,
                                  v::Int64)
     dot = get_prop(cg, v, :object)
@@ -9,13 +10,17 @@
 end
 
 
-@gen (static) function poly_step(dm::SquishyDynamicsModel,
-                                 cg::CausalGraph, v::Int64)
+#@gen (static) function poly_step(dm::SquishyDynamicsModel,
+@gen function poly_step(dm::SquishyDynamicsModel,
+                        cg::CausalGraph, v::Int64)
+
+    display(cg)
     rep = force(cg, v)
     object = get_prop(cg, v, :object)
+    display(object)
 
     # centroid
-    dv = @trace(broadcasted_normal(dm.inertia, dm.sigma), :dv)
+    dv = @trace(broadcasted_normal(object.vel*dm.pol_inertia, dm.pol_sigma), :dv)
     dav = @trace(normal(1.0, dm.pol_ang_vel_sigma),
                  :dav)
     new_p = update(object, rep, dv, dav)
@@ -29,7 +34,8 @@ end
     return t
 end
 
-@gen (static) function squishy_update(dm::SquishyDynamicsModel,
+#@gen (static) function squishy_update(dm::SquishyDynamicsModel,
+@gen function squishy_update(dm::SquishyDynamicsModel,
                                       cg::CausalGraph,
                                       hgm)
     # first update polygons

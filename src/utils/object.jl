@@ -42,8 +42,9 @@ end
 
 
 @with_kw struct Wall <: Object
-    p1::Tuple{Float64}
-    p2::Tuple{Float64}
+    p1::Vector{Float64}
+    p2::Vector{Float64}
+    n::Vector{Float64} # wall normal
 end
 
 
@@ -76,12 +77,17 @@ radius(p::UGon) = 0
 # assuming first N vertices are walls
 walls(cg::CausalGraph) = get_prop(cg, :walls)
 
-force(cg::CausalGraph, v::Int64) = @>> v begin
-    inneighbors(cg)
-    map(i -> Edge(i, v))
-    Base.filter(e -> has_prop(cg, e, :force))
-    map(get_prop(cg, e, :force))
-    sum
+function force(cg::CausalGraph, v::Int64)
+    f = @>> v begin
+        inneighbors(cg)
+        map(i -> Edge(i, v))
+        Base.filter(e -> has_prop(cg, e, :force))
+        map(e -> get_prop(cg, e, :force))
+        convert(Array{Float64})
+        sum(dims=1)
+    end
+
+    return sum(f) == 0 ? zeros(2) : f
 end
 
 vertices(cg::CausalGraph, v::Int64) = @>> v begin
@@ -95,5 +101,5 @@ parent(cg::CausalGraph, v::Int64) = @>> v begin
     inneighbors(cg)
     Base.filter(i -> has_prop(cg, Edge(i, v), :parent))
     first
-    (i -> get_prop(cg, i, :object))
+    #(i -> get_prop(cg, i, :object))
 end
