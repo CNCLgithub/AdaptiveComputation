@@ -14,10 +14,8 @@ end
 @gen function poly_step(dm::SquishyDynamicsModel,
                         cg::CausalGraph, v::Int64)
 
-    display(cg)
     rep = force(cg, v)
     object = get_prop(cg, v, :object)
-    display(object)
 
     # centroid
     dv = @trace(broadcasted_normal(object.vel*dm.pol_inertia, dm.pol_sigma), :dv)

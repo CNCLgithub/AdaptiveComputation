@@ -22,7 +22,7 @@ function are_dots_inside(scene_data, gm)
     all(satisfied)    
 end
 
-function is_min_distance_satisfied(scene_data, min_distance;
+function is_min_distance_satisfied_old(scene_data, min_distance;
                                    polygon_min_distance = 2.5 * min_distance)
     cg = first(scene_data[:gt_causal_graphs])
     n_dots = @>> cg.elements map(x -> _n_dots(x)) sum
@@ -40,6 +40,38 @@ function is_min_distance_satisfied(scene_data, min_distance;
         end
     end
     
+    distances_idxs = Iterators.product(1:n_dots, 1:n_dots)
+    distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
+    satisfied = @>> distances map(distance -> distance == 0.0 || distance > min_distance)
+    all(satisfied)
+end
+
+function is_min_distance_satisfied(scene_data, min_distance;
+                                   polygon_min_distance = 2.5 * min_distance)
+    cg = first(scene_data[:gt_causal_graphs])
+    pols_vs = collect(filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa Polygon))
+    
+    # checking whether polygons are at the right distance if there are any
+    if !isempty(pols_vs)
+        pos_pols = @>> pols_vs begin
+            map(v -> get_prop(cg, v, :object))
+            map(x -> x.pos[1:2])
+        end
+        n_pols = length(pos_pols)
+        distances_idxs = Iterators.product(1:n_pols, 1:n_pols)
+        distances = @>> distances_idxs map(xy -> MOT.dist(pos_pols[xy[1]][1:2], pos_pols[xy[2]][1:2]))
+        satisfied = @>> distances map(distance -> distance == 0.0 || distance > polygon_min_distance)
+        if !all(satisfied)
+            return false
+        end
+    end
+
+    dots_vs = collect(filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa Dot))
+    n_dots = length(dots_vs)
+    positions = @>> dots_vs begin
+        map(v -> get_prop(cg, v, :object))
+        map(x -> x.pos[1:2])
+    end
     distances_idxs = Iterators.product(1:n_dots, 1:n_dots)
     distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
     satisfied = @>> distances map(distance -> distance == 0.0 || distance > min_distance)

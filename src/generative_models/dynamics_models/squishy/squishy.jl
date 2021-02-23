@@ -65,8 +65,8 @@ function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
     c = parent(cg, v)
     calculate_attraction!(cg, dm, c, v)
 
-    @>> cg begin
-        vertices
+    @>> v begin
+        vertices(cg)
         Base.filter(i -> get_prop(cg, i, :object) isa Dot)
         foreach(i -> calculate_repulsion!(cg, dm, i, v))
     end

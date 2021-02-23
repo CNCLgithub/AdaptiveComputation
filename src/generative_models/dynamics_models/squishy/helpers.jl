@@ -32,6 +32,8 @@ end
 
 function update(obj::NGon, rep::Vector{Float64},
                 dv::Vector{Float64}, dav::Float64)
+    println("NGong update")
+    println("rep $rep, dv $dv, dav $dav")
     vel = obj.vel + dv + rep
     x,y = obj.pos[1:2] + vel
     avel = obj.ang_vel * dav
@@ -40,12 +42,12 @@ function update(obj::NGon, rep::Vector{Float64},
             obj.radius, obj.nv)
 end
 
-function distance_to(w::Wall, o::Object)
-    dot(o.pos[1:2] - w.p1, w.n)
+function vector_to(w::Wall, o::Object)
+    w.n/norm(w.n) .* dot(o.pos[1:2] - w.p1, w.n)
 end
 
-function distance_to(a::Object, b::Object)
-    norm(a.pos-b.pos)
+function vector_to(a::Object, b::Object)
+    a.pos - b.pos
 end
 
 function attraction(dm::SquishyDynamicsModel, pol::NGon, dot::Dot, order::Int64)
@@ -65,7 +67,7 @@ end
 # TODO unused
 function repulsion(dm::SquishyDynamicsModel, a::Polygon, b::Dot)
     @unpack poly_rep_m, poly_rep_a, poly_rep_x0 = dm
-    d = distance_to(a, b)
+    d = vector_to(a, b)
     r = norm(d)
     ud = d / nd
     theta = atan(ud[2], ud[1])
@@ -80,19 +82,20 @@ function repulsion(dm::SquishyDynamicsModel, a::Polygon, b::Dot)
 end
 
 function repulsion(dm::SquishyDynamicsModel, a::Wall, b::Object)
-    d = distance_to(a, b)
-    nd = norm(d)
-    ud = d / nd
+    vec = vector_to(a, b)
+    d = norm(vec)
+    nvec = vec / d
     @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
-    wall_rep_m * exp(-1 * (wall_rep_a * nd - wall_rep_x0)) .* ud
+    f = wall_rep_m * exp(-1 * (wall_rep_a * d - wall_rep_x0)) .* nvec
+    return f
 end
 
 function repulsion(dm::SquishyDynamicsModel, a::Dot, b::Dot)
-    d = distance_to(a, b)
-    nd = norm(d)
-    ud = d ./ nd
+    vec = vector_to(a, b)
+    d = norm(vec)
+    nvec = vec ./ d
     @unpack vert_rep_m, vert_rep_a, vert_rep_x0 = dm
-    vert_rep_m * exp(-1 * (vert_rep_a * nd - vert_rep_x0)) .* ud
+    vert_rep_m * exp(-1 * (vert_rep_a * d - vert_rep_x0)) .* nvec
 end
 
 function get_walls(cg::CausalGraph, dm::SquishyDynamicsModel)

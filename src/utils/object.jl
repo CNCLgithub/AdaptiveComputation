@@ -78,16 +78,17 @@ radius(p::UGon) = 0
 walls(cg::CausalGraph) = get_prop(cg, :walls)
 
 function force(cg::CausalGraph, v::Int64)
-    f = @>> v begin
+    fs = @>> v begin
         inneighbors(cg)
         map(i -> Edge(i, v))
         Base.filter(e -> has_prop(cg, e, :force))
         map(e -> get_prop(cg, e, :force))
-        convert(Array{Float64})
-        sum(dims=1)
     end
+    
+    println("forces")
+    println(fs)
 
-    return sum(f) == 0 ? zeros(2) : f
+    return isempty(fs) ? zeros(2) : sum(fs)
 end
 
 vertices(cg::CausalGraph, v::Int64) = @>> v begin
