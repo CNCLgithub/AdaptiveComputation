@@ -19,7 +19,7 @@ end
 
     # centroid
     dv = @trace(broadcasted_normal(object.vel*dm.pol_inertia, dm.pol_sigma), :dv)
-    dav = @trace(normal(1.0, dm.pol_ang_vel_sigma),
+    dav = @trace(normal(0.0, dm.pol_ang_vel_sigma),
                  :dav)
     new_p = update(object, rep, dv, dav)
 

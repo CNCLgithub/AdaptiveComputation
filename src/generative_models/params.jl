@@ -1,17 +1,18 @@
 
 
 @with_kw struct HGMParams <: AbstractGMParams
-    n_trackers::Int = 4
-    distractor_rate::Real = 4.0
-    init_pos_spread::Real = 300.0
-    polygon_radius::Real = 130.0
+    n_trackers::Int64 = 4
+    distractor_rate::Float64 = 4.0
+    init_pos_spread::Float64 = 320.0
+    polygon_radius::Float64 = 130.0
+    max_vertices::Int64 = 7
     
     # graphics parameters
     dot_radius::Real = 20.0
     img_height::Int = 200
     img_width::Int = 200
-    area_height::Int = 800
-    area_width::Int = 800
+    area_height::Int = 2.5 * init_pos_spread
+    area_width::Int = 2.5 * init_pos_spread
 
     # parameters for the drawing the mask random variable arguments
     dot_p::Float64 = 0.5 # prob of pixel on in the dot region

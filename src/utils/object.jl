@@ -2,6 +2,7 @@ export Object,
         Dot,
         BDot
 
+using LightGraphs
 using MetaGraphs
 #const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Vector{Float64}}
 const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Float64}
@@ -68,7 +69,7 @@ end
 
 #nv(p::Polygon)::Int64
 nv(p::NGon) = p.nv
-nv(p::UGon) = 0
+nv(p::UGon) = 1
 
 radius(p::NGon) = p.radius
 radius(p::UGon) = 0
@@ -84,14 +85,11 @@ function force(cg::CausalGraph, v::Int64)
         Base.filter(e -> has_prop(cg, e, :force))
         map(e -> get_prop(cg, e, :force))
     end
-    
-    println("forces")
-    println(fs)
 
     return isempty(fs) ? zeros(2) : sum(fs)
 end
 
-vertices(cg::CausalGraph, v::Int64) = @>> v begin
+LightGraphs.vertices(cg::CausalGraph, v::Int64) = @>> v begin
     outneighbors(cg)
     collect(Int64)
     Base.filter(i -> has_prop(cg, Edge(v, i), :parent))

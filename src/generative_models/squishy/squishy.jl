@@ -5,22 +5,22 @@ include("helpers.jl")
     
     #n_dots = @trace(categorical([0.5; fill((1-0.5)/5, 5)]), :n_dots)
 
-    max_dots = 5
-    n_dots = @trace(Gen.categorical(fill(1/max_dots, max_dots)), :n_dots)
+    @unpack max_vertices, init_pos_spread, polygon_radius = gmh
+    n_dots = @trace(Gen.categorical(fill(1.0/max_vertices, max_vertices)), :n_dots)
     
-    x = @trace(uniform(-gmh.init_pos_spread, gmh.init_pos_spread), :x)
-    y = @trace(uniform(-gmh.init_pos_spread, gmh.init_pos_spread), :y)
+    x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
+    y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
     
 
     if n_dots == 1
         pol = UGon([x,y,z], zeros(2))
-        dots = Dot[]
+        dots = Dot[Dot([x,y,z], zeros(2))]
         return (pol, dots)
     else
         rot = @trace(uniform(0, 2*pi), :rot)
-        r = gmh.polygon_radius
+        r = polygon_radius
         pol = NGon([x,y,z], rot, zeros(2), 0.0, r, n_dots)
 
         dots = Vector{Dot}(undef, n_dots)
@@ -48,28 +48,7 @@ end
     ws = init_walls(hgm)
     current_state = @trace(Gen.Map(sample_init_polygon)(hgm_trackers), :polygons)
     
-    #graph = CausalGraph(trackers, SimpleGraph)
-    cg = CausalGraph(SimpleDiGraph())
-    for w in walls_idx(dm)
-        add_vertex!(cg)
-        set_prop!(cg, w, :object, ws[w])
-    end
-    set_prop!(cg, :walls, walls_idx(dm))
-    for (poly, verts) in current_state
-        add_vertex!(cg)
-        poly_v = MetaGraphs.nv(cg)
-        set_prop!(cg, poly_v, :object, poly)
-
-        for v in verts
-            add_vertex!(cg)
-            vi = MetaGraphs.nv(cg)
-            add_edge!(cg, poly_v, vi)
-            set_prop!(cg, vi, :object, v)
-            set_prop!(cg, Edge(poly_v, vi),
-                      :parent, true)
-        end
-    end
-
+    cg = process_temp_state(current_state, hgm, dm)
     pmbrfs = RFSElements{Array}(undef, 0)
 
     if hgm.fmasks

@@ -134,8 +134,11 @@ function render_object(dot::Dot;
 end
 
 function flatten_cg(cg::CausalGraph)
-    dots_vs = filter_vertices(cg, (g,v) -> get_prop(g, v, :object) isa Dot)
-    @>> dots_vs map(v -> get_prop(cg, v, :object))
+    @>> cg begin
+        vertices
+        map(v -> get_prop(cg, v, :object))
+        Base.filter(v -> v isa Dot)
+    end
 end
 
 function flatten_cg_old(cg::CausalGraph)

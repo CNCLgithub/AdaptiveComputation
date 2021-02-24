@@ -8,23 +8,22 @@ export SquishyDynamicsModel
     distance::Float64 = 100.0
     vel::Float64 = 10.0 # base velocity
 
-    pol_inertia = 0.9
+    pol_inertia = 0.0
     pol_sigma = 0.02
     vert_sigma = 0.02
-    pol_ang_vel_sigma = 0.02
+    pol_ang_vel_sigma = 0.0
 
-    poly_att_m = 0.01
-    poly_att_a = 0.01
-    poly_att_x0 = 0.01 
+    poly_att_m = 0.2
+    poly_att_a = 0.001
+    poly_att_x0 = -10
 
-    wall_rep_m = 0.01
+    wall_rep_m = 0.0001
     wall_rep_a = 0.01
-    wall_rep_x0 = 0.01
+    wall_rep_x0 = 9.0
 
-    vert_rep_m = 0.01
-    vert_rep_a = 0.01
-    vert_rep_x0 = 0.01
-
+    vert_rep_m = 0.002
+    vert_rep_a = 0.05
+    vert_rep_x0 = 8.5
 end
 
 function load(::Type{SquishyDynamicsModel}, path::String)
@@ -42,7 +41,7 @@ vert -> vert
 
 
 function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
-                              v::Int64, wall::Wall)
+                              v::Int64, obj::Object)
     return nothing
 end
 
@@ -65,8 +64,7 @@ function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
     c = parent(cg, v)
     calculate_attraction!(cg, dm, c, v)
 
-    @>> v begin
-        vertices(cg)
+    @>> LightGraphs.vertices(cg) begin
         Base.filter(i -> get_prop(cg, i, :object) isa Dot)
         foreach(i -> calculate_repulsion!(cg, dm, i, v))
     end
@@ -86,6 +84,8 @@ end
 
 function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
                               w::Int64, v::Int64)
+    # dont assign edges to self
+    w == v && return nothing
     a = get_prop(cg, w, :object)
     b = get_prop(cg, v, :object)
     add_edge!(cg, w, v)
@@ -95,7 +95,7 @@ function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
 end
 
 function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel)
-    for v=1:MetaGraphs.nv(cg)
+    for v in LightGraphs.vertices(cg)
         obj = get_prop(cg, v, :object)
         calculate_repulsion!(cg, dm, v, obj)
     end
