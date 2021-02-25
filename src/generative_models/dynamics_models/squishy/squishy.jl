@@ -10,16 +10,16 @@ export SquishyDynamicsModel
     vert_sigma = 0.0
     pol_ang_vel_sigma = 0.02
 
-    poly_att_m = 0.3
+    poly_att_m = 0.1
     poly_att_a = 0.02
     poly_att_x0 = 0.0
 
-    wall_rep_m = 10.001
+    wall_rep_m = 10.0
     wall_rep_a = 0.02
     wall_rep_x0 = 0.0
 
-    vert_rep_m = 100.2
-    vert_rep_a = 0.05
+    vert_rep_m = 5.0
+    vert_rep_a = 0.03
     vert_rep_x0 = 0.0
 end
 

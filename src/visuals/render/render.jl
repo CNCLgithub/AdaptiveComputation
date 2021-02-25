@@ -14,13 +14,14 @@ end
 
 function render_polygon(cg::CausalGraph, p::Int64)
     vs = vertices(cg, p)
-    length(vs) == 1 && return
+    length(vs) == 1 && return # we don't want no UGons
 
     positions = @>> vs begin
         map(v -> get_prop(cg, v, :object))
         map(o -> get_pos(o))
     end
-
+    
+    # connecting vertices (last one connects 1 -> end)
     inds = @>> 1:length(positions)-1 begin
         map(i -> (i, i+1))
     end
@@ -183,6 +184,7 @@ function render_frame(t, path, gm;
                       receptive_fields_overlap=nothing,
                       highlighted=Bool[],
                       show_polygons=false,
+                      show_polygon_centroids=false,
                       show_time=false,
                       show_labels=false,
                       show_forces=false)
@@ -200,7 +202,8 @@ function render_frame(t, path, gm;
                   show_labels=show_labels,
                   show_forces=show_forces,
                   highlighted=highlighted,
-                  show_polygons=show_polygons)
+                  show_polygons=show_polygons,
+                  show_polygon_centroids=show_polygon_centroids)
     end
 
     if !isnothing(pf_causal_graph)
@@ -252,7 +255,8 @@ function render(gm, k;
                                   receptive_fields=receptive_fields,
                                   receptive_fields_overlap=receptive_fields_overlap,
                                   highlighted=highlighted_start,
-                                  show_polygons=true))
+                                  show_polygons=true,
+                                  show_polygon_centroids=show_polygon_centroids))
     end
    
     # movement
@@ -262,6 +266,7 @@ function render(gm, k;
                                   receptive_fields=receptive_fields,
                                   receptive_fields_overlap=receptive_fields_overlap,
                                   show_polygons=show_polygons,
+                                  show_polygon_centroids=show_polygon_centroids,
                                   show_forces=show_forces,
                                   show_time=show_time,
                                   show_labels=show_labels))
@@ -274,7 +279,8 @@ function render(gm, k;
                                   receptive_fields=receptive_fields,
                                   receptive_fields_overlap=receptive_fields_overlap,
                                   highlighted=highlighted_end,
-                                  show_polygons=show_polygons))
+                                  show_polygons=true,
+                                  show_polygon_centroids=show_polygon_centroids))
     end
 end
 

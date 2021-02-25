@@ -20,6 +20,7 @@ end
 function update(dm::SquishyDynamicsModel,
                 dot::Dot, rep::Vector{Float64}, dv::Vector{Float64})
     vel = dv + rep
+    #vel *= dm.vel/norm(vel)
     x,y = dot.pos[1:2] + vel
     Dot([x,y,dot.pos[3]], vel)
 end

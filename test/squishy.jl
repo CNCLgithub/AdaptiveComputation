@@ -2,21 +2,19 @@ using MOT
 using Gen
 using Random
 using Images
-Random.seed!(5)
+Random.seed!(6)
 
 k = 100
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
-cm[:init_state => :polygons => 1 => :n_dots] = 4
-cm[:init_state => :polygons => 2 => :n_dots] = 3
-cm[:init_state => :polygons => 3 => :n_dots] = 1
-targets = Bool[1, 1, 1, 0, 1, 0, 0, 0]
-# cm[:init_state => :polygons => 4 => :n_dots] = 4
-# cm[:init_state => :polygons => 5 => :n_dots] = 3
-# cm[:init_state => :polygons => 6 => :n_dots] = 1
-#targets = [targets; targets]
+structure = [4, 4, 4, 4]
+for (i, s) in enumerate(structure)
+    cm[:init_state => :polygons => i => :n_dots] = s
+end
 
-hgm = HGMParams(n_trackers = 3,
+targets = Bool[fill(1, 8); fill(0, 8)]
+
+hgm = HGMParams(n_trackers = length(structure),
                 distractor_rate = 0.0,
                 targets = [1, 1, 0, 0])
 scene_data = nothing
@@ -27,8 +25,8 @@ while true
     global scene_data = dgp(k, hgm, dm;
                      generate_masks=false,
                      cm=cm)
-    #md = is_min_distance_satisfied(scene_data, 20.0)
-    md = true
+    md = is_min_distance_satisfied(scene_data, 50.0)
+    #md = true
     di = are_dots_inside(scene_data, hgm)
     md && di && break
 end
@@ -38,7 +36,9 @@ render(hgm, k;
        highlighted_start=targets,
        path=joinpath("/renders", "squishy"),
        freeze_time=12,
-       show_forces=false)
+       show_forces=false,
+       show_polygons=false,
+       show_polygon_centroids=false)
 
 # trace, _ = Gen.generate(hgm_mask, (k, motion, hgm), cm)
 # #display(get_choices(trace))
