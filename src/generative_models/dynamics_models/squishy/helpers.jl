@@ -17,24 +17,28 @@ function vert_step_args(dm::SquishyDynamicsModel,
     (fill(dm, nv(p)), fill(cg, nv(p)), fill(p, nv(p)))
 end
 
-function update(dot::Dot, rep::Vector{Float64}, dv::Vector{Float64})
+function update(dm::SquishyDynamicsModel,
+                dot::Dot, rep::Vector{Float64}, dv::Vector{Float64})
     vel = dv + rep
     x,y = dot.pos[1:2] + vel
     Dot([x,y,dot.pos[3]], vel)
 end
 
-function update(obj::UGon, rep::Vector{Float64},
+function update(dm::SquishyDynamicsModel, obj::UGon, rep::Vector{Float64},
                 dv::Vector{Float64}, dav::Float64)
-    vel = obj.vel + dv + rep
+    vel = obj.vel*dm.pol_inertia + dv + rep
+    vel *= dm.vel/norm(vel)
     x,y = obj.pos[1:2] + vel
     UGon([x,y,obj.pos[3]], vel)
 end
 
-function update(obj::NGon, rep::Vector{Float64},
+function update(dm::SquishyDynamicsModel,
+                obj::NGon, rep::Vector{Float64},
                 dv::Vector{Float64}, dav::Float64)
-    vel = obj.vel + dv + rep
+    vel = obj.vel*dm.pol_inertia + dv + rep
+    vel *= dm.vel/norm(vel)
     x,y = obj.pos[1:2] + vel
-    avel = obj.ang_vel + dav
+    avel = obj.ang_vel*dm.pol_ang_inertia + dav
     rot = obj.rot + avel
     NGon([x,y,obj.pos[3]], rot, vel, avel,
             obj.radius, obj.nv)
@@ -72,12 +76,6 @@ function attraction(dm::SquishyDynamicsModel, pol::NGon, dot::Dot, order::Int64)
     # f = poly_att_m * exp(poly_att_a * d - poly_att_x0) .* vec ./ d
     f = vec .* poly_att_m ./ (1.0 + exp(-poly_att_a*(d - poly_att_x0)))
 
-    println("attraction")
-    @show [c_dot_x, c_dot_y]
-    @show dot.pos[1:2]
-    @show vec
-    @show d
-    @show f
     return f
 end
 
@@ -92,28 +90,26 @@ function attraction(dm::SquishyDynamicsModel, pol::UGon, dot::Dot, order::Int64)
     iszero(d) && return zeros(2)
     # f = poly_att_m * exp(poly_att_a * d - poly_att_x0) .* vec ./ d
     f = vec .* poly_att_m ./ (1.0 + exp(-poly_att_a*(d - poly_att_x0)))
-    # println("ugon attraction")
-    # @show [c_dot_x, c_dot_y]
-    # @show dot.pos[1:2]
-    # @show vec
-    # @show d
-    # @show f
     return f
 end
 
 
-function repulsion(dm::SquishyDynamicsModel, a::Wall, b::Object)
-    # println("repulsion:: wall -> object")
+function repulsion(dm::SquishyDynamicsModel, a::Wall, b::Dot)
     vec = vector_to(a, b)
     d = norm(vec)
     uvec = vec / d
     @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
     f = wall_rep_m * exp(-1 * (wall_rep_a * (d - wall_rep_x0))) .* uvec
-    # @show a
-    # @show b
-    # @show vec
-    # @show d
-    # @show f
+    return f
+end
+
+function repulsion(dm::SquishyDynamicsModel, a::Wall, b::Polygon)
+    vec = vector_to(a, b)
+    r = radius(b)
+    d = norm(vec)
+    uvec = vec / d
+    @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
+    f = wall_rep_m * exp(-1 * (wall_rep_a * (d - r - wall_rep_x0))) .* uvec
     return f
 end
 
@@ -123,13 +119,6 @@ function repulsion(dm::SquishyDynamicsModel, a::Dot, b::Dot)
     uvec = vec/d
     @unpack vert_rep_m, vert_rep_a, vert_rep_x0 = dm
     f = vert_rep_m * exp(-1 * (vert_rep_a * (d - vert_rep_x0))) .* uvec
-    #f = x -> vert_rep_m * exp(-1 * (vert_rep_a * abs(x) - vert_rep_x0))
-    #f = f.(vec) .* (sign.(vec))
-    # println("repulsion:: dot -> dot")
-    # @show a
-    # @show b
-    # @show vec
-    # @show f
     return f
 end
 

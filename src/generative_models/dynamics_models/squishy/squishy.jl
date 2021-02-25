@@ -2,23 +2,20 @@ export SquishyDynamicsModel
 
 @with_kw struct SquishyDynamicsModel <: AbstractDynamicsModel
 
-    # repulsion
-    dot_repulsion::Float64 = 10.0
-    wall_repulsion::Float64 = 200.0
-    distance::Float64 = 100.0
     vel::Float64 = 10.0 # base velocity
 
-    pol_inertia = 0.0
+    pol_inertia = 0.9
+    pol_ang_inertia = 0.9
     pol_sigma = 0.5
     vert_sigma = 0.0
-    pol_ang_vel_sigma = 0.004
+    pol_ang_vel_sigma = 0.02
 
-    poly_att_m = 0.1
+    poly_att_m = 0.3
     poly_att_a = 0.02
     poly_att_x0 = 0.0
 
-    wall_rep_m = 2.001
-    wall_rep_a = 0.001
+    wall_rep_m = 10.001
+    wall_rep_a = 0.02
     wall_rep_x0 = 0.0
 
     vert_rep_m = 100.2

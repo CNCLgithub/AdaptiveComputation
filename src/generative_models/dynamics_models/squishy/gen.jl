@@ -5,7 +5,7 @@
                                  v::Int64)
     dot = get_prop(cg, v, :object)
     dv = @trace(broadcasted_normal(poly.vel, dm.vert_sigma), :dv)
-    new_vert = update(dot, force(cg, v), dv)
+    new_vert = update(dm, dot, force(cg, v), dv)
     return new_vert
 end
 
@@ -18,10 +18,9 @@ end
     object = get_prop(cg, v, :object)
 
     # centroid
-    dv = @trace(broadcasted_normal(object.vel*dm.pol_inertia, dm.pol_sigma), :dv)
-    dav = @trace(normal(0.0, dm.pol_ang_vel_sigma),
-                 :dav)
-    new_p = update(object, rep, dv, dav)
+    dv = @trace(broadcasted_normal(zeros(2), dm.pol_sigma), :dv)
+    dav = @trace(normal(0.0, dm.pol_ang_vel_sigma), :dav)
+    new_p = update(dm, object, rep, dv, dav)
 
     # vertices
     vs = vertices(cg, v)

@@ -9,15 +9,17 @@ function are_dots_inside(scene_data, gm)
     ymin, ymax = -gm.area_height/2 + gm.dot_radius, gm.area_width/2 - gm.dot_radius
     
     cg = first(scene_data[:gt_causal_graphs])
-    n_dots = sum(map(x -> _n_dots(x), cg.elements))
-    positions = get_hgm_positions(cg, fill(true, n_dots))
+    #n_dots = sum(map(x -> _n_dots(x), cg.elements))
+    #positions = get_hgm_positions(cg, fill(true, n_dots))
+    dots = get_objects(cg, Dot)
+    positions = @>> dots map(d -> d.pos)
 
     satisfied = map(i ->
                     positions[i][1] > xmin &&
                     positions[i][1] < xmax &&
                     positions[i][2] > ymin &&
                     positions[i][2] < ymax,
-                    1:n_dots)
+                    1:length(dots))
 
     all(satisfied)    
 end

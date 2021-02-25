@@ -105,3 +105,9 @@ parent(cg::CausalGraph, v::Int64) = @>> v begin
     first
     #(i -> get_prop(cg, i, :object))
 end
+
+get_objects(cg::CausalGraph, type::Type) = @>> cg begin
+    vertices
+    map(v -> get_prop(cg, v, :object))
+    Base.filter(v -> v isa type)
+end
