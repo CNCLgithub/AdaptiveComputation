@@ -17,7 +17,7 @@ export SquishyDynamicsModel
     poly_att_a = 0.001
     poly_att_x0 = -10
 
-    wall_rep_m = 0.0001
+    wall_rep_m = 0.001
     wall_rep_a = 0.01
     wall_rep_x0 = 9.0
 
