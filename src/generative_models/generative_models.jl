@@ -1,10 +1,9 @@
 abstract type AbstractGMParams end
 
-#include("causal_graph.jl")
+include("params.jl")
 include("dynamics_models/dynamics_models.jl")
 include("graphics/graphics.jl")
 include("flow_masks.jl")
-include("params.jl")
 include("state.jl")
 include("get_masks_params.jl")
 

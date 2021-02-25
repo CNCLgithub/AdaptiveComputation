@@ -2,9 +2,9 @@ using MOT
 using Gen
 using Random
 using Images
-Random.seed!(4)
+Random.seed!(5)
 
-k = 20
+k = 60
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
 cm[:init_state => :polygons => 1 => :n_dots] = 4
@@ -26,7 +26,7 @@ end
 render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
        highlighted=collect(1:8)[targets],
-       path=joinpath("render", "squishy"),
+       path=joinpath("/renders", "squishy"),
        freeze_time=0,
        stimuli=true)
 

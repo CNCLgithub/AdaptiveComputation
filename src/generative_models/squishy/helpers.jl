@@ -27,16 +27,16 @@ end
 
 function init_walls(hgm::HGMParams)
     # getting wall points
-    wp = @>> Iterators.product((-1,1), (-1,1)) begin
+    wp = @>> Iterators.product((1,-1), (1, -1)) begin
         map(x -> x .* (hgm.area_width/2, hgm.area_height/2))
     end
     
     # getting the walls
     ws = Vector{Wall}(undef, 4)
-    ws[1] = init_wall(wp[1], wp[2], hgm)
-    ws[2] = init_wall(wp[2], wp[3], hgm)
-    ws[3] = init_wall(wp[3], wp[4], hgm)
-    ws[4] = init_wall(wp[4], wp[1], hgm)
+    ws[1] = init_wall(wp[1], wp[3], hgm) # top r -> bot r
+    ws[2] = init_wall(wp[3], wp[4], hgm) # bot r -> bot l
+    ws[3] = init_wall(wp[4], wp[2], hgm) # bot l -> top l
+    ws[4] = init_wall(wp[2], wp[1], hgm) # top l -> top r
     
     return ws
 end
