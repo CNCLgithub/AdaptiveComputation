@@ -4,26 +4,26 @@ export SquishyDynamicsModel
 
     # repulsion
     dot_repulsion::Float64 = 10.0
-    wall_repulsion::Float64 = 10.0
+    wall_repulsion::Float64 = 200.0
     distance::Float64 = 100.0
     vel::Float64 = 10.0 # base velocity
 
     pol_inertia = 0.0
-    pol_sigma = 0.02
-    vert_sigma = 0.02
-    pol_ang_vel_sigma = 0.0
+    pol_sigma = 0.5
+    vert_sigma = 0.0
+    pol_ang_vel_sigma = 0.004
 
-    poly_att_m = 0.2
-    poly_att_a = 0.001
-    poly_att_x0 = -10
+    poly_att_m = 0.1
+    poly_att_a = 0.02
+    poly_att_x0 = 0.0
 
-    wall_rep_m = 0.001
-    wall_rep_a = 0.01
-    wall_rep_x0 = 9.0
+    wall_rep_m = 2.001
+    wall_rep_a = 0.001
+    wall_rep_x0 = 0.0
 
-    vert_rep_m = 0.002
+    vert_rep_m = 100.2
     vert_rep_a = 0.05
-    vert_rep_x0 = 8.5
+    vert_rep_x0 = 0.0
 end
 
 function load(::Type{SquishyDynamicsModel}, path::String)

@@ -4,15 +4,17 @@ using Random
 using Images
 Random.seed!(5)
 
-k = 60
+k = 100
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
 cm[:init_state => :polygons => 1 => :n_dots] = 4
 cm[:init_state => :polygons => 2 => :n_dots] = 3
 cm[:init_state => :polygons => 3 => :n_dots] = 1
-targets = Bool[1, 1, 1, 0, 1, 0, 0, 0]
+#targets = Bool[1, 1, 1, 0, 1, 0, 0, 0]
+cm[:init_state => :polygons => 4 => :n_dots] = 4
+targets = Bool[1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0]
 
-hgm = HGMParams(n_trackers = 3,
+hgm = HGMParams(n_trackers = 4,
                 distractor_rate = 0.0,
                 targets = [1, 1, 0, 0])
 scene_data = nothing
@@ -25,10 +27,11 @@ end
 
 render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
-       highlighted=collect(1:8)[targets],
+       highlighted=collect(1:length(targets))[targets],
        path=joinpath("/renders", "squishy"),
        freeze_time=0,
-       stimuli=true)
+       stimuli=true,
+       show_forces=true)
 
 # trace, _ = Gen.generate(hgm_mask, (k, motion, hgm), cm)
 # #display(get_choices(trace))

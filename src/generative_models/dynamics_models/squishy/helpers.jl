@@ -102,30 +102,13 @@ function attraction(dm::SquishyDynamicsModel, pol::UGon, dot::Dot, order::Int64)
 end
 
 
-# TODO unused
-function repulsion(dm::SquishyDynamicsModel, a::Polygon, b::Dot)
-    @unpack poly_rep_m, poly_rep_a, poly_rep_x0 = dm
-    d = vector_to(a, b)
-    r = norm(d)
-    ud = d / nd
-    theta = atan(ud[2], ud[1])
-    # centripetal vel
-    cv = -r * a.ang_vel*sin(theta) + r * a.ang_vel * cos(theta)
-    # radial equilibrium
-    # perhaps add segment equilibrium
-    rv = (a.radius - r)
-    rv = rv * poly_rep_m * exp(-1 * (poly_rep_a * nd - poly_rep_x0))
-    rv = rv .* ud
-    cv + rv
-end
-
 function repulsion(dm::SquishyDynamicsModel, a::Wall, b::Object)
     # println("repulsion:: wall -> object")
     vec = vector_to(a, b)
     d = norm(vec)
-    nvec = vec / d
+    uvec = vec / d
     @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
-    f = wall_rep_m * exp(-1 * (wall_rep_a * (d - wall_rep_x0))) .* nvec
+    f = wall_rep_m * exp(-1 * (wall_rep_a * (d - wall_rep_x0))) .* uvec
     # @show a
     # @show b
     # @show vec
@@ -136,9 +119,12 @@ end
 
 function repulsion(dm::SquishyDynamicsModel, a::Dot, b::Dot)
     vec = vector_to(a, b)
+    d = norm(vec)
+    uvec = vec/d
     @unpack vert_rep_m, vert_rep_a, vert_rep_x0 = dm
-    f = x -> vert_rep_m * exp(-1 * (vert_rep_a * abs(x) - vert_rep_x0))
-    f = f.(vec) .* (sign.(vec))
+    f = vert_rep_m * exp(-1 * (vert_rep_a * (d - vert_rep_x0))) .* uvec
+    #f = x -> vert_rep_m * exp(-1 * (vert_rep_a * abs(x) - vert_rep_x0))
+    #f = f.(vec) .* (sign.(vec))
     # println("repulsion:: dot -> dot")
     # @show a
     # @show b

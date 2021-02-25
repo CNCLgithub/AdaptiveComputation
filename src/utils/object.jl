@@ -49,7 +49,6 @@ end
 end
 
 
-
 abstract type Polygon <: Object end
 
 
@@ -66,6 +65,10 @@ end
     pos::Vector{Float64}
     vel::Vector{Float64}
 end
+
+get_pos(w::Wall) = (w.p2.+w.p1)/2
+get_pos(d::Dot) = d.pos
+get_pos(p::Polygon) = p.pos
 
 #nv(p::Polygon)::Int64
 nv(p::NGon) = p.nv

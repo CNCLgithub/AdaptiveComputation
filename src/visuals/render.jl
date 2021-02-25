@@ -11,7 +11,7 @@ function _init_drawing(frame, path, gm;
                        receptive_fields = nothing,
                        receptive_fields_overlap = 0)
     fname = "$(lpad(frame, 3, "0")).png"
-    Drawing(gm.area_width, gm.area_height,
+    Drawing(gm.area_width*1.2, gm.area_height*1.2,
             joinpath(path, fname))
     origin()
     background(background_color)
@@ -79,7 +79,7 @@ end
     helper to draw arrow
 """
 function _draw_arrow(startpoint, endpoint, color;
-                     opacity=1.0, style=:fill,
+                     opacity=1.0,
                      linewidth=5.0, arrowheadlength=15.0)
     setopacity(opacity)
     sethue(color)
@@ -133,24 +133,38 @@ function render_object(dot::Dot;
 
 end
 
-function flatten_cg(cg::CausalGraph)
+function get_objects(cg::CausalGraph, type::Type)
     @>> cg begin
         vertices
         map(v -> get_prop(cg, v, :object))
-        Base.filter(v -> v isa Dot)
+        Base.filter(v -> v isa type)
     end
 end
 
-function flatten_cg_old(cg::CausalGraph)
-    objects = []
-    for e in cg.elements
-        if isa(e, Dot) || isa(e, Pylon)
-            push!(objects, e)
-        elseif isa(e, Polygon)
-            objects = [objects; e.dots]
-        end
+
+function render_force_edge(cg::CausalGraph, edge)
+    vs = [src(edge), dst(edge)]
+    positions = @>> vs begin
+        map(v -> get_prop(cg, v, :object))
+        map(o -> get_pos(o))
     end
-    objects
+    force = get_prop(cg, edge, :force)
+    force_mag = norm(force)/2
+
+    _draw_arrow(positions[1][1:2], positions[2][1:2],
+                "black", opacity=1.0, linewidth=force_mag,
+                arrowheadlength=0.0)
+end
+
+function render_forces(cg::CausalGraph)
+    edges = filter_edges(cg, :force) 
+    @>> edges foreach(e -> render_force_edge(cg, e))
+end
+
+
+function render_wall(w::Wall)
+
+
 end
 
 """
@@ -160,25 +174,36 @@ function render_cg(cg::CausalGraph, gm::AbstractGMParams;
                    show_label=true,
                    highlighted::Vector{Int}=Int[],
                    highlighted_color="blue",
-                   render_edges=false)
+                   render_edges=false,
+                   show_forces=false)
+
+    walls = get_objects(cg, Wall)
+    @>> walls foreach(w -> _draw_arrow(w.p1, w.p2, "black", arrowheadlength=0.0))
     
-    objects = flatten_cg(cg)
+    dots = get_objects(cg, Dot)
 
     # furthest (highest z) comes first in depth_perm
-    depth_perm = sortperm(map(x -> x.pos[3], objects), rev=true)
+    depth_perm = sortperm(map(x -> x.pos[3], dots), rev=true)
     
     for i in depth_perm
-        render_object(objects[i])
-        if show_label && !isa(objects[i], Pylon)
-            _draw_text("$i", objects[i].pos[1:2] .+ [objects[i].width/2, objects[i].height/2])
+        render_object(dots[i])
+        if show_label && !isa(dots[i], Pylon)
+            _draw_text("$i", dots[i].pos[1:2] .+ [dots[i].width/2, dots[i].height/2])
         end
         if i in highlighted
-            _draw_circle(objects[i].pos[1:2], objects[i].width, highlighted_color;
+            _draw_circle(dots[i].pos[1:2], dots[i].width, highlighted_color;
                          style=:stroke, pattern="dash")
         end
     end
 
+    polygons = get_objects(cg, Polygon)
+    @>> polygons foreach(p -> _draw_circle(get_pos(p)[1:2], 10.0, "blue"))
+
+
     # TODO render edges potentially
+    if show_forces
+        render_forces(cg)
+    end
 end
 
 
@@ -279,7 +304,8 @@ function render(gm, k;
                 background_color="#7079f2",
                 path="render",
                 receptive_fields=nothing,
-                receptive_fields_overlap=0.0)
+                receptive_fields_overlap=0.0,
+                show_forces=false)
 
     # if returning array of images as matrices, then make vector
     array ? imgs = [] : mkpath(path)
@@ -314,7 +340,8 @@ function render(gm, k;
         
         if !isnothing(gt_causal_graphs)
             render_cg(gt_causal_graphs[t+1], gm;
-                      show_label=!stimuli)
+                      show_label=!stimuli,
+                      show_forces=show_forces)
         end
 
         if !isnothing(causal_graphs)

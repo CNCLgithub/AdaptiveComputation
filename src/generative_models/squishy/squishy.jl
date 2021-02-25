@@ -12,16 +12,20 @@ include("helpers.jl")
     y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
-    
+
+    #vel = @trace(broadcasted_normal(zeros(2), 10.0), :vel)
+    vel = zeros(2)
 
     if n_dots == 1
-        pol = UGon([x,y,z], zeros(2))
+        pol = UGon([x,y,z], vel)
         dots = Dot[Dot([x,y,z], zeros(2))]
         return (pol, dots)
     else
         rot = @trace(uniform(0, 2*pi), :rot)
         r = polygon_radius
-        pol = NGon([x,y,z], rot, zeros(2), 0.0, r, n_dots)
+        #avel = @trace(normal(0.0, 0.05), :avel)
+        avel = 0.0
+        pol = NGon([x,y,z], rot, vel, avel, r, n_dots)
 
         dots = Vector{Dot}(undef, n_dots)
         for i=1:n_dots
