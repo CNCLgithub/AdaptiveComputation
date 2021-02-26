@@ -79,12 +79,12 @@ function render_cg(cg::CausalGraph, gm::AbstractGMParams;
         walls = get_objects(cg, Wall)
         @>> walls foreach(w -> _draw_arrow(w.p1, w.p2, "black", arrowheadlength=0.0))
     end
-
+    
     # this renders the polygon connections between dots
     show_polygons && render_polygons(cg)
-
+    
     dots = get_objects(cg, Dot)
-
+    
     # furthest (highest z) comes first in depth_perm
     depth_perm = sortperm(map(x -> x.pos[3], dots), rev=true)
     
@@ -100,6 +100,7 @@ function render_cg(cg::CausalGraph, gm::AbstractGMParams;
     # this just renders the centroid
     if show_polygon_centroids
         polygons = get_objects(cg, Polygon)
+        display(polygons)
         @>> polygons foreach(p -> _draw_circle(get_pos(p)[1:2], 10.0, "blue"))
     end
     
@@ -188,6 +189,8 @@ function render_frame(t, path, gm;
                       show_time=false,
                       show_labels=false,
                       show_forces=false)
+    
+    print("rendering frame $t \r")
 
     _init_drawing(t, path, gm,
                   receptive_fields = receptive_fields,

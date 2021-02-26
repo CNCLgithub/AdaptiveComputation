@@ -5,8 +5,9 @@ _n_dots(x::MOT.Dot) = 1
 _n_dots(x::MOT.Polygon) = length(x.dots)
 
 function are_dots_inside(scene_data, gm)
-    xmin, xmax = -gm.area_width/2 + gm.dot_radius, gm.area_width/2 - gm.dot_radius
-    ymin, ymax = -gm.area_height/2 + gm.dot_radius, gm.area_width/2 - gm.dot_radius
+    d = 2*gm.dot_radius
+    xmin, xmax = -gm.area_width/2 + d, gm.area_width/2 - d
+    ymin, ymax = -gm.area_height/2 + d, gm.area_width/2 - d
     
     cg = first(scene_data[:gt_causal_graphs])
     #n_dots = sum(map(x -> _n_dots(x), cg.elements))
@@ -85,7 +86,7 @@ function is_min_distance_satisfied(scene_data, min_distance;
     all(satisfied)
 end
 
-function generate_dataset(dataset_path, n_scenes, k, gms, motion;
+function generate_dataset(dataset_path, n_scenes, k, gms, dm;
                           min_distance = 50.0,
                           cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
                           aux_data::Union{Nothing, Vector{Any}} = nothing)
@@ -103,7 +104,7 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
             while true
                 tries += 1
                 println("$tries \r")
-                scene_data = dgp(k, gms[i], motion;
+                scene_data = dgp(k, gms[i], dm;
                                  generate_masks=false,
                                  cm=cm)
                 if are_dots_inside(scene_data, gms[i]) && is_min_distance_satisfied(scene_data, min_distance)
@@ -113,15 +114,18 @@ function generate_dataset(dataset_path, n_scenes, k, gms, motion;
 
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gms[i]
-            scene["motion"] = motion
+            scene["dm"] = dm
+
             scene["aux_data"] = isnothing(aux_data) ? nothing : aux_data[i]
 
             gt_cgs = scene_data[:gt_causal_graphs]
             # fixing z according to the time 0
-            z = map(x->x.pos[3], gt_cgs[1].elements)
-            map(cg -> map(i -> cg.elements[i].pos[3] = z[i],
-                          collect(1:length(cg.elements))),
-                          gt_cgs)
+            # z = map(x->x.pos[3], gt_cgs[1].elements)
+            # map(cg -> map(i -> cg.elements[i].pos[3] = z[i],
+                          # collect(1:length(cg.elements))),
+                          # gt_cgs)
+            display(aux_data[i])
+            display(get_objects(gt_cgs[1], Polygon))
             scene["gt_causal_graphs"] = gt_cgs
         end
     end

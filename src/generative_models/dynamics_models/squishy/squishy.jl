@@ -5,10 +5,10 @@ export SquishyDynamicsModel
     vel::Float64 = 10.0 # base velocity
 
     pol_inertia = 0.9
-    pol_ang_inertia = 0.7
+    pol_ang_inertia = 0.9
     pol_sigma = 0.5
     vert_sigma = 0.0
-    pol_ang_vel_sigma = 0.02
+    pol_ang_vel_sigma = 0.01
     
     # poly att-> vert
     poly_att_m = 0.5

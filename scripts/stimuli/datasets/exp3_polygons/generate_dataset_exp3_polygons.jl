@@ -4,15 +4,14 @@ using Random
 Random.seed!(4)
 include("exp3_polygons_structure.jl")
 dataset_path = joinpath("/datasets", "exp3_polygons.jld2")
-#n_scenes_2_generate = 500000 # generate and remove non-unique scenes
+n_scenes_2_generate = 500000 # generate and remove non-unique scenes
 #n_scenes_2_generate = 5000 # generate and remove non-unique scenes
-n_scenes_2_generate = 0 # generate and remove non-unique scenes
 k = 192
 
 
 # a, b, c have been fitted on me and Mario
 function get_structure(n_dots, n_vertices;
-              a = -0.0614062, b = -0.0155636, c = 1.1554)
+                       a = -0.0614062, b = -0.0155636, c = 1.1554)
     structure = a * n_dots + b * n_vertices + c
 end
 
@@ -38,7 +37,7 @@ function sample_polygon_structure(n_dots_limit::Int64)::Vector{Int64}
 end
 
 
-motion = HGMDynamicsModel()
+dm = SquishyDynamicsModel()
 
 # get number of dots and vertices represented
 function get_num_d_v(polygons, targets)
@@ -147,11 +146,8 @@ function get_scene_prereqs(n_targets, n_scenes;
     cms = Vector{ChoiceMap}(undef, n_scenes_2_generate*length(n_targets))
     for i=1:n_scenes_2_generate*length(n_targets)
         cm = Gen.choicemap()
-        for (j, object) in enumerate(polygon_structures[i])
-            cm[:init_state => :trackers => j => :polygon] = object > 1
-            if object > 1
-                cm[:init_state => :trackers => j => :n_dots] = object
-            end
+        for (j, s) in enumerate(polygon_structures[i])
+            cm[:init_state => :polygons => j => :n_dots] = s
         end
         cms[i] = cm
     end
@@ -183,6 +179,9 @@ function get_scene_prereqs(n_targets, n_scenes;
         n_trackers = length(aux_data[i][:polygon_structure])
         gms[i] = HGMParams(n_trackers = n_trackers,
                            distractor_rate = 0.0,
+                           area_width = 1000,
+                           area_height = 1000,
+                           init_pos_spread = 400,
                            targets = aux_data[i][:targets])
     end
      
@@ -204,8 +203,7 @@ function get_scene_prereqs(n_targets, n_scenes;
     return scene_prereqs
 end
 
-#n_targets = [4, 5, 6, 7, 8]
-n_targets = []
+n_targets = [4, 5, 6, 7, 8]
 n_scenes_per_nt = 9
 aux_data = []
 cms = ChoiceMap[]
@@ -219,27 +217,10 @@ for nt in n_targets
     append!(gms, scene_prereqs[:gms])
 end
 
-# just generating this one scene for now
-polygon_structure = [8, 8]
-n_trackers = length(polygon_structure)
-gms = [HGMParams(n_trackers = n_trackers,
-                   distractor_rate = 0.0,
-                   targets = zeros(sum(polygon_structure)))]
-cm = Gen.choicemap()
-for (j, object) in enumerate(polygon_structure)
-    cm[:init_state => :trackers => j => :polygon] = object > 1
-    if object > 1
-        cm[:init_state => :trackers => j => :n_dots] = object
-    end
-end
-push!(cms, cm)
-push!(aux_data, [])
-aux_data = convert(Vector{Any}, aux_data)
-
-MOT.generate_dataset(dataset_path, length(gms), k, gms, motion;
-                     min_distance=60.0,
+MOT.generate_dataset(dataset_path, length(gms), k, gms, dm;
+                     min_distance=0.0,
                      cms=cms,
                      aux_data=aux_data)
 
-render_dataset(dataset_path, "output/renders/exp3_polygons";
-               freeze_time = 0)
+# render_dataset(dataset_path, "output/renders/exp3_polygons";
+               # freeze_time = 0)

@@ -14,7 +14,7 @@ function render_dataset(dataset_path, render_path;
 
         scene_data = MOT.load_scene(i, dataset_path, default_gm;
                                     generate_masks=false)
-        #gm = scene_data[:gm]
+        gm = scene_data[:gm]
         gt_cgs = scene_data[:gt_causal_graphs]
     
         targets = nothing
@@ -23,14 +23,16 @@ function render_dataset(dataset_path, render_path;
         catch
         end
 
-        highlighted = isnothing(targets) ? collect(1:default_gm.n_trackers) : collect(1:length(targets))[targets]
-
+        println(scene_data[:aux_data])
+        
         k = length(gt_cgs) - 1
-        MOT.render(default_gm, k;
+
+        println(targets)
+        
+        MOT.render(gm, k;
                    gt_causal_graphs=gt_cgs,
                    freeze_time=freeze_time,
                    path=path,
-                   stimuli=true,
-                   highlighted=highlighted)
+                   highlighted_start=targets)
     end
 end

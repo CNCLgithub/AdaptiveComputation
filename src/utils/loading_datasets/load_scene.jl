@@ -9,8 +9,8 @@ function load_scene(scene, dataset_path, gm;
     
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
-    motion = scene["motion"]
-    #gm = scene["gm"]
+    dm = scene["dm"]
+    gm = scene["gm"]
     gt_causal_graphs = scene["gt_causal_graphs"]
     
     # new entry in scene data, perhaps try block
@@ -61,10 +61,13 @@ function load_scene(scene, dataset_path, gm;
     end
     
     println("scene data loaded")
-
+    
     scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
-                       :motion => motion,
-                       #:gm => gm,
+                       :dm => dm,
+                       :gm => gm,
                        :masks => masks,
                        :aux_data => aux_data])
+    
+    println(scene_data)
+    return scene_data
 end
