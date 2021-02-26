@@ -12,7 +12,7 @@ export SquishyDynamicsModel
     
     # poly att-> vert
     poly_att_m = 0.5
-    poly_att_a = 0.02
+    poly_att_a = 0.05
     poly_att_x0 = 0.0
     
     # poly rep-> poly
@@ -26,8 +26,8 @@ export SquishyDynamicsModel
     wall_rep_x0 = 0.0
     
     # vert rep-> vert
-    vert_rep_m = 10.0
-    vert_rep_a = 0.03
+    vert_rep_m = 35.0
+    vert_rep_a = 0.016
     vert_rep_x0 = 0.0
 end
 

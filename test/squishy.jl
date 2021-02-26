@@ -7,8 +7,8 @@ Random.seed!(6)
 k = 100
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
-#structure = [4, 4, 4, 4]
-structure = ones(16)
+structure = [4, 4, 4, 4]
+#structure = ones(16)
 for (i, s) in enumerate(structure)
     cm[:init_state => :polygons => i => :n_dots] = s
 end
@@ -38,9 +38,9 @@ render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
        highlighted_start=targets,
        path=joinpath("/renders", "squishy"),
-       freeze_time=24,
+       freeze_time=1,
        show_forces=false,
-       show_polygons=false,
+       show_polygons=true,
        show_polygon_centroids=false)
 
 # trace, _ = Gen.generate(hgm_mask, (k, motion, hgm), cm)
