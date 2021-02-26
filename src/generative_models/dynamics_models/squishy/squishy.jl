@@ -5,20 +5,28 @@ export SquishyDynamicsModel
     vel::Float64 = 10.0 # base velocity
 
     pol_inertia = 0.9
-    pol_ang_inertia = 0.9
+    pol_ang_inertia = 0.7
     pol_sigma = 0.5
     vert_sigma = 0.0
     pol_ang_vel_sigma = 0.02
-
-    poly_att_m = 0.1
+    
+    # poly att-> vert
+    poly_att_m = 0.5
     poly_att_a = 0.02
     poly_att_x0 = 0.0
+    
+    # poly rep-> poly
+    poly_rep_m = 1.0
+    poly_rep_a = 0.005
+    poly_rep_x0 = 0.0
 
+    # wall rep-> *
     wall_rep_m = 10.0
     wall_rep_a = 0.02
     wall_rep_x0 = 0.0
-
-    vert_rep_m = 5.0
+    
+    # vert rep-> vert
+    vert_rep_m = 10.0
     vert_rep_a = 0.03
     vert_rep_x0 = 0.0
 end
@@ -34,8 +42,8 @@ Current repulsion rules:
 
 wall -> *
 vert -> vert
+poly -> poly
 """
-
 
 function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
                               v::Int64, obj::Object)
@@ -44,10 +52,18 @@ end
 
 function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
                               v::Int64, obj::Polygon)
+    # wall -> poly
     @>> cg begin
         walls
         foreach(w -> calculate_repulsion!(cg, dm, w, v))
     end
+
+    # poly -> poly
+    @>> LightGraphs.vertices(cg) begin
+        Base.filter(i -> get_prop(cg, i, :object) isa Polygon)
+        foreach(i -> calculate_repulsion!(cg, dm, i, v))
+    end
+
     return nothing
 end
 

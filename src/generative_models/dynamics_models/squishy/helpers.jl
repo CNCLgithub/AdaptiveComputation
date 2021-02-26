@@ -123,6 +123,15 @@ function repulsion(dm::SquishyDynamicsModel, a::Dot, b::Dot)
     return f
 end
 
+function repulsion(dm::SquishyDynamicsModel, a::Polygon, b::Polygon)
+    vec = vector_to(a, b)
+    d = norm(vec)
+    uvec = vec/d
+    @unpack poly_rep_m, poly_rep_a, poly_rep_x0 = dm
+    f = poly_rep_m * exp(-1 * (poly_rep_a * (d - poly_rep_x0))) .* uvec
+    return f
+end
+
 function get_walls(cg::CausalGraph, dm::SquishyDynamicsModel)
     @>> walls_idx(dm) begin
         map(v -> get_prop(cg, v, :object))

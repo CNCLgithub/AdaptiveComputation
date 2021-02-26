@@ -20,12 +20,12 @@ function are_dots_inside(scene_data, gm)
                     positions[i][2] > ymin &&
                     positions[i][2] < ymax,
                     1:length(dots))
-
+    
     all(satisfied)    
 end
 
 function is_min_distance_satisfied_old(scene_data, min_distance;
-                                   polygon_min_distance = 2.5 * min_distance)
+                                       polygon_min_distance = min_distance)
     cg = first(scene_data[:gt_causal_graphs])
     n_dots = @>> cg.elements map(x -> _n_dots(x)) sum
     positions = get_hgm_positions(cg, fill(true, n_dots))
@@ -37,6 +37,9 @@ function is_min_distance_satisfied_old(scene_data, min_distance;
         distances_idxs = Iterators.product(1:n_pols, 1:n_pols)
         distances = @>> distances_idxs map(xy -> MOT.dist(pos_pols[xy[1]][1:2], pos_pols[xy[2]][1:2]))
         satisfied = @>> distances map(distance -> distance == 0.0 || distance > polygon_min_distance)
+
+        println(satisfied)
+
         if !all(satisfied)
             return false
         end
@@ -45,11 +48,13 @@ function is_min_distance_satisfied_old(scene_data, min_distance;
     distances_idxs = Iterators.product(1:n_dots, 1:n_dots)
     distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
     satisfied = @>> distances map(distance -> distance == 0.0 || distance > min_distance)
+
+
     all(satisfied)
 end
 
 function is_min_distance_satisfied(scene_data, min_distance;
-                                   polygon_min_distance = 2.5 * min_distance)
+                                   polygon_min_distance = min_distance)
     cg = first(scene_data[:gt_causal_graphs])
     pols_vs = collect(filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa Polygon))
     

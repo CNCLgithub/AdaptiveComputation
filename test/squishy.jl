@@ -7,7 +7,8 @@ Random.seed!(6)
 k = 100
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
-structure = [4, 4, 4, 4]
+#structure = [4, 4, 4, 4]
+structure = ones(16)
 for (i, s) in enumerate(structure)
     cm[:init_state => :polygons => i => :n_dots] = s
 end
@@ -16,18 +17,20 @@ targets = Bool[fill(1, 8); fill(0, 8)]
 
 hgm = HGMParams(n_trackers = length(structure),
                 distractor_rate = 0.0,
-                targets = [1, 1, 0, 0])
+                targets = [1, 1, 0, 0],
+               area_width = 1000,
+              area_height = 1000,
+             init_pos_spread = 400)
 scene_data = nothing
 tries = 0
 while true
     global tries += 1
-    print("tries $tries \r")
     global scene_data = dgp(k, hgm, dm;
-                     generate_masks=false,
-                     cm=cm)
+                            generate_masks=false,
+                            cm=cm)
     md = is_min_distance_satisfied(scene_data, 50.0)
-    #md = true
     di = are_dots_inside(scene_data, hgm)
+    print("tries $tries $md $di \r")
     md && di && break
 end
 
@@ -35,7 +38,7 @@ render(hgm, k;
        gt_causal_graphs=scene_data[:gt_causal_graphs],
        highlighted_start=targets,
        path=joinpath("/renders", "squishy"),
-       freeze_time=12,
+       freeze_time=24,
        show_forces=false,
        show_polygons=false,
        show_polygon_centroids=false)
