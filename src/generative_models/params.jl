@@ -4,7 +4,8 @@
     n_trackers::Int64 = 4
     distractor_rate::Float64 = 4.0
     init_pos_spread::Float64 = 320.0
-    polygon_radius::Float64 = 130.0
+    #polygon_radius::Float64 = 130.0
+    dist_pol_verts::Float64 = 100.0
     max_vertices::Int64 = 7
     
     # graphics parameters

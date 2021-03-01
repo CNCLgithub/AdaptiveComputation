@@ -1,11 +1,11 @@
 
 include("helpers.jl")
 
-@gen function sample_init_polygon(gmh)
+@gen function sample_init_polygon(hgm)
     
     #n_dots = @trace(categorical([0.5; fill((1-0.5)/5, 5)]), :n_dots)
 
-    @unpack max_vertices, init_pos_spread, polygon_radius = gmh
+    @unpack max_vertices, init_pos_spread, dist_pol_verts = hgm
     n_dots = @trace(Gen.categorical(fill(1.0/max_vertices, max_vertices)), :n_dots)
     
     x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
@@ -22,7 +22,7 @@ include("helpers.jl")
         return (pol, dots)
     else
         rot = @trace(uniform(0, 2*pi), :rot)
-        r = polygon_radius
+        r = d_to_r_pol(dist_pol_verts, n_dots)
         #avel = @trace(normal(0.0, 0.05), :avel)
         avel = 0.0
         pol = NGon([x,y,z], rot, vel, avel, r, n_dots)

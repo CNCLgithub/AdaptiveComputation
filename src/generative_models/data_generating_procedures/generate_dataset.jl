@@ -39,8 +39,6 @@ function is_min_distance_satisfied_old(scene_data, min_distance;
         distances = @>> distances_idxs map(xy -> MOT.dist(pos_pols[xy[1]][1:2], pos_pols[xy[2]][1:2]))
         satisfied = @>> distances map(distance -> distance == 0.0 || distance > polygon_min_distance)
 
-        println(satisfied)
-
         if !all(satisfied)
             return false
         end
