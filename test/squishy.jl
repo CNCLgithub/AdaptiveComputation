@@ -4,29 +4,23 @@ using Random
 using Images
 Random.seed!(1)
 
-function forward_scene_data!(scene_data, timestep)
-    scene_data[:gt_causal_graphs] = scene_data[:gt_causal_graphs][timestep:end]
-    if !isnothing(scene_data[:masks])
-        scene_data[:masks] = scene_data[:masks][timestep:end]
-    end
-end
 
-k = 130
+k = 150
 dm = SquishyDynamicsModel()
 cm = Gen.choicemap()
-structure = fill(3, 8)
+structure = fill(7, 12)
 #structure = ones(16)
 for (i, s) in enumerate(structure)
     cm[:init_state => :polygons => i => :n_dots] = s
 end
 
-targets = Bool[fill(1, 12); fill(0, 12)]
+targets = Bool[fill(1, 7*6); fill(0, 7*6)]
 
 hgm = HGMParams(n_trackers = length(structure),
                 distractor_rate = 0.0,
                 targets = [1, 1, 0, 0],
-               area_width = 1200,
-              area_height = 1200,
+               area_width = 1300,
+              area_height = 1300,
              init_pos_spread = 500)
 scene_data = nothing
 tries = 0
@@ -36,7 +30,7 @@ while true
                             generate_masks=false,
                             cm=cm)
     forward_scene_data!(scene_data, 20)
-    md = is_min_distance_satisfied(scene_data, 50.0)
+    md = is_min_distance_satisfied(scene_data, 0.0)
     di = are_dots_inside(scene_data, hgm)
     print("tries $tries $md $di \r")
     md && di && break

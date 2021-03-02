@@ -13,6 +13,7 @@ _dgp(k::Int, hgm::HGMParams, dm::SquishyDynamicsModel, cm::ChoiceMap) = Gen.gene
 function dgp(k::Int, gm::AbstractGMParams,
              motion::AbstractDynamicsModel;
              generate_masks=true,
+             generate_cm=false,
              cm::ChoiceMap=choicemap())
     
     # new params with all dots having state for data generation
@@ -28,8 +29,10 @@ function dgp(k::Int, gm::AbstractGMParams,
     gt_causal_graphs[2:end] = map(x->x.graph, states)
     
     masks = generate_masks ? get_masks(gt_causal_graphs, gm) : nothing
+    cm = generate_cm ? Gen.get_choices(trace) : nothing
     
     scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
                        :motion => motion,
-                       :masks => masks])
+                       :masks => masks,
+                       :cm => cm])
 end

@@ -2,9 +2,7 @@ using LinearAlgebra
 
 # converts distance between neighboring vertices to polygon radius
 function d_to_r_pol(d, n)
-    r = d/sqrt((cos(2*pi/n) - cos(4*pi/n))^2 + (sin(2*pi/n) - sin(4*pi/n))^2)
-    println("d $d, n $n, r $r")
-    return r
+    d/sqrt((cos(2*pi/n) - cos(4*pi/n))^2 + (sin(2*pi/n) - sin(4*pi/n))^2)
 end
 
 function contains(p, hgm)

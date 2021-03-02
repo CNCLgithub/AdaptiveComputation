@@ -87,7 +87,9 @@ function render_cg(cg::CausalGraph, gm::AbstractGMParams;
     
     # furthest (highest z) comes first in depth_perm
     depth_perm = sortperm(map(x -> x.pos[3], dots), rev=true)
-    
+
+    println(depth_perm)
+
     for i in depth_perm
         dot_color = !isempty(highlighted) && highlighted[i] ? "#ea3433" : "#b4b4b4"
 
