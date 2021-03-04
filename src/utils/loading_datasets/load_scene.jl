@@ -68,6 +68,5 @@ function load_scene(scene, dataset_path, gm;
                        :masks => masks,
                        :aux_data => aux_data])
     
-    println(scene_data)
     return scene_data
 end

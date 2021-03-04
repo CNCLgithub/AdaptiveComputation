@@ -8,8 +8,7 @@ n_scenes_2_generate = 500000 # generate and remove non-unique scenes
 #n_scenes_2_generate = 5000 # generate and remove non-unique scenes
 k = 192
 
-
-# a, b, c have been fitted on me and Mario
+# a, b, c have been fit on me and Mario
 function get_structure(n_dots, n_vertices;
                        a = -0.0614062, b = -0.0155636, c = 1.1554)
     structure = a * n_dots + b * n_vertices + c
@@ -218,7 +217,7 @@ for nt in n_targets
 end
 
 MOT.generate_dataset(dataset_path, length(gms), k, gms, dm;
-                     min_distance=0.0,
+                     min_distance=min_distance,
                      cms=cms,
                      aux_data=aux_data)
 

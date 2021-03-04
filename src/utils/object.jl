@@ -111,3 +111,7 @@ get_objects(cg::CausalGraph, type::Type) = @>> cg begin
     map(v -> get_prop(cg, v, :object))
     Base.filter(v -> v isa type)
 end
+
+function get_object_verts(cg::CausalGraph, type::Type)
+    filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa type)
+end

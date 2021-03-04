@@ -2,14 +2,17 @@ using MOT
 using JLD2
 
 function render_dataset(dataset_path, render_path;
-                        freeze_time = 24)
+                        freeze_time = 24,
+                        scenes = []) # empty means all
     ispath(render_path) || mkpath(render_path)
 
     file = jldopen(dataset_path, "r")
     n_scenes = file["n_scenes"]
     close(file)
     
-    for i=1:n_scenes
+    scenes = isempty(scenes) ? collect(1:n_scenes) : scenes
+    
+    for i in scenes
         path = joinpath(render_path, "$i")
 
         scene_data = MOT.load_scene(i, dataset_path, default_gm;

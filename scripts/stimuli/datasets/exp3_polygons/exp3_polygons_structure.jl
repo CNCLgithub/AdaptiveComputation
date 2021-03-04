@@ -79,7 +79,7 @@ function quantify_structure_old(dataset_path::String,
     n_scenes = file["n_scenes"]
     close(file)
    
-    scenes = map(i -> MOT.load_scene(i, dataset_path, default_hgm; generate_masks=false), 1:n_scenes)
+    scenes = map(i -> MOT.load_scene(i, dataset_path, HGMParams(); generate_masks=false), 1:n_scenes)
 
     polygons = map(i -> get_polygon_structure(scenes[i]), 1:n_scenes)
     targets = map(i -> get_targets(scenes[i]), 1:n_scenes)
