@@ -17,7 +17,7 @@ function _init_drawing(frame, path, gm;
         sethue("black")
         tiles = Tiler(gm.area_width, gm.area_height, receptive_fields[1], receptive_fields[2], margin=0)
         foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
-        setopacity(0.1)
+        setopacity(0.03)
         setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
         foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
     end

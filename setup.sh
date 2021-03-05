@@ -54,7 +54,9 @@ supported targets:
     wget "https://yale.box.com/shared/static/v2gs72afv6d9lmv6qd9ybnf1b87u2ubw.jld2" \
         -O "output/datasets/exp1_isr_extended.jld2" && \
     wget "https://yale.box.com/shared/static/f7w0a43ubp8akiknemp77da1xg3gr64h.jld2" \
-        -O "output/datasets/exp1_isr_480.jld2"
+        -O "output/datasets/exp1_isr_480.jld2" \
+    wget "https://yale.box.com/shared/static/jxqjjkhd5piezrdrc5v2bjwk2pbxv9pw.jld2" \
+        -O "output/datasets/exp3_polygons_v3.jld2"
 
 # checkpoints
 [[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || echo "Not touching checkpoints"

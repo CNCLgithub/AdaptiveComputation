@@ -29,7 +29,7 @@ function render_polygon(cg::CausalGraph, p::Int64)
 
     @>> inds begin
         foreach(ind -> _draw_arrow(positions[ind[1]][1:2], positions[ind[2]][1:2],
-                                   "black", opacity=1.0, linewidth=1.0,
+                                   "black", opacity=1.0, linewidth=2.0,
                                    arrowheadlength=0.0))
     end
 end
@@ -62,27 +62,7 @@ function render_forces(cg::CausalGraph)
     @>> edges foreach(e -> render_force_edge(cg, e))
 end
 
-
-"""
-    renders the causal graph
-"""
-function render_cg(cg::CausalGraph, gm::AbstractGMParams;
-                   show_label=true,
-                   highlighted=Bool[],
-                   show_polygons=false,
-                   show_walls=false,
-                   show_polygon_centroids=false,
-                   show_forces=false,
-                   show_labels)
-    
-    if show_walls
-        walls = get_objects(cg, Wall)
-        @>> walls foreach(w -> _draw_arrow(w.p1, w.p2, "black", arrowheadlength=0.0))
-    end
-    
-    # this renders the polygon connections between dots
-    show_polygons && render_polygons(cg)
-    
+function render_dots(cg::CausalGraph, highlighted, show_labels)
     dots = get_objects(cg, Dot)
     
     # furthest (highest z) comes first in depth_perm
@@ -96,7 +76,39 @@ function render_cg(cg::CausalGraph, gm::AbstractGMParams;
             _draw_text("$i", dots[i].pos[1:2] .+ [dots[i].width/2, dots[i].height/2])
         end
     end
+end
+
+function render_velocity(cg::CausalGraph)
+    # dots = get_objects(cg, Dot)
+    # @>> dots foreach(d -> _draw_arrow(d.pos[1:2], d.pos[1:2] + d.vel, "black"))
+    pols = get_objects(cg, Polygon)
+    @>> pols foreach(p -> _draw_arrow(p.pos[1:2], p.pos[1:2] .+ 10*p.vel .+ 1e-3, "black"))
+end
+
+"""
+    renders the causal graph
+"""
+function render_cg(cg::CausalGraph, gm::AbstractGMParams;
+                   show_label=true,
+                   highlighted=Bool[],
+                   show_polygons=false,
+                   show_walls=false,
+                   show_polygon_centroids=false,
+                   show_forces=false,
+                   show_velocity=false,
+                   show_dots=true,
+                   show_labels)
     
+    if show_walls
+        walls = get_objects(cg, Wall)
+        @>> walls foreach(w -> _draw_arrow(w.p1, w.p2, "black", arrowheadlength=0.0))
+    end
+    
+    # this renders the polygon connections between dots
+    show_polygons && render_polygons(cg)
+    show_dots && render_dots(cg, highlighted, show_labels)
+    show_velocity && render_velocity(cg)
+
     # this just renders the centroid
     if show_polygon_centroids
         polygons = get_objects(cg, Polygon)
@@ -187,7 +199,8 @@ function render_frame(t, path, gm;
                       show_polygon_centroids=false,
                       show_time=false,
                       show_labels=false,
-                      show_forces=false)
+                      show_forces=false,
+                      show_velocity=false)
     
     print("rendering frame $t \r")
 
@@ -203,6 +216,7 @@ function render_frame(t, path, gm;
         render_cg(gt_causal_graph, gm;
                   show_labels=show_labels,
                   show_forces=show_forces,
+                  show_velocity=show_velocity,
                   highlighted=highlighted,
                   show_polygons=show_polygons,
                   show_polygon_centroids=show_polygon_centroids)
@@ -243,6 +257,7 @@ function render(gm, k;
                 receptive_fields_overlap=0.0,
                 show_time=false,
                 show_forces=false,
+                show_velocity=false,
                 show_labels=false,
                 show_polygons=false,
                 show_polygon_centroids=false,
@@ -270,6 +285,7 @@ function render(gm, k;
                                   show_polygons=show_polygons,
                                   show_polygon_centroids=show_polygon_centroids,
                                   show_forces=show_forces,
+                                  show_velocity=show_velocity,
                                   show_time=show_time,
                                   show_labels=show_labels))
     end

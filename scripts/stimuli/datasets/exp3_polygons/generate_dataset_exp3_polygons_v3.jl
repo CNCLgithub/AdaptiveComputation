@@ -5,7 +5,7 @@ using MetaGraphs
 using LightGraphs
 Random.seed!(5)
 
-dataset_path = joinpath("/datasets", "exp3_polygons_v3_instructions.jld2")
+dataset_path = joinpath("/datasets", "exp3_polygons_v3.jld2")
 ff_k = 10 # fast forward at the beginning to get non-overlapping
 k = 240
 min_distance = 45.0
@@ -15,8 +15,8 @@ init_pos_spread = 450.0
 
 dm = SquishyDynamicsModel()
 
-polygons = collect(3:3)
-vertices = collect(3:4)
+polygons = collect(3:5)
+vertices = collect(3:7)
 
 pvs = Iterators.product(polygons, vertices)
 cms = ChoiceMap[]
