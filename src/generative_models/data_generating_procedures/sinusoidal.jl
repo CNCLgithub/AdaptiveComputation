@@ -1,6 +1,6 @@
 export dgp
 
-function dgp(k::Int, params::GMMaskParams,
+function dgp(k::Int, params::GMParams,
              period::Float64)
     # assumes two trackers, one distractor
 

@@ -7,6 +7,6 @@ end
 include("dgp.jl")
 include("sinusoidal.jl")
 include("radial.jl")
-include("brownian_gm.jl")
+#include("brownian_gm.jl")
 
 include("generate_dataset.jl")

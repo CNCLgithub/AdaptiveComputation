@@ -5,7 +5,7 @@ struct ReceptiveFieldsState
     flow_masks::Union{Nothing, FlowMasks}
 end
 
-@gen function sample_init_receptive_fields_state(gm::GMMaskParams)
+@gen function sample_init_receptive_fields_state(gm::GMParams)
     trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
     exp0 = fill(gm.exp0, gm.n_trackers)
     trackers = @trace(init_trackers_map(trackers_gm, exp0), :trackers)
@@ -43,7 +43,7 @@ receptive_fields_map = Gen.Map(sample_masks)
                                       dynamics_model::AbstractDynamicsModel,
                                       receptive_fields::Vector{AbstractReceptiveField},
                                       prob_threshold::Float64,
-                                      gm::GMMaskParams)
+                                      gm::GMParams)
     # using ISR Dynamics
     new_graph = @trace(inertial_update(dynamics_model, prev_state.graph), :dynamics)
     objects = new_graph.elements
@@ -59,7 +59,7 @@ receptive_fields_chain = Gen.Unfold(receptive_fields_kernel)
 
 @gen static function gm_receptive_fields(k::Int,
                                          dynamics_model::AbstractDynamicsModel,
-                                         gm::GMMaskParams,
+                                         gm::GMParams,
                                          receptive_fields::Vector{AbstractReceptiveField},
                                          prob_threshold::Float64)
     init_state = @trace(sample_init_receptive_fields_state(gm), :init_state)

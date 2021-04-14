@@ -2,7 +2,7 @@
 @gen static function inertia_kernel(t::Int,
                                  prev_state::State,
                                  dynamics_model::AbstractDynamicsModel,
-                                 params::GMMaskParams)
+                                 params::GMParams)
     prev_graph = prev_state.graph
     new_graph = @trace(inertial_update(dynamics_model, prev_graph), :dynamics)
     new_trackers = new_graph.elements
@@ -15,7 +15,7 @@ end
 inertia_chain = Gen.Unfold(inertia_kernel)
 
 @gen static function gm_inertia_mask(T::Int, motion::AbstractDynamicsModel,
-                                params::GMMaskParams)
+                                params::GMParams)
     init_state = @trace(sample_init_state(params), :init_state)
     states = @trace(inertia_chain(T, init_state, motion, params), :kernel)
     result = (init_state, states, nothing)

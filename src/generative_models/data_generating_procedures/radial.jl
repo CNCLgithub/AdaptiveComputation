@@ -2,7 +2,7 @@ export dgp
 
 using Setfield
 
-function dgp(k::Int, params::GMMaskParams,
+function dgp(k::Int, params::GMParams,
              motion::RadialMotion)
     
     # new params with all dots

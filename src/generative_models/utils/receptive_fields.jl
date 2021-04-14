@@ -53,7 +53,7 @@ end
 """
     simple, nonhierarchical case
 """
-function get_mask_distributions(objects, gm::GMMaskParams; flow_masks=nothing)
+function get_mask_distributions(objects, gm::GMParams; flow_masks=nothing)
     pos = map(o->o.pos, objects)
     mask_args, trackers_img = get_masks_rvs_args(pos, gm)
     if !isnothing(flow_masks)
