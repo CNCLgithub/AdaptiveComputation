@@ -22,10 +22,13 @@ init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(gm::GMParams)
     trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
-    trackers = @trace(init_trackers_map(trackers_gm), :trackers)
-    trackers = collect(Object, trackers)
+    current_state = @trace(Gen.Map(sample_init_tracker)(trackers_gm), :trackers)
+    cg = process_temp_state(current_state, gm, dm)
+
+    #trackers = @trace(init_trackers_map(trackers_gm), :trackers)
+    #trackers = collect(Object, trackers)
     # add each tracker to the graph as independent vertices
-    graph = CausalGraph(trackers, SimpleGraph)
+    #graph = CausalGraph(trackers, SimpleGraph)
     pmbrfs = RFSElements{Array}(undef, 0)
 
     if gm.fmasks
@@ -41,6 +44,6 @@ init_trackers_map = Gen.Map(sample_init_tracker)
         flow_masks = nothing
     end
     
-    State(graph, pmbrfs, flow_masks)
+    State(cg, pmbrfs, flow_masks)
 end
 

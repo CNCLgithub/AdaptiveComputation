@@ -32,7 +32,7 @@ function dgp(k::Int, gm::AbstractGMParams,
     cm = generate_cm ? Gen.get_choices(trace) : nothing
     
     scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
-                       :motion => motion,
+                       :dm => dm,
                        :masks => masks,
                        :cm => cm])
 end

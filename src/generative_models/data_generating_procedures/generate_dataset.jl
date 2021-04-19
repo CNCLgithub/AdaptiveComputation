@@ -35,9 +35,9 @@ include("generate_dataset_helpers.jl")
 
 """
 function generate_dataset(dataset_path::String, n_scenes::Int64,
-                          k::Int64, gms, dms,
+                          k::Int64, gms, dms;
                           min_distance = 50.0,
-                          cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
+                          cms::Union{Nothing, Vector} = nothing,
                           aux_data::Union{Nothing, Vector{Any}} = nothing,
                           ff_ks::Union{Nothing, Vector{Int64}} = nothing)
     
@@ -66,6 +66,8 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
                 # shifting scene data to the end if ff_ks are present
                 !isnothing(ff_ks) && forward_scene_data!(scene_data, ff_ks[i])
                 
+                break # TESTING
+
                 # checking whether dots are inside the area
                 di=are_dots_inside(scene_data, gms[i])
                 println("dots inside: $di")

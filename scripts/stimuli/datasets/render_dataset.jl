@@ -15,7 +15,7 @@ function render_dataset(dataset_path, render_path;
     for i in scenes
         path = joinpath(render_path, "$i")
 
-        scene_data = MOT.load_scene(i, dataset_path, default_gm;
+        scene_data = MOT.load_scene(i, dataset_path, GMParams();
                                     generate_masks=false)
         gm = scene_data[:gm]
         gt_cgs = scene_data[:gt_causal_graphs]
