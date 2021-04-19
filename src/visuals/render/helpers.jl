@@ -1,4 +1,23 @@
 
+function _init_drawing(gm, path::String)
+    Drawing(round(Int, gm.area_width), round(Int, gm.area_height),
+            path)
+    origin()
+    background("#e7e7e7")
+
+    # drawing receptive_fields
+    if !isnothing(receptive_fields)
+        sethue("black")
+        tiles = Tiler(gm.area_width, gm.area_height, receptive_fields[1], receptive_fields[2], margin=0)
+        foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+        setopacity(0.03)
+        setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
+        foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+    end
+end
+
+
+
 """
     initialize the drawing file according to the frame number,
     position at (0,0) and set background color
