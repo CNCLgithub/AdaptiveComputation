@@ -62,17 +62,11 @@ function is_min_distance_satisfied(scene_data, min_distance)
     positions = @>> objects map(v -> get_prop(cg, v, :object)) map(get_pos)
     n_objects = length(positions)
 
-    # positions = @>> [dots_vs begin
-        # map(v -> get_prop(cg, v, :object))
-        # map(x -> x.pos[1:2])
-    # end
-    # pols_vs = collect(filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa Polygon))
-    # dots_vs = collect(filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa Dot))
-
     distances_idxs = Iterators.product(1:n_objects, 1:n_objects)
     distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
     distances = @>> distances map(x -> x == 0.0 ? Inf : x)
-    println(minimum(distances))
+    display(distances)
+    println("minimum distance: $(minimum(distances))")
 
     satisfied = @>> distances map(d -> d > min_distance)
     all(satisfied)

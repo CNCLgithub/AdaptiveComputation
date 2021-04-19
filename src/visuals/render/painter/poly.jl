@@ -12,7 +12,7 @@ end
 function paint(p::PolyPainter, cg::CausalGraph, v::Int64, po::Polygon)
 
     vs = vertices(cg, v)
-    length(vs) == 1 && return # we don't want no UGons
+    #length(vs) == 1 && return # we don't want no UGons
 
     positions = @>> vs begin
         map(v -> get_prop(cg, v, :object))
@@ -25,9 +25,9 @@ function paint(p::PolyPainter, cg::CausalGraph, v::Int64, po::Polygon)
     end
     push!(inds, (1, length(positions)))
 
-    p.show_centroid && _draw_circle(po.pos[1:2], p.radius, p.centroid_color)
+    p.show_centroid && _draw_circle(po.pos[1:2], p.radius/2, p.centroid_color)
     @>> inds begin
-        foreach(ind -> _draw_arrow(positions[ind[1]][1:2], positions[ind[2]][1:2],
+        foreach(ind -> _draw_arrow(positions[ind[1]][1:2] + rand(2).*1e-4, positions[ind[2]][1:2],
                                    p.edge_color, opacity=1.0, linewidth=2.0,
                                    arrowheadlength=0.0))
     end
