@@ -5,23 +5,10 @@ using MOT: CausalGraph, InitPainter, IFPainter, PolyPainter,
     paint_series, only_targets
 using Parameters: @unpack
 
-println("running rendering script")
-
-dataset_path = joinpath("output", "datasets", "exp1_difficulty.jld2")
-scene_id = 1
-scene_data = MOT.load_scene(scene_id, dataset_path, HGMParams();
-                            generate_masks=false)
-#r_fields_dim = (5, 5)
-gm = scene_data[:gm]
-k = length(scene_data[:gt_causal_graphs])
-gt_cgs = scene_data[:gt_causal_graphs]
-#targets = scene_data[:aux_data][:targets]
-
-
-function make_series(gm, cgs, padding::Int64)
+function make_series(gm, cgs, padding::Int64;
+                     base = "/renders/painter_test")
 
     @unpack area_width, area_height, targets = gm
-    base = "/renders/painter_test"
     isdir(base) || mkdir(base)
     nt = length(cgs)
     series = Vector{CausalGraph}(undef, padding + nt)
@@ -33,9 +20,9 @@ function make_series(gm, cgs, padding::Int64)
             InitPainter(path = "$base/$frame.png",
                         dimensions = (area_height, area_width)),
             PsiturkPainter(),
-            IFPainter(),
-            PolyPainter(show_centroid=true),
-            #TargetPainter(targets = targets),
+            #IFPainter(),
+            #PolyPainter(show_centroid=true),
+            TargetPainter(targets = targets),
             # SubsetPainter(cg -> only_targets(cg, targets),
                           # IDPainter())
         ]
@@ -49,9 +36,9 @@ function make_series(gm, cgs, padding::Int64)
             PsiturkPainter(),
             # SubsetPainter(cg -> only_targets(cg, targets),
             #               KinPainter()),
-            IFPainter(),
+            #IFPainter(),
             # TargetPainter(targets = targets),
-            PolyPainter(show_centroid=true),
+            #PolyPainter(show_centroid=true),
             # SubsetPainter(cg -> only_targets(cg, targets),
                           # IDPainter())
         ]
@@ -61,5 +48,25 @@ function make_series(gm, cgs, padding::Int64)
     paint_series(series, painters)
 end
 
-# make_series(gm, gt_cgs, 48)
-make_series(gm, gt_cgs, 0)
+println("running rendering script")
+
+dataset_path = joinpath("output", "datasets", "exp1_difficulty.jld2")
+
+file = MOT.jldopen(dataset_path, "r")
+n_scenes = file["n_scenes"]
+close(file)
+
+for scene_id=1:n_scenes
+    scene_data = MOT.load_scene(scene_id, dataset_path, HGMParams();
+                                generate_masks=false)
+    #r_fields_dim = (5, 5)
+    gm = scene_data[:gm]
+    k = length(scene_data[:gt_causal_graphs])
+    gt_cgs = scene_data[:gt_causal_graphs]
+    #targets = scene_data[:aux_data][:targets]
+
+    make_series(gm, gt_cgs, 20;
+                base = joinpath("/renders", "exp1_difficulty", "$scene_id"))
+    # make_series(gm, gt_cgs, 0)
+end
+

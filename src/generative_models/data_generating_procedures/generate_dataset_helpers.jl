@@ -59,13 +59,17 @@ function is_min_distance_satisfied(scene_data, min_distance)
     cg = first(scene_data[:gt_causal_graphs])
     
     objects = collect(filter_vertices(cg, :object))
-    positions = @>> objects map(v -> get_prop(cg, v, :object)) map(get_pos)
+    positions = @>> objects begin
+        map(v -> get_prop(cg, v, :object))
+        filter(obj -> obj isa Dot)
+        map(get_pos)
+    end
+
     n_objects = length(positions)
 
     distances_idxs = Iterators.product(1:n_objects, 1:n_objects)
     distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
     distances = @>> distances map(x -> x == 0.0 ? Inf : x)
-    display(distances)
     println("minimum distance: $(minimum(distances))")
 
     satisfied = @>> distances map(d -> d > min_distance)

@@ -7,10 +7,10 @@ function convert_dataset_to_json(dataset_path, json_path; hgm=false)
     data = []
 
     for i=1:n_scenes
-        scene_data = load_scene(i, dataset_path, default_gm;
+        scene_data = load_scene(i, dataset_path, GMParams();
                                 generate_masks=false)
         cgs = scene_data[:gt_causal_graphs]
-        positions = @>> cgs begin
+        positions = MOT.@>> cgs begin
             map(cg -> MOT.get_objects(cg, Dot))
             map(os -> map(o -> MOT.get_pos(o), os))
         end

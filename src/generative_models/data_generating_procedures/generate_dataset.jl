@@ -66,7 +66,7 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
                 # shifting scene data to the end if ff_ks are present
                 !isnothing(ff_ks) && forward_scene_data!(scene_data, ff_ks[i])
                 
-                break # TESTING
+                #break # TESTING
 
                 # checking whether dots are inside the area
                 di=are_dots_inside(scene_data, gms[i])
