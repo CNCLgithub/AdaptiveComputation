@@ -76,10 +76,9 @@ end
                                     prev_state::State,
                                     dm::AbstractDynamicsModel,
                                     hgm::HGMParams)
-    prev_graph = prev_state.graph
-    new_graph = @trace(squishy_update(dm, prev_graph, hgm), :dynamics)
+    new_cg = @trace(squishy_update(dm, prev_state.cg, hgm), :dynamics)
     pmbrfs = prev_state.rfs # pass along this reference for effeciency
-    new_state = State(new_graph, pmbrfs, nothing)
+    new_state = State(new_cg, pmbrfs, nothing)
     return new_state
 end
 

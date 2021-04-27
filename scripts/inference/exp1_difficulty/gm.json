@@ -1,6 +1,6 @@
 {
-    "n_trackers": 1,
-    "distractor_rate": 1.0,
+    "n_trackers": 3,
+    "distractor_rate": 3.0,
 
     "img_width": 50,
     "img_height": 50,

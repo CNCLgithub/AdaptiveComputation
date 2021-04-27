@@ -25,8 +25,8 @@ function dgp(k::Int, gm::AbstractGMParams,
     init_state, states = Gen.get_retval(trace)
 
     gt_causal_graphs = Vector{CausalGraph}(undef, k+1)
-    gt_causal_graphs[1] = init_state.graph
-    gt_causal_graphs[2:end] = map(x->x.graph, states)
+    gt_causal_graphs[1] = init_state.cg
+    gt_causal_graphs[2:end] = map(x->x.cg, states)
     
     masks = generate_masks ? get_masks(gt_causal_graphs, gm) : nothing
     cm = generate_cm ? Gen.get_choices(trace) : nothing

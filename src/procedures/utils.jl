@@ -77,7 +77,7 @@ function extract_assignments(trace::Gen.Trace)
 end
 
 function extract_assignments_receptive_fields(trace::Gen.Trace)
-    return nothing
+    return nothing # TODO fix this
 
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)

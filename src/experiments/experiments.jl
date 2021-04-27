@@ -20,7 +20,7 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => isnothing(rf_params) ? extract_assignments : extract_assignments_receptive_fields,
                :causal_graph => extract_causal_graph)
-               # :tracker_masks => extract_tracker_masks)
+               #:tracker_masks => extract_tracker_masks)
                # :trace => extract_trace)
 
     latent_map = LatentMap(_lm)

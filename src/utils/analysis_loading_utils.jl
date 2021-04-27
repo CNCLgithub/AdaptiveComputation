@@ -53,7 +53,7 @@ function tracker_probs(tr::Int64, assocs, ls::Vector{Float64})
 end
 
 function pos_from_cgs(cg)
-    map(x -> x.pos[1:2], cg.elements)
+    @>> get_objects(cg, Dot) map(x -> x.pos[1:2])
 end
 
 function analyze_chain(chain, n_trackers::Int64 = 4)
@@ -102,4 +102,77 @@ function merge_experiment(exp_path::String)
     df = vcat(map(merge_trial, trials)...)
     CSV.write("$(exp_path).csv", df)
     return nothing
+end
+
+"""
+    simplified target designation using the Hungarian algorithm
+    (or a simple version of the Hungarian algorithm)
+"""
+function get_simplified_target_designation(cg, gt_cg)
+    pos = @>> get_objects(cg, Dot) map(x->x.pos)
+    gt_pos = @>> get_objects(gt_cg, Dot) map(x->x.pos)
+    
+    n_dots = @>> get_objects(cg, Dot) length
+    inds = Iterators.product(1:n_dots, 1:n_dots)
+    distances = @>> inds map(i -> norm(pos[i[1]] - gt_pos[i[2]]))
+
+    td = []
+    for i=1:n_dots
+        perm = sortperm(distances[i,:])
+        for j in perm
+            if !(j in td)
+                push!(td, j)
+                break
+            end
+        end
+    end
+
+    return td
+end
+
+function analyze_chain_receptive_fields(chain;
+                                        n_trackers = 4,
+                                        n_dots = 8,
+                                        gt_cg_end = nothing)
+
+    # reading the file of memory buffer
+    extracted = extract_chain(chain)
+    
+    df = DataFrame(frame = Int64[],
+                   tracker = Int64[],
+                   attention = Float64[],
+                   td_acc = Float64[])
+
+    aux_state = extracted["aux_state"]
+    #correspondence = extracted["unweighted"][:assignments] # t x particle
+    causal_graphs = extracted["unweighted"][:causal_graph] # t x particle
+
+    #display(correspondence[1,1,:])
+    
+    # just average td_acc across particles for the last step
+    #n_particles = size(correspondence)[2]
+    n_particles = size(causal_graphs)[2]
+    td = @>> 1:n_particles begin
+        #map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
+        map(i -> get_simplified_target_designation(causal_graphs[end,i], gt_cg_end))
+    end
+    # taking the top designation for each particle (or sampling random if top logscore is Inf)
+    """
+    display(td[1][1:5])
+    top_td = @>> td map(x-> isinf(x[1][2]) ? randperm(Int(n_dots))[1:n_trackers] : x[1][1])
+    display(top_td)
+    td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+    """
+    display(td)
+    td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
+    
+    println(td_acc)
+
+    for frame = 1:size(causal_graphs)[1], tracker = 1:n_trackers
+        att = aux_state[frame].attended_trackers[tracker]
+        #probs = td[frame, particle][tracker]
+        #pos = positions[frame, particle][tracker]
+        push!(df, (frame, tracker, att, td_acc))
+    end
+    return df
 end

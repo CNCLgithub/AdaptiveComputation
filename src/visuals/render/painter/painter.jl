@@ -10,11 +10,12 @@ function paint_series(cgs::Vector{CausalGraph}, painters::Vector{Vector{Painter}
     return nothing
 end
 
-function paint_series(cgs::Vector{Vector{CausalGraph}},
-                      painters::Vector{Vector{Painter}})
-
-    for (cg, tp) in zip(cgs, painters)
-        foreach(p -> paint(p, cg), tp)
+function paint_series(cgs_vec::Vector{Vector{CausalGraph}},
+                      painters_vec::Vector{Vector{Vector{Painter}}})
+    for (cgs, painters_t) in zip(cgs_vec, painters_vec)
+        for (cg, painters) in zip(cgs, painters_t)
+            foreach(p -> paint(p, cg), painters)
+        end
         finish()
     end
     return nothing

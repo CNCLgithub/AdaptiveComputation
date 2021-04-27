@@ -3,7 +3,7 @@ using MOT: @set, choicemap
 using Random
 Random.seed!(4)
 
-k = 20
+k = 100
 
 dataset_file = "exp1_difficulty.jld2"
 datasets_folder = joinpath("output", "datasets")
@@ -13,7 +13,7 @@ dataset_path = joinpath(datasets_folder, dataset_file)
 #main_gm = MOT.load(GMParams, "$(@__DIR__)/gm.json")
 #main_dm = MOT.load(ISRDynamics, "$(@__DIR__)/dm.json")
 
-main_gm = HGMParams(n_trackers = 1,
+main_gm = HGMParams(n_trackers = 3,
                     area_height = 800,
                     area_width = 800,
                     init_pos_spread = 350)
@@ -33,7 +33,7 @@ vels = LinRange(5.0, 15.0, 5)
 n_distractors = collect(3:7)
 
 vels = [5.0, 15.0]
-n_distractors = [1, 7]
+n_distractors = [3, 7]
 
 #vels = [15.0]
 #n_distractors = [7]

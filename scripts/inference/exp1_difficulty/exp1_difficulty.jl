@@ -98,7 +98,7 @@ function main()
                  "dataset" => "/datasets/exp1_difficulty.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 20,
+                 "time" => 100,
                  "restart" => true,
                  "viz" => true])
 
@@ -145,10 +145,14 @@ function main()
 
     if (args["viz"])
         visualize_inference(results, gt_causal_graphs, gm_params, att, path;
-                            render_tracker_masks=true)
+                            render_tracker_masks=false)
     end
 
-    df = MOT.analyze_chain(results)
+    #df = MOT.analyze_chain(results)
+    df = MOT.analyze_chain_receptive_fields(results,
+                                            n_trackers = gm_params.n_trackers,
+                                            n_dots = gm_params.n_trackers + gm_params.distractor_rate,
+                                            gt_cg_end = gt_causal_graphs[end])
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)
