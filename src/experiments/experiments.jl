@@ -57,7 +57,7 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
             observations[t] = cm
         end
     else
-        receptive_fields = get_rectangle_receptive_fields(rf_params.r_fields..., gm_params, overlap = rf_params.overlap)
+        receptive_fields = get_rectangle_receptive_fields(rf_params.rf_dims..., gm_params, overlap = rf_params.overlap)
         args = [(t, dm, gm_params, receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
 
         observations = Vector{Gen.ChoiceMap}(undef, k)

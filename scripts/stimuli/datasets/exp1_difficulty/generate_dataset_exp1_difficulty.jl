@@ -13,10 +13,9 @@ dataset_path = joinpath(datasets_folder, dataset_file)
 #main_gm = MOT.load(GMParams, "$(@__DIR__)/gm.json")
 #main_dm = MOT.load(ISRDynamics, "$(@__DIR__)/dm.json")
 
-main_gm = HGMParams(n_trackers = 3,
+main_gm = HGMParams(n_trackers = 4,
                     area_height = 800,
-                    area_width = 800,
-                    init_pos_spread = 350)
+                    area_width = 800)
 
 main_dm = SquishyDynamicsModel(poly_rep_m = 80.0,
                                poly_rep_a = 0.07,

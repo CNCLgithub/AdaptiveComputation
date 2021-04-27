@@ -12,10 +12,11 @@ struct RFState
     flow_masks::Union{Nothing, FlowMasks}
 end
 
-@gen function sample_init_tracker(init_pos_spread::Real)::Dot
+@gen function sample_init_tracker(gm::AbstractGMParams)::Dot
+    @unpack area_width, area_height, dot_radius = gm
     
-    x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
-    y = @trace(uniform(-init_pos_spread, init_pos_spread), :y)
+    x = @trace(uniform(-area_width/2 + dot_radius, area_width/2 - dot_radius), :x)
+    y = @trace(uniform(-area_height/2 + dot_radius, area_height/2 - dot_radius), :y)
 
     vx = 0.0
     vy = 0.0
@@ -29,7 +30,7 @@ end
 init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(gm::GMParams, dm)
-    trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
+    trackers_gm = fill(gm, gm.n_trackers)
     current_state = @trace(Gen.Map(sample_init_tracker)(trackers_gm), :trackers)
     cg = process_temp_state(current_state, gm, dm)
 
@@ -52,7 +53,7 @@ init_trackers_map = Gen.Map(sample_init_tracker)
 end
 
 @gen function sample_init_receptive_fields_state(gm::GMParams, dm)
-    trackers_gm = fill(gm.init_pos_spread, gm.n_trackers)
+    trackers_gm = fill(gm, gm.n_trackers)
     current_state = @trace(Gen.Map(sample_init_tracker)(trackers_gm), :trackers)
     cg = process_temp_state(current_state, gm, dm)
 

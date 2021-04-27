@@ -1,5 +1,5 @@
 
-@gen function inertia_kernel(t::Int,
+@gen static function inertia_kernel(t::Int,
                                  prev_state::RFState,
                                  dm::InertiaModel,
                                  gm::GMParams,
@@ -16,7 +16,7 @@ end
 
 inertia_chain = Gen.Unfold(inertia_kernel)
 
-@gen function gm_inertia_mask(k::Int, dm::InertiaModel, gm::GMParams,
+@gen static function gm_inertia_mask(k::Int, dm::InertiaModel, gm::GMParams,
                                  receptive_fields::Vector{RectangleReceptiveField},
                                  prob_threshold::Float64)
     init_state = @trace(sample_init_receptive_fields_state(gm, dm), :init_state)

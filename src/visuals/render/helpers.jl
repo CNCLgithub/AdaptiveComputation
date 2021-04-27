@@ -72,10 +72,11 @@ end
 """
     helper to draw array (used to draw the predicted tracker masks)
 """
-function _draw_array(array, gm, color; opacity=1.0)
+function _draw_array(array, area_width, area_height, grid_width, grid_height, color; opacity=1.0)
     sethue(color)
 
-    tiles = Tiler(gm.area_width, gm.area_height, gm.img_width, gm.img_height, margin=0)
+    #tiles = Tiler(gm.area_width, gm.area_height, gm.img_width, gm.img_height, margin=0)
+    tiles = Tiler(area_width, area_height, grid_width, grid_height, margin=0)
 
     for (pos, n) in tiles
         # reading value from the array

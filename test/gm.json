@@ -1,9 +1,11 @@
 {
     "n_trackers": 4,
-    "distractor_rate": 4.0,
+    "distractor_rate": 3.0,
 
     "img_width": 50,
     "img_height": 50,
+
+    "init_pos_spread": 350,
 
     "area_width": 800,
     "area_height": 800,
