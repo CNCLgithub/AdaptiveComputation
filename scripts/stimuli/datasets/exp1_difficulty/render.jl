@@ -9,7 +9,7 @@ function make_series(gm, cgs, padding::Int64;
                      base = "/renders/painter_test")
 
     @unpack area_width, area_height, targets = gm
-    isdir(base) || mkdir(base)
+    mkpath(base)
     nt = length(cgs)
     series = Vector{CausalGraph}(undef, padding + nt)
     painters = Vector{Vector{Painter}}(undef, padding + nt)

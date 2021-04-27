@@ -10,7 +10,7 @@ function load_scene(scene, dataset_path, gm;
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
     dm = scene["dm"]
-    gm = scene["gm"]
+    #gm = scene["gm"]
     gt_causal_graphs = scene["gt_causal_graphs"]
     
     # new entry in scene data, perhaps try block
@@ -22,7 +22,7 @@ function load_scene(scene, dataset_path, gm;
     catch
     end
     close(file)
-
+    
     if generate_masks
         masks = get_masks(gt_causal_graphs[2:end], gm)
         if from_mask_rcnn

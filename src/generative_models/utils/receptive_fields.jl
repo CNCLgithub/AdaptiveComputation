@@ -1,5 +1,7 @@
 abstract type AbstractReceptiveField end
 
+include("receptive_fields_gen.jl")
+
 function crop(rf::T,
               mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
     println("not implemented")
@@ -33,15 +35,15 @@ end
 # gets the mask distributions for a given receptive field
 function get_mds_rf(rf::AbstractReceptiveField,
                     mds::Vector{Matrix{Float64}},
-                    prob_threshold::Float64)
+                    rf_prob_threshold::Float64)
     error("not implemented")
 end
 
 function get_mds_rf(rf::RectangleReceptiveField,
                     mds::Vector{Matrix{Float64}},
-                    prob_threshold::Float64)
+                    rf_prob_threshold::Float64)
     # cropping masks to receptive fields and filtering only with mass
-    @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> prob_threshold))
+    @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> rf_prob_threshold))
     
     # alternative
     # x = @>> mds begin
@@ -96,11 +98,11 @@ end
 # gets the vector of random finite sets for each receptive field
 function get_rfs_vec(rec_fields::Vector{T},
                      objects::Vector{Object},
-                     prob_threshold::Float64,
+                     rf_prob_threshold::Float64,
                      gm::AbstractGMParams;
                      flow_masks=nothing) where T <: AbstractReceptiveField
     mds, flow_masks = get_mask_distributions(objects, gm, flow_masks=flow_masks)
-    mds_rf = map(rf -> get_mds_rf(rf, mds, prob_threshold), rec_fields)
+    mds_rf = map(rf -> get_mds_rf(rf, mds, rf_prob_threshold), rec_fields)
     rfs_vec = map(get_pmbrfs, rec_fields, mds_rf, fill(gm, length(rec_fields)))
     return rfs_vec, flow_masks
 end
@@ -146,7 +148,6 @@ function get_rectangle_receptive_fields(n_x, n_y, gm;
                                         overlap = 0)
     rf_idx = Iterators.product(1:n_x, 1:n_y)
     receptive_fields = map(xy -> get_rectangle_receptive_field(xy, n_x, n_y, gm; overlap=overlap), rf_idx)
-    println(receptive_fields)
     receptive_fields = map(i -> receptive_fields[i], 1:n_x*n_y) # I can't find a way to flatten ://///
 end
 
@@ -154,6 +155,15 @@ function crop(rf::RectangleReceptiveField,
               mask_distribution::BitArray{2})
     idxs = CartesianIndices((rf.p1[1]:rf.p2[1], rf.p1[2]:rf.p2[2]))
     mask_distribution[idxs]
+end
+
+"""
+ crop masks to receptive fields and then
+ filter so each mask is non zero
+"""
+function cropfilter(rf, masks)
+    cropped_masks = map(mask -> crop(rf, mask), masks)
+    croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
 end
 
 export RectangleReceptiveField, get_rectangle_receptive_fields

@@ -1,23 +1,27 @@
 
-@gen static function inertia_kernel(t::Int,
-                                 prev_state::State,
-                                 dynamics_model::AbstractDynamicsModel,
-                                 params::GMParams)
-    prev_graph = prev_state.graph
-    new_graph = @trace(inertial_update(dynamics_model, prev_graph), :dynamics)
-    new_trackers = new_graph.elements
-    pmbrfs, flow_masks = get_masks_params(new_trackers, params,
-                                          flow_masks=prev_state.flow_masks)
-    @trace(rfs(pmbrfs), :masks)
-    new_state = State(new_graph, pmbrfs, flow_masks)
+@gen function inertia_kernel(t::Int,
+                                 prev_state::RFState,
+                                 dm::InertiaModel,
+                                 gm::GMParams,
+                                 receptive_fields::Vector{RectangleReceptiveField},
+                                 prob_threshold::Float64)
+    new_cg = @trace(inertial_update(dm, prev_state.cg), :dynamics)
+    dots = @>> get_objects(new_cg, Dot)
+    rfs_vec, flow_masks = get_rfs_vec(receptive_fields, dots, prob_threshold, gm,
+                                      flow_masks=prev_state.flow_masks)
+    @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
+    new_state = RFState(new_cg, rfs_vec, flow_masks)
     return new_state
 end
+
 inertia_chain = Gen.Unfold(inertia_kernel)
 
-@gen static function gm_inertia_mask(T::Int, motion::AbstractDynamicsModel,
-                                params::GMParams)
-    init_state = @trace(sample_init_state(params), :init_state)
-    states = @trace(inertia_chain(T, init_state, motion, params), :kernel)
+@gen function gm_inertia_mask(k::Int, dm::InertiaModel, gm::GMParams,
+                                 receptive_fields::Vector{RectangleReceptiveField},
+                                 prob_threshold::Float64)
+    init_state = @trace(sample_init_receptive_fields_state(gm, dm), :init_state)
+    states = @trace(inertia_chain(k, init_state, dm, gm,
+                                  receptive_fields, prob_threshold), :kernel)
     result = (init_state, states, nothing)
     return result
 end

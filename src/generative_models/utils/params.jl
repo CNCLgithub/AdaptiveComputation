@@ -50,7 +50,8 @@ end
     area_width::Int = 2.5 * init_pos_spread
 
     # parameters for the drawing the mask random variable arguments
-    dot_p::Float64 = 0.5 # prob of pixel on in the dot region
+    #dot_p::Float64 = 0.5 # prob of pixel on in the dot region
+    gauss_r_multiple::Float64 = 0.5 # multiple where to thershold the mask
     gauss_amp::Float64 = 0.5 # gaussian amplitude for the gaussian component of the mask
     gauss_std::Float64 = 2.5 # standard deviation --||--
 

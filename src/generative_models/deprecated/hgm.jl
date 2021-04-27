@@ -98,19 +98,6 @@ hgm_pos_chain = Gen.Unfold(hgm_pos_kernel)
     return result
 end
 
-function get_hgm_positions(cg::CausalGraph, targets::Vector{Bool})
-    positions = []
-    for e in cg.elements
-        if isa(e, Polygon)
-            positions = [positions; map(d -> d.pos, e.dots)]
-        else
-            push!(positions, e.pos)
-        end
-    end
-
-    positions = positions[targets]
-    return positions
-end
 
 
 @gen function hgm_mask_kernel(t::Int,

@@ -26,22 +26,22 @@ end
 """
     creates Wall object from tuples p1, p2
 """
-function init_wall(p1, p2, hgm)
-    Wall([p1...], [p2...], get_wall_normal(p1, p2, hgm))
+function init_wall(p1, p2, gm::AbstractGMParams)
+    Wall([p1...], [p2...], get_wall_normal(p1, p2, gm))
 end
 
-function init_walls(hgm::HGMParams)
+function init_walls(gm::AbstractGMParams)
     # getting wall points
     wp = @>> Iterators.product((1,-1), (1, -1)) begin
-        map(x -> x .* (hgm.area_width/2, hgm.area_height/2))
+        map(x -> x .* (gm.area_width/2, gm.area_height/2))
     end
     
     # getting the walls
     ws = Vector{Wall}(undef, 4)
-    ws[1] = init_wall(wp[1], wp[3], hgm) # top r -> bot r
-    ws[2] = init_wall(wp[3], wp[4], hgm) # bot r -> bot l
-    ws[3] = init_wall(wp[4], wp[2], hgm) # bot l -> top l
-    ws[4] = init_wall(wp[2], wp[1], hgm) # top l -> top r
+    ws[1] = init_wall(wp[1], wp[3], gm) # top r -> bot r
+    ws[2] = init_wall(wp[3], wp[4], gm) # bot r -> bot l
+    ws[3] = init_wall(wp[4], wp[2], gm) # bot l -> top l
+    ws[4] = init_wall(wp[2], wp[1], gm) # top l -> top r
     
     return ws
 end

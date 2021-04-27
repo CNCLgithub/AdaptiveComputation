@@ -69,11 +69,6 @@ end
     
 # crop observations into receptive fields
 receptive_fields = get_rectangle_receptive_fields(r_fields..., gm, overlap = overlap)
-function cropfilter(rf, masks)
-    cropped_masks = map(mask -> MOT.crop(rf, mask), masks)
-    croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
-end
-
 args = [(t, motion_inference, gm, receptive_fields, prob_threshold) for t in 1:k]
 observations = Vector{Gen.ChoiceMap}(undef, k)
 for t = 1:k

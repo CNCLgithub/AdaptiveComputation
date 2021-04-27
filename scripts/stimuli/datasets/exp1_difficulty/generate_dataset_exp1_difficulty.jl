@@ -3,7 +3,7 @@ using MOT: @set, choicemap
 using Random
 Random.seed!(4)
 
-k = 240
+k = 20
 
 dataset_file = "exp1_difficulty.jld2"
 datasets_folder = joinpath("output", "datasets")
@@ -13,24 +13,27 @@ dataset_path = joinpath(datasets_folder, dataset_file)
 #main_gm = MOT.load(GMParams, "$(@__DIR__)/gm.json")
 #main_dm = MOT.load(ISRDynamics, "$(@__DIR__)/dm.json")
 
-main_gm = HGMParams(n_trackers = 4)
-                   #init_pos_spread = 250)
+main_gm = HGMParams(n_trackers = 1,
+                    area_height = 800,
+                    area_width = 800,
+                    init_pos_spread = 350)
+
 main_dm = SquishyDynamicsModel(poly_rep_m = 80.0,
                                poly_rep_a = 0.07,
                                poly_rep_x0 = 0.0,
                                wall_rep_m = 20.0,
-                               wall_rep_a = 0.02,
+                               wall_rep_a = 0.04,
                                wall_rep_x0 = 0.0,
                                poly_att_m = 1.0,
                                poly_att_a = 0.05,
                                poly_att_x0 = 0.0)
 
 # dimension of difficulty: velocity and number of distractors
-#vels = [7.5, 10.0, 12.5, 15.0, 17.5]
 vels = LinRange(5.0, 15.0, 5)
 n_distractors = collect(3:7)
-#vels = [15.0]
-#n_distractors = [7]
+
+vels = [5.0, 15.0]
+n_distractors = [1, 7]
 
 #vels = [15.0]
 #n_distractors = [7]
@@ -75,6 +78,7 @@ println("generating exp1 difficulty dataset...")
 MOT.generate_dataset(dataset_path, n_scenes, k, gms, dms, cms=cms, ff_ks=ff_ks, aux_data=aux_data)
 println("generating exp1 difficulty dataset done. written to $dataset_path")
 
+include("../convert_dataset_to_json.jl")
 convert_dataset_to_json("output/datasets/exp1_difficulty.jld2", "output/datasets/exp1_difficulty.json")
 run(`cp output/datasets/exp1_difficulty.json ../mot-psiturk/psiturk/static/data/dataset.json`)
-#include("render.jl")
+include("render.jl")

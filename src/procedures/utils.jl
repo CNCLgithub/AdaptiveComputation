@@ -41,7 +41,7 @@ end
 function extract_tracker_positions(trace::Gen.Trace)
     (init_state, states) = Gen.get_retval(trace)
 
-    trackers = states[end].graph.elements
+    trackers = get_objects(states[end].cg, Dot)
 
     tracker_positions = Array{Float64}(undef, length(trackers), 3)
     for i=1:length(trackers)
@@ -107,8 +107,8 @@ end
 function extract_causal_graph(trace::Gen.Trace)
     t, motion, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
-    causal_graph = [ret[2][t].graph]
-    causal_graph = reshape(causal_graph, (1,1,size(causal_graph)...))
+    cg = [ret[2][t].cg]
+    cg = reshape(cg, (1,1,size(cg)...))
 end
 
 function extract_trace(trace::Gen.Trace)

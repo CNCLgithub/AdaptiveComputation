@@ -34,7 +34,7 @@ end
 #@gen (static) function squishy_update(dm::SquishyDynamicsModel,
 @gen function squishy_update(dm::SquishyDynamicsModel,
                                       cg::CausalGraph,
-                                      hgm)
+                                      hgm) #TODO delete
     # first update polygons
     dms, cgs, plygs = poly_step_args(dm, cg)
     new_state_temp = @trace(Map(poly_step)(dms, cgs, plygs), :polygons)
