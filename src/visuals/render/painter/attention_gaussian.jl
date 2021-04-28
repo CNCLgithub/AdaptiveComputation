@@ -5,7 +5,7 @@ export AttentionGaussianPainter
     area_dims::Tuple{Int64, Int64} = (500, 500)
     dims::Tuple{Int64, Int64} = (500, 500)
     attention_color::String = "red"
-    opacity::Float64 = 1.0
+    opacity::Float64 = 0.7
 end
 
 
@@ -28,7 +28,7 @@ function paint(p::AttentionGaussianPainter, cg::CausalGraph, attention_weights::
     #weighted_mean[1] = -weighted_mean[1]
 
     weighted_cov = cov(points .* norm_weights, dims=1)
-    #weighted_cov = [10 0; 0 10]
+    #weighted_cov = [100 0; 0 100]
     
     @show weighted_mean
     @show weighted_cov

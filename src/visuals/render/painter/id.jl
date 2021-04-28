@@ -7,9 +7,14 @@ export IDPainter
     alpha::Float64 = 1.0
 end
 
+function remap(p::IDPainter, vmap::Vector{Int64})::IDPainter
+    IDPainter(p.colors[sortperm(vmap)], p.label, p.label_size, p.alpha)
+end
+
+
 function paint(p::IDPainter, cg::CausalGraph, v::Int64, d::Dot)
     if !isempty(p.colors)
-        c = p.colors[v % length(p.colors) + 1]
+        c = p.colors[v]
         _draw_circle(d.pos[1:2], d.radius, c,
                      opacity = p.alpha)
     end

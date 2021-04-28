@@ -2,8 +2,8 @@
     "n_trackers": 4,
     "distractor_rate": 3.0,
 
-    "img_width": 50,
-    "img_height": 50,
+    "img_width": 60,
+    "img_height": 60,
 
     "init_pos_spread": 350,
 
@@ -13,7 +13,7 @@
     "dot_radius": 20.0,
 
     "gauss_r_multiple": 8.0,
-    "gauss_std": 0.5,
+    "gauss_std": 0.3,
     "gauss_amp": 0.8,
 
     "fmasks" : true,

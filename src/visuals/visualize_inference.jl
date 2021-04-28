@@ -1,6 +1,6 @@
 export visualize_inference
 
-function make_series(gm, gt_cgs, pf_cgs, attention_weights::Matrix{Float64},
+function make_series(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}},
                      padding::Int64;
                      base = "/renders/painter_test")
 
@@ -18,6 +18,11 @@ function make_series(gm, gt_cgs, pf_cgs, attention_weights::Matrix{Float64},
         MOT.paint(p, gt_cgs[i])
 
 
+        p = RFPainter(area_dims = (area_height, area_width),
+                      rf_dims = rf_dims)
+        MOT.paint(p, gt_cgs[i])
+
+
         p = PsiturkPainter()
         MOT.paint(p, gt_cgs[i])
 
@@ -25,26 +30,26 @@ function make_series(gm, gt_cgs, pf_cgs, attention_weights::Matrix{Float64},
                           KinPainter())
         MOT.paint(p, pf_cgs[i])
 
+
         p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-                          IDPainter())
+                          IDPainter(colors = ["purple", "green", "blue", "yellow"],
+                                    label = true))
         MOT.paint(p, pf_cgs[i])
 
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width))
-        MOT.paint(p, pf_cgs[i], attention_weights[i,:])
+        MOT.paint(p, pf_cgs[i], attended[i])
 
         finish()
     end
 end
 
 
-function visualize_inference(results, gt_causal_graphs, gm, attention, path;
+function visualize_inference(results, gt_causal_graphs, gm, rf_dims, attention, path;
                              render_tracker_masks=false,
                              render_model=false,
                              render_map=false,
                              masks=nothing,
-                             receptive_fields=nothing,
-                             receptive_fields_overlap = 0,
                              padding = 3)
 
     extracted = extract_chain(results)
@@ -80,7 +85,7 @@ function visualize_inference(results, gt_causal_graphs, gm, attention, path;
     # visualizing inference on stimuli
     pf_cgs = @>> 1:size(causal_graphs, 1) map(i -> causal_graphs[i,1])
     padding
-    make_series(gm, gt_causal_graphs, pf_cgs, attention_weights,
+    make_series(gm, gt_causal_graphs, pf_cgs, rf_dims, attended,
                 padding;
                 base = joinpath(path, "render"))
 

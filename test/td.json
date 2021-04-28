@@ -1,8 +1,9 @@
 {
     "smoothness": 0.01,
     "k": 0.005,
-    "x0": 20.0,
+    "x0": 130.0,
     "scale": 495.0,
-    "samples": 5,
-    "sweeps": 3
+    "samples": 10,
+    "sweeps": 15,
+    "ancestral_steps": 3
 }

@@ -3,8 +3,7 @@ struct FlowMasks
     decay_function::Function
 end
 
-function default_decay_function(mask, decay_time;
-                                decay_rate=0.2)
+function default_decay_function(mask, decay_time, decay_rate)
     mask .* exp(decay_rate * -decay_time)
 end
 

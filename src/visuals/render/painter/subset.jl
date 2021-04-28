@@ -5,9 +5,11 @@ export SubsetPainter
     painter::Painter
 end
 
+remap(p::Painter, vmap::Vector{Int64})::Painter = p
+
 function paint(p::SubsetPainter, cg::CausalGraph)
-    sg, _ = induced_subgraph(cg, p.reduction(cg))
-    paint(p.painter, sg)
+    sg, vmap = induced_subgraph(cg, p.reduction(cg))
+    @> p.painter remap(vmap) paint(sg)
     return nothing
 end
 

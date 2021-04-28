@@ -15,7 +15,7 @@ end
 
 function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
                            gm = gm_brownian_mask, dm = nothing,
-                           rf_params = nothing) where {T<:String, K<:Int64}
+                           rf_params = nothing, fmasks_decay_function = nothing) where {T<:String, K<:Int64}
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => isnothing(rf_params) ? extract_assignments : extract_assignments_receptive_fields,
@@ -25,7 +25,7 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
 
     latent_map = LatentMap(_lm)
 
-    gm_params = load(GMParams, gm_params_path)
+    gm_params = load(GMParams, gm_params_path, fmasks_decay_function = fmasks_decay_function)
 
     scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true)

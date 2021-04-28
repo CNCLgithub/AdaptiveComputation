@@ -96,9 +96,9 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 1,
+                 "scene" => 2,
                  "chain" => 1,
-                 "time" => 5,
+                 "time" => 20,
                  "restart" => true,
                  "viz" => true])
 
@@ -106,19 +106,26 @@ function main()
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
+    
+    att = MOT.UniformAttention(sweeps = 2)
 
     dm = MOT.load(InertiaModel, args["dm"])
 
     # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (4,4),
-                 overlap = 3,
+    rf_params = (rf_dims = (3,3),
+                 overlap = 10,
                  rf_prob_threshold = 0.01)
+    fmasks_decay_rate = 0.1
+
+
+    fmasks_decay_function = (x,y) -> MOT.default_decay_function(x, y, fmasks_decay_rate)
 
     query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
                                                            args["scene"], args["time"],
                                                            gm = gm_inertia_mask,
                                                            dm = dm,
-                                                           rf_params = rf_params)
+                                                           rf_params = rf_params,
+                                                           fmasks_decay_function = fmasks_decay_function)
     
     display(query.initial_constraints)
 
@@ -145,19 +152,18 @@ function main()
     println("running chain $c")
     results = run_inference(query, proc)
 
-    if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params, att, path;
-                            render_tracker_masks=false)
-    end
-
-    #df = MOT.analyze_chain(results)
     df = MOT.analyze_chain_receptive_fields(results,
                                             n_trackers = gm_params.n_trackers,
                                             n_dots = gm_params.n_trackers + gm_params.distractor_rate,
-                                            gt_cg_end = gt_causal_graphs[end])
+                                            gt_cg_end = gt_causal_graphs[args["time"]])
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)
+
+    if (args["viz"])
+        visualize_inference(results, gt_causal_graphs, gm_params, rf_params.rf_dims, att, path;
+                            render_tracker_masks=false)
+    end
 
     return nothing
 end

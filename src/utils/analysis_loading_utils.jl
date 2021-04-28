@@ -112,12 +112,16 @@ function get_simplified_target_designation(cg, gt_cg)
     pos = @>> get_objects(cg, Dot) map(x->x.pos)
     gt_pos = @>> get_objects(gt_cg, Dot) map(x->x.pos)
     
-    n_dots = @>> get_objects(cg, Dot) length
-    inds = Iterators.product(1:n_dots, 1:n_dots)
+    n_trackers = @>> get_objects(cg, Dot) length
+    n_dots = @>> get_objects(gt_cg, Dot) length
+
+    inds = Iterators.product(1:n_trackers, 1:n_dots)
     distances = @>> inds map(i -> norm(pos[i[1]] - gt_pos[i[2]]))
 
+    display(distances)
+
     td = []
-    for i=1:n_dots
+    for i=1:n_trackers
         perm = sortperm(distances[i,:])
         for j in perm
             if !(j in td)
