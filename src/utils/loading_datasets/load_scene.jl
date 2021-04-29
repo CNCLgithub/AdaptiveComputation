@@ -35,6 +35,7 @@ function load_scene(scene, dataset_path, gm;
     
     
     if gm.fmasks
+        println("HERE WE ARE IN LOAD SCENE, GM.FMASKS")
         fmasks = Vector{Vector{BitArray{2}}}(undef, length(masks))
 
         # for each mask, generate a new mask that takes history into account
@@ -52,7 +53,7 @@ function load_scene(scene, dataset_path, gm;
                     new_mask = add_images(fmask, new_mask)
                 end
 
-                fmasks_t[i] = mask(new_mask)    
+                fmasks_t[i] = mask(new_mask) 
             end
             # sampling a mask
             fmasks[t] = fmasks_t

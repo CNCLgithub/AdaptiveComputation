@@ -19,9 +19,9 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => isnothing(rf_params) ? extract_assignments : extract_assignments_receptive_fields,
-               :causal_graph => extract_causal_graph)
+               :causal_graph => extract_causal_graph,
+               :trace => extract_trace)
                #:tracker_masks => extract_tracker_masks)
-               # :trace => extract_trace)
 
     latent_map = LatentMap(_lm)
 
@@ -46,6 +46,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
         constraints[addr] = init_dots[i].pos[2]
     end
     
+    receptive_fields = nothing
+
     # compiling further masks for the model
     if isnothing(rf_params)
         args = [(t, dm, gm_params) for t in 1:k]
@@ -90,7 +92,7 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
                                         args,
                                         observations)
 
-    return query, gt_causal_graphs, gm_params
+    return query, gt_causal_graphs, gm_params, receptive_fields
 end
 
 export run_inference, query_from_params

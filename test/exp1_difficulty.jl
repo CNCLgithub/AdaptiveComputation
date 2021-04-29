@@ -98,7 +98,7 @@ function main()
                  "dataset" => "/datasets/exp1_difficulty.jld2",
                  "scene" => 2,
                  "chain" => 1,
-                 "time" => 20,
+                 "time" => 50,
                  "restart" => true,
                  "viz" => true])
 
@@ -107,7 +107,7 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
     
-    att = MOT.UniformAttention(sweeps = 2)
+    att = MOT.UniformAttention(sweeps = 0)
 
     dm = MOT.load(InertiaModel, args["dm"])
 
@@ -115,12 +115,11 @@ function main()
     rf_params = (rf_dims = (3,3),
                  overlap = 10,
                  rf_prob_threshold = 0.01)
-    fmasks_decay_rate = 0.1
-
+    fmasks_decay_rate = 0.0
 
     fmasks_decay_function = (x,y) -> MOT.default_decay_function(x, y, fmasks_decay_rate)
 
-    query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
+    query, gt_causal_graphs, gm_params, receptive_fields = query_from_params(args["gm"], args["dataset"],
                                                            args["scene"], args["time"],
                                                            gm = gm_inertia_mask,
                                                            dm = dm,
@@ -161,7 +160,7 @@ function main()
     CSV.write(joinpath(path, "$(c).csv"), df)
 
     if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params, rf_params.rf_dims, att, path;
+        visualize_inference(results, gt_causal_graphs, gm_params, receptive_fields, rf_params.rf_dims, att, path;
                             render_tracker_masks=false)
     end
 

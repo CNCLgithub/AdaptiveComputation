@@ -1,5 +1,63 @@
 export visualize_inference
 
+using PaddedViews
+
+or = (x, y) -> x .| y
+
+function _save_masks_img(t, receptive_fields, rf_dims, choices, out_dir)
+    #rf_masks = Matrix{BitArray}(undef, rf_dims...)
+    
+    rf_masks = []
+
+    for j=1:rf_dims[2]
+        rf_masks_j = []
+        for i=1:rf_dims[1]
+            rf = (j-1)*(rf_dims[1]) + i
+
+            masks = choices[:kernel => t => :receptive_fields => rf => :masks]
+            
+            # adding empty mask
+            @unpack p1, p2 = receptive_fields[rf]
+
+            h = p2[2] - p1[2] + 1
+            w = p2[1] - p1[1] + 1
+
+            println(h)
+            println(w)
+            println()
+            push!(masks, fill(0, w, h))
+
+            #masks = map(mask -> PaddedView(1, mask, (1:h+10, 1:w+10), (6:h+5, 6:w+5)), masks)
+            aggregate_mask = reduce(or, masks)
+            #rf_masks[i,j] = aggregate_mask
+            push!(rf_masks_j, aggregate_mask)
+        end 
+        @>> rf_masks_j foreach(x -> @show size(x))
+        #@>> rf_masks_j foreach(display)
+
+        push!(rf_masks, vcat(rf_masks_j...))
+    end
+    
+    full_mask = hcat(rf_masks...)
+    
+    full_mask = convert(BitArray, full_mask)
+
+    fn = joinpath(out_dir, "$(t).png")
+    save(fn, full_mask)
+end
+    
+# looking at sampled masks for receptive fields
+function render_masks(choices, out_dir, k, receptive_fields, rf_dims)
+    #out_dir = joinpath("output", "render", "receptive_fields")
+    isdir(out_dir) && rm(out_dir, recursive=true)
+    mkpath(out_dir)
+    
+    #idxs = CartesianIndices((1:k, 1:rf_dims[1]*rf_dims[2]))
+    #foreach(idx -> _save_masks_img(idx[1], idx[2], choices, out_dir), idxs)
+    @>> 1:k foreach(t -> _save_masks_img(t, receptive_fields, rf_dims, choices, out_dir))
+    return nothing
+end
+
 function make_series(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}},
                      padding::Int64;
                      base = "/renders/painter_test")
@@ -45,7 +103,8 @@ function make_series(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float6
 end
 
 
-function visualize_inference(results, gt_causal_graphs, gm, rf_dims, attention, path;
+function visualize_inference(results, gt_causal_graphs, gm,
+                             receptive_fields, rf_dims, attention, path;
                              render_tracker_masks=false,
                              render_model=false,
                              render_map=false,
@@ -54,6 +113,7 @@ function visualize_inference(results, gt_causal_graphs, gm, rf_dims, attention, 
 
     extracted = extract_chain(results)
     causal_graphs = extracted["unweighted"][:causal_graph]
+    traces = extracted["unweighted"][:trace]
     
     if render_map
         for t=1:size(causal_graphs,1)
@@ -81,6 +141,10 @@ function visualize_inference(results, gt_causal_graphs, gm, rf_dims, attention, 
     end
     MOT.plot_attention(attended, attention.sweeps, path)
     plot_rejuvenation(attempts, path)
+
+    render_masks(get_choices(traces[end,1]),
+                 joinpath(path, "rf_mask_distributions"),
+                 size(traces, 1), receptive_fields, rf_dims)
     
     # visualizing inference on stimuli
     pf_cgs = @>> 1:size(causal_graphs, 1) map(i -> causal_graphs[i,1])
@@ -88,7 +152,7 @@ function visualize_inference(results, gt_causal_graphs, gm, rf_dims, attention, 
     make_series(gm, gt_causal_graphs, pf_cgs, rf_dims, attended,
                 padding;
                 base = joinpath(path, "render"))
-
+    
     
     render_model || return
 
