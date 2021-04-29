@@ -58,10 +58,10 @@ end
 function get_mask_distributions(objects, gm::GMParams; flow_masks=nothing)
     pos = map(o->o.pos, objects)
     mask_args, trackers_img = get_masks_rvs_args(pos, gm)
+    pred_masks = @>> mask_args map(first)
     if !isnothing(flow_masks)
-        flow_masks, mask_args = add_flow_masks(flow_masks, mask_args)
+        mask_distributions = update_flow_masks!(flow_masks, pred_masks)
     end
-    mask_distributions = map(first, mask_args)
     return (mask_distributions, flow_masks)
 end
 
@@ -123,14 +123,20 @@ end
 
 function get_rectangle_receptive_field(xy, n_x, n_y, gm;
                                        overlap = 0)
+
     w = floor(Int, gm.img_width/n_y)
     h = floor(Int, gm.img_height/n_x)
 
-    p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1) .- (overlap, overlap)
-    p2 = p1 .+ (w-1, h-1) .+ (overlap, overlap)
+    p1 = (w*(xy[1]-1)+1, h*(xy[2]-1)+1)
+    p2 = p1 .+ (w-1, h-1)
+
+    p1 = p1 .- (overlap, overlap)
+    p2 = p2 .+ (overlap, overlap)
 
     p1 = bound_point(p1, gm.img_width, gm.img_height)
     p2 = bound_point(p2, gm.img_width, gm.img_height)
+
+    println("$p1    $p2")
 
     return RectangleReceptiveField(p1, p2)
 end
