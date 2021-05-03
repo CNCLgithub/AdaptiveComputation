@@ -1,35 +1,40 @@
 struct FlowMasks
-    masks::Array{Matrix{Float64}}
+    masks::Matrix{Matrix{Float64}}
     decay_function::Function
 end
 
-function default_decay_function(mask, decay_time, decay_rate)
-    mask .* exp(decay_rate * -decay_time)
+function FlowMasks(n_trackers::Int64, gm::AbstractGMParams)
+    masks = fill(zeros(gm.img_height, gm.img_width), gm.fmasks_n, n_trackers)
+    FlowMasks(masks, gm.fmasks_decay_function)
 end
 
-function add_flow_masks(flow_masks::FlowMasks, masks)
-    img_height, img_width = size(first(first(masks)))
-    n_trackers, n_fmasks = size(flow_masks.masks)
+function default_decay_function(mask, decay_rate)
+    mask .* exp(decay_rate)
+end
 
-    new_masks = Vector{Tuple{Array{Float64}}}(undef, n_trackers)
-    new_fmasks = Array{Matrix{Float64}}(undef, n_trackers, n_fmasks)
+function predict(flow_masks::FlowMasks)
+    n_masks, n_trackers = size(flow_masks.masks)
+    mask_distributions = Vector{Matrix{Float64}}(undef, n_trackers)
 
-    # going through trackers
     for i=1:n_trackers
-        new_fmasks[i,1] = masks[i][1]
-        new_fmasks[i,2:end] = flow_masks.masks[i,1:end-1]
-
-        mask = new_fmasks[i,1]
-
-        # going through time
-        for j=1:n_fmasks
-            decay_time = j-1
-            fmask = flow_masks.decay_function(new_fmasks[i,j], decay_time)
-            fmask = subtract_images(fmask, mask)
-            mask = add_images(fmask, mask)
+        md = flow_masks.masks[n_masks,i]
+        for j=1:n_masks-1
+            fmask = flow_masks.masks[n_masks-j,i]
+            fmask = subtract_images(fmask, md)
+            md = add_images(fmask, md)
         end
-        new_masks[i] = (mask,)
+        mask_distributions[i] = md
     end
+    return mask_distributions
+end
+
+function update_flow_masks(flow_masks::FlowMasks, new_masks::Vector{Matrix{Float64}})
+    masks = copy(flow_masks.masks)
+    masks = circshift(masks, (-1, 0))
+    masks = flow_masks.decay_function.(masks)
+    masks[end,:] = new_masks
     
-    return FlowMasks(new_fmasks, flow_masks.decay_function), new_masks
+    clamp!.(masks, 1e-5, 1.0 - 1e-5)
+
+    return FlowMasks(masks, flow_masks.decay_function)
 end

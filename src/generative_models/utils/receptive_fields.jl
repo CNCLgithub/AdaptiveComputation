@@ -58,9 +58,10 @@ end
 function get_mask_distributions(objects, gm::GMParams; flow_masks=nothing)
     pos = map(o->o.pos, objects)
     mask_args, trackers_img = get_masks_rvs_args(pos, gm)
-    pred_masks = @>> mask_args map(first)
+    mask_distributions = @>> mask_args map(first)
     if !isnothing(flow_masks)
-        mask_distributions = update_flow_masks!(flow_masks, pred_masks)
+        flow_masks = update_flow_masks(flow_masks, mask_distributions)
+        mask_distributions = predict(flow_masks)
     end
     return (mask_distributions, flow_masks)
 end
