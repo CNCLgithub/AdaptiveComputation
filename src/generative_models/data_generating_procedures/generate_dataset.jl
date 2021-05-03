@@ -87,6 +87,9 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
                              generate_masks=false,
                              cm=init_constraint_from_cg(first(scene_data[:gt_causal_graphs]), scene_data[:cm]))
             
+            # checking whether any dots escaped
+            !are_dots_inside(scene_data, gms[i]) && error("dots escaped the area")
+
             # saving the scene to a JLD2 structure
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gms[i]

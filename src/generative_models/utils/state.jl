@@ -32,22 +32,10 @@ init_trackers_map = Gen.Map(sample_init_tracker)
 @gen function sample_init_state(gm::GMParams, dm)
     trackers_gm = fill(gm, gm.n_trackers)
     current_state = @trace(Gen.Map(sample_init_tracker)(trackers_gm), :trackers)
+
     cg = process_temp_state(current_state, gm, dm)
-
     pmbrfs = RFSElements{Array}(undef, 0)
-
-    if gm.fmasks
-        fmasks = Array{Matrix{Float64}}(undef, gm.n_trackers, gm.fmasks_n)
-        for i=1:gm.n_trackers
-            for j=1:gm.fmasks_n
-                fmasks[i,j] = zeros(gm.img_height, gm.img_width)
-            end
-        end
-        flow_masks = FlowMasks(fmasks,
-                               gm.fmasks_decay_function)
-    else
-        flow_masks = nothing
-    end
+    flow_masks = gm.fmasks ? FlowMasks(gm.n_trackers, gm) : nothing
     
     State(cg, pmbrfs, flow_masks)
 end
@@ -55,23 +43,10 @@ end
 @gen function sample_init_receptive_fields_state(gm::GMParams, dm)
     trackers_gm = fill(gm, gm.n_trackers)
     current_state = @trace(Gen.Map(sample_init_tracker)(trackers_gm), :trackers)
+
     cg = process_temp_state(current_state, gm, dm)
-
-    #pmbrfs = RFSElements{Array}(undef, 0)
     rfs_vec = Vector{RFSElements{Array}}(undef, 0)
-
-    if gm.fmasks
-        fmasks = Array{Matrix{Float64}}(undef, gm.n_trackers, gm.fmasks_n)
-        for i=1:gm.n_trackers
-            for j=1:gm.fmasks_n
-                fmasks[i,j] = zeros(gm.img_height, gm.img_width)
-            end
-        end
-        flow_masks = FlowMasks(fmasks,
-                               gm.fmasks_decay_function)
-    else
-        flow_masks = nothing
-    end
+    flow_masks = gm.fmasks ? FlowMasks(gm.n_trackers, gm) : nothing
     
     RFState(cg, rfs_vec, flow_masks)
 end

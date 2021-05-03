@@ -41,18 +41,20 @@ function are_dots_inside(scene_data, gm)
     xmin, xmax = -gm.area_width/2 + d, gm.area_width/2 - d
     ymin, ymax = -gm.area_height/2 + d, gm.area_width/2 - d
     
-    cg = first(scene_data[:gt_causal_graphs])
-    dots = get_objects(cg, Dot)
-    positions = @>> dots map(d -> d.pos)
+    cgs = scene_data[:gt_causal_graphs]
 
-    satisfied = map(i ->
-                    positions[i][1] > xmin &&
-                    positions[i][1] < xmax &&
-                    positions[i][2] > ymin &&
-                    positions[i][2] < ymax,
-                    1:length(dots))
-    
-    all(satisfied)    
+    for t=1:length(cgs)
+        pos = @>> get_objects(cgs[t], Dot) map(d -> d.pos)
+        satisfied = map(i ->
+                        pos[i][1] > xmin &&
+                        pos[i][1] < xmax &&
+                        pos[i][2] > ymin &&
+                        pos[i][2] < ymax,
+                        1:length(pos))
+        !all(satisfied) && return false
+    end
+
+    return true 
 end
 
 function is_min_distance_satisfied(scene_data, min_distance)

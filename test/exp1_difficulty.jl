@@ -98,26 +98,25 @@ function main()
                  "dataset" => "/datasets/exp1_difficulty.jld2",
                  "scene" => 2,
                  "chain" => 1,
-                 "time" => 50,
+                 "time" => 30,
                  "restart" => true,
                  "viz" => true])
 
-    #att_mode = args["%COMMAND%"]
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
     
-    att = MOT.UniformAttention(sweeps = 0)
+    #att = MOT.UniformAttention(sweeps = 0)
 
     dm = MOT.load(InertiaModel, args["dm"])
 
     # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (3,3),
-                 overlap = 10,
+    rf_params = (rf_dims = (5,5),
+                 overlap = 5,
                  rf_prob_threshold = 0.01)
-    fmasks_decay_rate = 0.0
+    fmasks_decay_rate = -0.2
 
-    fmasks_decay_function = (x,y) -> MOT.default_decay_function(x, y, fmasks_decay_rate)
+    fmasks_decay_function = x -> MOT.default_decay_function(x, fmasks_decay_rate)
 
     query, gt_causal_graphs, gm_params, receptive_fields = query_from_params(args["gm"], args["dataset"],
                                                            args["scene"], args["time"],
@@ -126,8 +125,6 @@ function main()
                                                            rf_params = rf_params,
                                                            fmasks_decay_function = fmasks_decay_function)
     
-    display(query.initial_constraints)
-
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))
@@ -160,8 +157,8 @@ function main()
     CSV.write(joinpath(path, "$(c).csv"), df)
 
     if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params, receptive_fields, rf_params.rf_dims, att, path;
-                            render_tracker_masks=false)
+        visualize_inference(results, gt_causal_graphs, gm_params,
+                            receptive_fields, rf_params.rf_dims, att, path)
     end
 
     return nothing

@@ -33,32 +33,15 @@ function load_scene(scene, dataset_path, gm;
         masks = nothing
     end
     
-    
     if gm.fmasks
-        println("HERE WE ARE IN LOAD SCENE, GM.FMASKS")
-        fmasks = Vector{Vector{BitArray{2}}}(undef, length(masks))
+        flow_masks = FlowMasks(Int64(gm.n_trackers + gm.distractor_rate), gm)
 
-        # for each mask, generate a new mask that takes history into account
         for t=1:length(masks)
-            print("generating flow masks $t \r")
-            fmasks_t = Vector{BitArray{2}}(undef, length(masks[t]))
-
-            # going through individual trackers
-            for i=1:length(masks[t])
-                new_mask = zeros(gm.img_height, gm.img_width)
-                for j=max(1,t-gm.fmasks_n+1):t
-                    fmask = masks[t][i]
-                    fmask = gm.fmasks_decay_function(fmask, t-j)
-                    fmask = subtract_images(fmask, new_mask)
-                    new_mask = add_images(fmask, new_mask)
-                end
-
-                fmasks_t[i] = mask(new_mask) 
-            end
-            # sampling a mask
-            fmasks[t] = fmasks_t
+            masks_float = convert(Vector{Matrix{Float64}}, masks[t])
+            flow_masks = update_flow_masks(flow_masks, masks_float)
+            mask_distributions = predict(flow_masks)
+            masks[t] = @>> mask_distributions map(mask)
         end
-        masks = fmasks
     end
     
     println("scene data loaded")

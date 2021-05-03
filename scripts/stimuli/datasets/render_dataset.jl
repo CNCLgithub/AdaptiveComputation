@@ -4,7 +4,8 @@ using JLD2
 function render_dataset(dataset_path, render_path;
                         freeze_time = 24,
                         scenes = []) # empty means all
-    ispath(render_path) || mkpath(render_path)
+    ispath(render_path) && rm(render_path, recursive=true)
+    mkpath(render_path)
 
     file = jldopen(dataset_path, "r")
     n_scenes = file["n_scenes"]
@@ -13,6 +14,7 @@ function render_dataset(dataset_path, render_path;
     scenes = isempty(scenes) ? collect(1:n_scenes) : scenes
     
     for i in scenes
+        println("\nrendering scene $i / $(length(scenes))")
         path = joinpath(render_path, "$i")
 
         scene_data = MOT.load_scene(i, dataset_path, GMParams();
@@ -27,15 +29,8 @@ function render_dataset(dataset_path, render_path;
         end
 
         println(scene_data[:aux_data])
-        
-        k = length(gt_cgs) - 1
 
-        println(targets)
-        
-        MOT.render(gm, k;
-                   gt_causal_graphs=gt_cgs,
-                   freeze_time=freeze_time,
-                   path=path,
-                   highlighted_start=targets)
+        render_scene(gm, gt_cgs, targets;
+                     base=path)
     end
 end

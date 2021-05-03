@@ -29,7 +29,7 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
 
     scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true)
-    
+
     dm = isnothing(dm) ? scene_data[:dm] : dm
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
@@ -67,8 +67,6 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
             cm = Gen.choicemap()
             
             cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
-            # counting the non-zero masks in the timestep
-            display(@>> cropped_masks map(length) maximum)
 
             for i=1:length(receptive_fields)
                 cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]

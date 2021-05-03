@@ -58,8 +58,8 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
                                 gauss_amp::Float64, gauss_std::Float64)
     scaled_sd = r * gauss_std
     threshold = r * gauss_r_multiple
-    mask = zeros(h, w)
-    # mask = fill(1.0/(h*w), h, w)
+    # mask = zeros(h, w)
+    mask = fill(1e-10, h, w)
     for i=1:h
         for j=1:w
             (sqrt((i - center[1])^2 + (j - center[2])^2) > threshold) && continue
