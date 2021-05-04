@@ -1,5 +1,14 @@
 export load_scene
 
+function try_read(scene, element::String)
+    datum = nothing
+    try
+        datum = scene[element]
+    catch
+    end
+    return datum
+end
+
 """
 loads gt causal graphs and motion
 """
@@ -9,18 +18,14 @@ function load_scene(scene, dataset_path, gm;
     
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
-    dm = scene["dm"]
-    #gm = scene["gm"]
+    #dm = scene["dm"]
     gt_causal_graphs = scene["gt_causal_graphs"]
     
     # new entry in scene data, perhaps try block
     # would be good
-    
-    aux_data = nothing
-    try
-        aux_data = scene["aux_data"]
-    catch
-    end
+    gm = try_read(scene, "gm")
+    dm = try_read(scene, "dm")
+    aux_data = try_read(scene, "aux_data")
     close(file)
     
     if generate_masks
