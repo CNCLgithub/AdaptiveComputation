@@ -30,6 +30,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
     scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true)
 
+    @show scene_data[:aux_data]
+
     dm = isnothing(dm) ? scene_data[:dm] : dm
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]

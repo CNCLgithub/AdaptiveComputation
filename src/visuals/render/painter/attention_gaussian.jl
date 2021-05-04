@@ -16,10 +16,10 @@ function paint(p::AttentionGaussianPainter, cg::CausalGraph, attention_weights::
         x -> Matrix{Float64}(x)
     end
 
-    norm_weights = exp.(attention_weights)/sum(exp.(attention_weights))
+    norm_weights = attention_weights/sum(attention_weights)
     weighted_mean = vec(sum(points .* norm_weights, dims=1))
     weighted_cov = cov(points .* norm_weights, dims=1)
-    
+
     values = Matrix{Float64}(undef, p.dims[1], p.dims[2])
 
     for i=1:p.dims[1], j=1:p.dims[2]

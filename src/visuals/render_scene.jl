@@ -27,20 +27,38 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
         MOT.paint(p, gt_cgs[i])
         
         for (j, pf_cg) in enumerate(pf_cgs[i])
-            p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-                              KinPainter(alpha = j/length(pf_cgs[i])))
-            MOT.paint(p, pf_cg)
+            # p = SubsetPainter(cg -> only_targets(cg, pf_targets),
+            #                   KinPainter(alpha = j/length(pf_cgs[i])))
+            # MOT.paint(p, pf_cg)
 
             p = SubsetPainter(cg -> only_targets(cg, pf_targets),
                               IDPainter(colors = ["purple", "green", "blue", "yellow"],
-                                        label = true,
+                                        label = false,
                                         alpha = j/length(pf_cgs[i])))
             MOT.paint(p, pf_cg)
         end
 
+
+        # p = SubsetPainter(cg -> only_targets(cg, pf_targets),
+        #                   KinPainter())
+        # MOT.paint(p, pf_cgs[i][end])
+
+
+
+        # geometric center
+        p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
+                                     dims = (gm.area_height, gm.area_width),
+                                     attention_color = "blue")
+        MOT.paint(p, pf_cgs[i][end], fill(0.25, 4))
+
+
+        # attention center
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width))
         MOT.paint(p, pf_cgs[i][end], attended[i])
+
+
+
 
         finish()
     end

@@ -96,9 +96,9 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 2,
+                 "scene" => 1,
                  "chain" => 1,
-                 "time" => 30,
+                 "time" => 100,
                  "restart" => true,
                  "viz" => true])
 
@@ -111,10 +111,10 @@ function main()
     dm = MOT.load(InertiaModel, args["dm"])
 
     # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (5,5),
-                 overlap = 5,
-                 rf_prob_threshold = 0.01)
-    fmasks_decay_rate = -0.2
+    rf_params = (rf_dims = (2,2),
+                 overlap = 0,
+                 rf_prob_threshold = 0.001)
+    fmasks_decay_rate = -0.1
 
     fmasks_decay_function = x -> MOT.default_decay_function(x, fmasks_decay_rate)
 
