@@ -6,7 +6,7 @@ using MOT: CausalGraph, InitPainter, IFPainter, PolyPainter,
 using Parameters: @unpack
 
 dataset_path = joinpath("output", "datasets", "exp1_difficulty.jld2")
-scene_id = 1
+scene_id = 4
 scene_data = MOT.load_scene(scene_id, dataset_path, HGMParams();
                             generate_masks=false)
 r_fields_dim = (5, 5)
@@ -19,7 +19,7 @@ targets = scene_data[:aux_data][:targets]
 function make_series(gm, cgs, padding::Int64)
 
     @unpack area_width, area_height, targets = gm
-    targets = [fill(true, 4); fill(false, 4)]
+    targets = [fill(true, 4); fill(false, 7)]
     println(targets)
 
     base = "/renders/classic_trial_poster"
@@ -47,8 +47,8 @@ function make_series(gm, cgs, padding::Int64)
                         dimensions = (area_height, area_width),
                         background = "white"),
             PsiturkPainter(dot_color = "black"),
-            SubsetPainter(cg -> only_targets(cg, targets),
-                          KinPainter()),
+            # SubsetPainter(cg -> only_targets(cg, targets),
+                          # KinPainter()),
             # IFPainter(),
             # TargetPainter(targets = targets),
             # PolyPainter(),

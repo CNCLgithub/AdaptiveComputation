@@ -1,0 +1,21 @@
+{
+    "n_trackers": 4,
+    "distractor_rate": 3.0,
+
+    "img_width": 50,
+    "img_height": 37,
+
+    "init_pos_spread": 400,
+
+    "area_width": 800,
+    "area_height": 585,
+
+    "dot_radius": 15.0,
+
+    "gauss_r_multiple": 8.0,
+    "gauss_std": 0.3,
+    "gauss_amp": 0.8,
+
+    "fmasks" : true,
+    "fmasks_n" : 8
+}

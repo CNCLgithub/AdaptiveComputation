@@ -31,8 +31,8 @@ main_dm = SquishyDynamicsModel(poly_rep_m = 80.0,
 vels = LinRange(5.0, 15.0, 5)
 n_distractors = collect(3:7)
 
-vels = [5.0, 15.0]
-n_distractors = [3, 7]
+vels = [10.0]
+n_distractors = [4]
 
 #vels = [15.0]
 #n_distractors = [7]
