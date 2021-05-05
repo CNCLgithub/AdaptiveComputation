@@ -10,7 +10,7 @@ function paint_fixations(gm, gt_cgs, fixations;
     isdir(base) && rm(base, recursive=true)
     mkpath(base)
 
-    @unpack area_width, area_height = gm
+    MOT.@unpack area_width, area_height = gm
     nt = length(gt_cgs)
     
     frame = 1

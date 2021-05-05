@@ -4,24 +4,7 @@ using FileIO
 using Lazy: @>>
 
 
-"""
-    translates from 1500x1500 to 800x800
-    and shifts so that origin is at (0, 0)
-"""
-function translate(x, y;
-                   area_width = 1500,
-                   area_height = 1500,
-                   target_w = 800,
-                   target_h = 800)
-
-    x *= target_w/area_width
-    y *= target_h/area_height
-
-    x -= target_w/2
-    y -= target_h/2
-
-    return [x, y]
-end
+include("helpers_constants.jl")
 
 """
     goes through the subject's data and adds
