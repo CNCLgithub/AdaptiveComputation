@@ -2,9 +2,11 @@ export render_scene
 
 
 function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}};
-                     base = "/renders/render_scene")
+                      base = "/renders/render_scene")
 
     @unpack area_width, area_height = gm
+
+
     gt_targets = [fill(true, gm.n_trackers); fill(false, Int64(gm.distractor_rate))]
     pf_targets = fill(true, gm.n_trackers)
     
@@ -86,7 +88,7 @@ function render_scene(gm, gt_cgs, targets;
 
         p = PsiturkPainter()
         MOT.paint(p, gt_cgs[1])
-
+        
         p = TargetPainter(targets = targets)
         MOT.paint(p, gt_cgs[1])
 

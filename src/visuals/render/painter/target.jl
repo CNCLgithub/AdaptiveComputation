@@ -2,6 +2,7 @@ export TargetPainter
 
 @with_kw struct TargetPainter <: Painter
     target_color::String = "#ea3455"
+    dot_radius_multiplier::Float64 = 1.0
     targets::Vector{Bool}
 end
 
@@ -15,5 +16,5 @@ function paint(p::TargetPainter, cg::CausalGraph)
 end
 
 function paint(p::TargetPainter, cg::CausalGraph, v::Int64, d::Dot)
-    _draw_circle(d.pos[1:2], d.radius, p.target_color)
+    _draw_circle(d.pos[1:2], d.radius * p.dot_radius_multiplier, p.target_color)
 end
