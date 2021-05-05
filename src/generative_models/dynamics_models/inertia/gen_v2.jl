@@ -9,7 +9,8 @@
     mag = sqrt(_vx^2 + _vy^2)
     
     # sample inertia
-    inertia = @trace(beta(dm.a, dm.b), :inertia)
+    # inertia = @trace(beta(dm.a, dm.b), :inertia)
+    inertia = @trace(bernoulli(dm.a), :inertia)
 
     # sample new angle & magnitude
 

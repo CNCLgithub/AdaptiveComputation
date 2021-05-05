@@ -12,10 +12,10 @@
 
     "dot_radius": 20.0,
 
-    "gauss_r_multiple": 8.0,
-    "gauss_std": 0.3,
+    "gauss_r_multiple": 4.0,
+    "gauss_std": 1.0,
     "gauss_amp": 0.8,
 
     "fmasks" : true,
-    "fmasks_n" : 8
+    "fmasks_n" : 4
 }
