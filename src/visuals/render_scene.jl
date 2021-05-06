@@ -3,7 +3,7 @@ export render_scene
 
 function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}};
                      base = "/renders/render_scene")
-
+    
     @unpack area_width, area_height = gm
     gt_targets = [fill(true, gm.n_trackers); fill(false, Int64(gm.distractor_rate))]
     pf_targets = fill(true, gm.n_trackers)
@@ -15,15 +15,17 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
         p = InitPainter(path = "$base/$i.png",
-                        dimensions = (area_height, area_width))
+                        dimensions = (area_height, area_width),
+                        background = "white")
         MOT.paint(p, gt_cgs[i])
-
+        
+        """
         p = RFPainter(area_dims = (area_height, area_width),
                       rf_dims = rf_dims)
         MOT.paint(p, gt_cgs[i])
+        """
 
-
-        p = PsiturkPainter()
+        p = PsiturkPainter(dot_color = "black")
         MOT.paint(p, gt_cgs[i])
         
         for (j, pf_cg) in enumerate(pf_cgs[i])
@@ -38,24 +40,28 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
             MOT.paint(p, pf_cg)
         end
 
+        """
+        p = SubsetPainter(cg -> only_targets(cg, pf_targets),
+                          KinPainter())
+        MOT.paint(p, pf_cgs[i][end])
+        """
 
-        # p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-        #                   KinPainter())
-        # MOT.paint(p, pf_cgs[i][end])
-
-
-
+        p = AttentionRingsPainter()
+        MOT.paint(p, pf_cgs[i][end], attended[i])
+        
+        
+        """
         # geometric center
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width),
                                      attention_color = "blue")
         MOT.paint(p, pf_cgs[i][end], fill(0.25, 4))
 
-
         # attention center
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width))
         MOT.paint(p, pf_cgs[i][end], attended[i])
+        """
 
 
 
