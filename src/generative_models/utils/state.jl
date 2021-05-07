@@ -14,7 +14,7 @@ end
 
 @gen function sample_init_tracker(gm::AbstractGMParams)::Dot
     @unpack area_width, area_height, dot_radius = gm
-    
+
     x = @trace(uniform(-area_width/2 + dot_radius, area_width/2 - dot_radius), :x)
     y = @trace(uniform(-area_height/2 + dot_radius, area_height/2 - dot_radius), :y)
 

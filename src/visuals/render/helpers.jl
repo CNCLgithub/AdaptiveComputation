@@ -76,7 +76,7 @@ function _draw_array(array, area_width, area_height, grid_width, grid_height, co
     sethue(color)
 
     #tiles = Tiler(gm.area_width, gm.area_height, gm.img_width, gm.img_height, margin=0)
-    tiles = Tiler(area_width, area_height, grid_width, grid_height, margin=0)
+    tiles = Tiler(area_height, area_width, grid_height, grid_width, margin=0)
 
     for (pos, n) in tiles
         # reading value from the array

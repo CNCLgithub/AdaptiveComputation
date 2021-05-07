@@ -31,7 +31,7 @@
     y = _y + vy
     z = @trace(uniform(0, 1), :z)
 
-    d = Dot(pos = [x,y,z], vel = [vx, vy])
+    d = Dot(pos = [x,y,z], vel = [vx, vy], radius = dot.radius)
     return d
 end
 

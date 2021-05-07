@@ -14,7 +14,8 @@ loads gt causal graphs and motion
 """
 function load_scene(scene, dataset_path, gm;
                     generate_masks=true,
-                    from_mask_rcnn=false)
+                    from_mask_rcnn=false,
+                    k=nothing)
     
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
@@ -23,16 +24,18 @@ function load_scene(scene, dataset_path, gm;
     
     # new entry in scene data, perhaps try block
     # would be good
-    gm = try_read(scene, "gm")
+    #gm = try_read(scene, "gm")
     dm = try_read(scene, "dm")
     aux_data = try_read(scene, "aux_data")
+    @show aux_data
     close(file)
     
     if generate_masks
-        masks = get_masks(gt_causal_graphs[2:end], gm)
+        k = isnothing(k) ? length(gt_causal_graphs) : k
         if from_mask_rcnn
-            masks[1:k-1] = get_masks_from_mask_rcnn(gt_causal_graphs[2:end],
-                                                    gm)[1:k-1]
+            masks = get_masks_from_mask_rcnn(gt_causal_graphs[1:k], gm)
+        else
+            masks = get_masks(gt_causal_graphs[1:k], gm)
         end
     else
         masks = nothing

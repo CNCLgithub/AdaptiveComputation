@@ -41,12 +41,12 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
         end
 
 
-        # p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-        #                   KinPainter())
-        # MOT.paint(p, pf_cgs[i][end])
+        p = SubsetPainter(cg -> only_targets(cg, pf_targets),
+                          KinPainter())
+        MOT.paint(p, pf_cgs[i][end])
 
 
-
+        """
         # geometric center
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width),
@@ -58,9 +58,7 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (gm.area_height, gm.area_width))
         MOT.paint(p, pf_cgs[i][end], attended[i])
-
-
-
+        """
 
         finish()
     end

@@ -87,7 +87,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "exp1_difficulty"
+experiment_name = "fixations"
 
 function main()
     #args = parse_commandline()
@@ -98,7 +98,7 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 5,
+                 "time" => 20,
                  "restart" => true,
                  "viz" => true])
 
@@ -111,8 +111,8 @@ function main()
     dm = MOT.load(InertiaModel, args["dm"])
 
     # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (4,5),
-                 overlap = 5,
+    rf_params = (rf_dims = (3,2),
+                 overlap = 3,
                  rf_prob_threshold = 0.01)
     fmasks_decay_rate = -0.2
 
