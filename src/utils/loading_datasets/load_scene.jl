@@ -40,7 +40,7 @@ function load_scene(scene, dataset_path, gm;
     else
         masks = nothing
     end
-    
+
     if gm.fmasks
         flow_masks = FlowMasks(Int64(gm.n_trackers + gm.distractor_rate), gm)
 
@@ -48,6 +48,7 @@ function load_scene(scene, dataset_path, gm;
             masks_float = convert(Vector{Matrix{Float64}}, masks[t])
             flow_masks = update_flow_masks(flow_masks, masks_float)
             mask_distributions = predict(flow_masks)
+            @show @>> mask_distributions map(minimum)
             masks[t] = @>> mask_distributions map(mask)
         end
     end

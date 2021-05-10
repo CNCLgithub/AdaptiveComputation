@@ -16,6 +16,6 @@
     "gauss_std": 0.5,
     "gauss_amp": 0.8,
 
-    "fmasks" : false,
-    "fmasks_n" : 8
+    "fmasks" : true,
+    "fmasks_n" : 4
 }

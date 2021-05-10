@@ -25,8 +25,6 @@ function crop(rf::RectangleReceptiveField,
               mask_distribution::Union{Matrix{Float64}, BitMatrix})
     cs = CartesianIndices(size(mask_distribution))
     idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    # display(mask_distribution[idxs])
-    # display(mask_distribution)
     mask_distribution[idxs]
 end
 

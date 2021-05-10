@@ -98,7 +98,7 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 20,
+                 "time" => 100,
                  "restart" => true,
                  "viz" => true])
 
@@ -106,15 +106,15 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
     
-    #att = MOT.UniformAttention(sweeps = 0)
+    #att = MOT.UniformAttention(sweeps = 1)
 
     dm = MOT.load(InertiaModel, args["dm"])
 
     # TODO put these parameters in the ARGS
     rf_params = (rf_dims = (3,2),
-                 overlap = 3,
+                 overlap = 1,
                  rf_prob_threshold = 0.01)
-    fmasks_decay_rate = -0.2
+    fmasks_decay_rate = -0.1
 
     fmasks_decay_function = x -> MOT.default_decay_function(x, fmasks_decay_rate)
 
@@ -125,6 +125,7 @@ function main()
                                                            rf_params = rf_params,
                                                            fmasks_decay_function = fmasks_decay_function)
     
+
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))

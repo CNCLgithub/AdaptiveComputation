@@ -6,7 +6,6 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
 
     @unpack area_width, area_height = gm
 
-
     gt_targets = [fill(true, gm.n_trackers); fill(false, Int64(gm.distractor_rate))]
     pf_targets = fill(true, gm.n_trackers)
     

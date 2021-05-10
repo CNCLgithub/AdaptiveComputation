@@ -68,12 +68,6 @@ function render_rf_masks(data::Union{Vector{RFState}, ChoiceMap}, t::Int64, gm::
         map(rf -> get_rf_masks(data, t, rf, receptive_fields))
     end
 
-    for (i, rf_masks) in enumerate(masks)
-        println("receptive field $i")
-        @>> rf_masks map(size) foreach(display)
-    end
-    println(typeof(data))
-
     aggregated_masks = @>> masks begin
         map(rf_masks -> _aggregate_masks(rf_masks))
         collect(Matrix{Float64})
