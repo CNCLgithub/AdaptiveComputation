@@ -70,13 +70,13 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
             cm = Gen.choicemap()
             
             cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
+            @show cropfilter(receptive_fields[5], [masks[t][3]])
 
             for i=1:length(receptive_fields)
                 cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
             end
             observations[t] = cm
         end
-
     end
    
 

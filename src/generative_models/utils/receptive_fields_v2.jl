@@ -2,8 +2,8 @@ abstract type AbstractReceptiveField end
 
 include("receptive_fields_gen.jl")
 
-function crop(rf::T,
-              mask_distribution::Matrix{Float64}) where {T <: AbstractReceptiveField}
+function crop(rf::AbstractReceptiveField,
+              mask_distribution::Union{Matrix{Float64}, BitMatrix})
     println("not implemented")
 end
 
@@ -13,8 +13,8 @@ end
 
 """
     parametrized by two points:
-    p1 = (xmin, ymin)
-    p2 = (xmax, ymax)
+    p1 = (xmin, ymin) top left
+    p2 = (xmax, ymax) bottom right
 """
 struct RectangleReceptiveField <: AbstractReceptiveField
     p1::Tuple{Int64, Int64}
@@ -22,8 +22,11 @@ struct RectangleReceptiveField <: AbstractReceptiveField
 end
 
 function crop(rf::RectangleReceptiveField,
-              mask_distribution::Matrix{Float64})
-    idxs = CartesianIndices((rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]))
+              mask_distribution::Union{Matrix{Float64}, BitMatrix})
+    cs = CartesianIndices(size(mask_distribution))
+    idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
+    # display(mask_distribution[idxs])
+    # display(mask_distribution)
     mask_distribution[idxs]
 end
 
@@ -111,26 +114,22 @@ end
 # fields given generative model params
 ###############
 
-function bound(x, a, b)
-    min(max(x, a), b)
-end
-
 function bound_point(p, w, h)
-    (bound(p[1], 1, w), bound(p[2], 1, h))
+    (clamp(p[1], 1, w), clamp(p[2], 1, h))
 end
 
-function get_rectangle_receptive_field(yx, n_x, n_y, gm;
+function get_rectangle_receptive_field(cidx::CartesianIndex{2},
+                                       w::Int64, h::Int64, gm;
                                        overlap = 0)
 
-    w = floor(Int, gm.img_width/n_x)
-    h = floor(Int, gm.img_height/n_y)
-
-    p1 = (w*(yx[2]-1)+1, h*(yx[1]-1)+1)
-    p2 = p1 .+ (w-1, h-1)
-
+    p1 = (w*(cidx[2]-1)+1, h*(cidx[1]-1)+1) # top left
+    p2 = p1 .+ (w-1, h-1) # bottom right
+    
+    # add overlap
     p1 = p1 .- (overlap, overlap)
     p2 = p2 .+ (overlap, overlap)
-
+    
+    # make sure points are within bounds of the image
     p1 = bound_point(p1, gm.img_width, gm.img_height)
     p2 = bound_point(p2, gm.img_width, gm.img_height)
 
@@ -138,35 +137,37 @@ function get_rectangle_receptive_field(yx, n_x, n_y, gm;
 end
 
 """
-    get_rectangle_receptive_fields(n_x, n_y, gm)
+    get_rectangle_receptive_fields(n_x::Int64, n_y::Int64, gm;
+                                    overlap = 0)
 
     Arguments:
         n_x - number of receptive fields in the x dimension
         n_y - number of receptive fields in the y dimension
         gm - generative model parameters
-
 """
-function get_rectangle_receptive_fields(n_x, n_y, gm;
+function get_rectangle_receptive_fields(n_x::Int64, n_y::Int64, gm;
                                         overlap = 0)
+    w = ceil(Int64, gm.img_width/n_x) # width of each receptive field
+    h = ceil(Int64, gm.img_height/n_y) # height of --||--
+
     # first index is the row (height) and second index is the col (width)
-    rf_idx = Iterators.product(1:n_y, 1:n_x)
-    receptive_fields = map(yx -> get_rectangle_receptive_field(yx, n_x, n_y, gm; overlap=overlap), rf_idx)
-    receptive_fields = map(i -> receptive_fields[i], 1:n_x*n_y) # I can't find a way to flatten ://///
+    rf_cidx = CartesianIndices((n_y, n_x))
+    @>> rf_cidx begin
+        vec
+        map(cidx -> get_rectangle_receptive_field(cidx, w, h, gm; overlap=overlap))
+    end
 end
 
-function crop(rf::RectangleReceptiveField,
-              mask_distribution::BitArray{2})
-    idxs = CartesianIndices((rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]))
-    mask_distribution[idxs]
-end
 
 """
  crop masks to receptive fields and then
  filter so each mask is non zero
 """
 function cropfilter(rf, masks)
-    cropped_masks = map(mask -> crop(rf, mask), masks)
-    croppedfiltered_masks = filter(mask -> any(mask .!= 0), cropped_masks)
+    @>> masks begin
+        map(mask -> crop(rf, mask))
+        filter(mask -> !iszero(sum(mask)))
+    end
 end
 
 export RectangleReceptiveField, get_rectangle_receptive_fields
