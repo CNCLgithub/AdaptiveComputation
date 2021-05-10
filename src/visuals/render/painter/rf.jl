@@ -11,8 +11,9 @@ end
 function paint(p::RFPainter, cg::CausalGraph)
     @unpack area_dims, rf_dims, opacity = p
     sethue("black")
-    tiles = Tiler(reverse(area_dims)..., rf_dims..., margin=0)
+    tiles = Tiler(reverse(area_dims)..., reverse(rf_dims)..., margin=0)
     foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
+
     # setopacity(0.03)
     # setline(receptive_fields_overlap/gm.img_width*gm.area_width*2)
     # foreach(tile -> box(tile[1], tiles.tilewidth, tiles.tileheight, :stroke), tiles)
