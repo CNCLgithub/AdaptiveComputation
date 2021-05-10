@@ -96,7 +96,7 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 1,
+                 "scene" => 2,
                  "chain" => 1,
                  "time" => 100,
                  "restart" => true,

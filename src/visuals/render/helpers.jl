@@ -58,9 +58,9 @@ end
 """
 function _draw_circle(position, radius, color;
                       opacity=1.0, style=:fill,
-                      pattern="solid")
+                      pattern="solid", line=5)
     if style==:stroke
-        setline(5)
+        setline(line)
         setdash(pattern)
     end
     setopacity(opacity)
