@@ -98,7 +98,7 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 100,
+                 "time" => 600,
                  "restart" => true,
                  "viz" => true])
 

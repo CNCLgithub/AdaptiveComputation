@@ -12,8 +12,8 @@
 
     "dot_radius": 15.0,
 
-    "gauss_r_multiple": 8.0,
-    "gauss_std": 1.0,
+    "gauss_r_multiple": 10.0,
+    "gauss_std": 0.7,
     "gauss_amp": 0.8,
 
     "fmasks" : true,

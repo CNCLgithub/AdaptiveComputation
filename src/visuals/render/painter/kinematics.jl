@@ -1,7 +1,7 @@
 export KinPainter
 
 @with_kw struct KinPainter <: Painter
-    vel_scale::Float64 = 20.0
+    vel_scale::Float64 = 50.0
     vel_color::String = "black"
     linewidth::Float64 = 7.5
     alpha::Float64 = 1.0

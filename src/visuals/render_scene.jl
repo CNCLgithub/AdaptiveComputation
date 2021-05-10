@@ -19,19 +19,17 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
                         background = "white")
         MOT.paint(p, gt_cgs[i])
         
-        """
         p = RFPainter(area_dims = (area_height, area_width),
                       rf_dims = rf_dims)
         MOT.paint(p, gt_cgs[i])
-        """
 
         p = PsiturkPainter(dot_color = "black")
         MOT.paint(p, gt_cgs[i])
         
         for (j, pf_cg) in enumerate(pf_cgs[i])
-            # p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-            #                   KinPainter(alpha = j/length(pf_cgs[i])))
-            # MOT.paint(p, pf_cg)
+            p = SubsetPainter(cg -> only_targets(cg, pf_targets),
+                              KinPainter(alpha = j/length(pf_cgs[i])))
+            MOT.paint(p, pf_cg)
 
             p = SubsetPainter(cg -> only_targets(cg, pf_targets),
                               IDPainter(colors = ["purple", "green", "blue", "yellow"],
@@ -40,11 +38,9 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
             MOT.paint(p, pf_cg)
         end
 
-        """
         p = SubsetPainter(cg -> only_targets(cg, pf_targets),
                           KinPainter())
         MOT.paint(p, pf_cgs[i][end])
-        """
 
         p = AttentionRingsPainter()
         MOT.paint(p, pf_cgs[i][end], attended[i])
