@@ -28,7 +28,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
     gm_params = load(GMParams, gm_params_path, fmasks_decay_function = fmasks_decay_function)
 
     scene_data = load_scene(scene, dataset, gm_params;
-                            generate_masks=true)
+                            generate_masks=true,
+                            k=k)
 
     @show scene_data[:aux_data]
 
@@ -75,7 +76,6 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
             end
             observations[t] = cm
         end
-
     end
    
 

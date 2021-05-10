@@ -1,38 +1,46 @@
 export load_scene
 
+function try_read(scene, element::String)
+    datum = nothing
+    try
+        datum = scene[element]
+    catch
+    end
+    return datum
+end
+
 """
 loads gt causal graphs and motion
 """
 function load_scene(scene, dataset_path, gm;
                     generate_masks=true,
-                    from_mask_rcnn=false)
+                    from_mask_rcnn=false,
+                    k=nothing)
     
 	file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
-    dm = scene["dm"]
-    #gm = scene["gm"]
+    #dm = scene["dm"]
     gt_causal_graphs = scene["gt_causal_graphs"]
     
     # new entry in scene data, perhaps try block
     # would be good
-    
-    aux_data = nothing
-    try
-        aux_data = scene["aux_data"]
-    catch
-    end
+    #gm = try_read(scene, "gm")
+    dm = try_read(scene, "dm")
+    aux_data = try_read(scene, "aux_data")
+    @show aux_data
     close(file)
     
     if generate_masks
-        masks = get_masks(gt_causal_graphs[2:end], gm)
+        k = isnothing(k) ? length(gt_causal_graphs) : k
         if from_mask_rcnn
-            masks[1:k-1] = get_masks_from_mask_rcnn(gt_causal_graphs[2:end],
-                                                    gm)[1:k-1]
+            masks = get_masks_from_mask_rcnn(gt_causal_graphs[1:k], gm)
+        else
+            masks = get_masks(gt_causal_graphs[1:k], gm)
         end
     else
         masks = nothing
     end
-    
+
     if gm.fmasks
         flow_masks = FlowMasks(Int64(gm.n_trackers + gm.distractor_rate), gm)
 
@@ -40,6 +48,7 @@ function load_scene(scene, dataset_path, gm;
             masks_float = convert(Vector{Matrix{Float64}}, masks[t])
             flow_masks = update_flow_masks(flow_masks, masks_float)
             mask_distributions = predict(flow_masks)
+            @show @>> mask_distributions map(minimum)
             masks[t] = @>> mask_distributions map(mask)
         end
     end

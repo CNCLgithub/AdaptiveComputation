@@ -28,8 +28,6 @@ function render_dataset(dataset_path, render_path;
         catch
         end
 
-        println(scene_data[:aux_data])
-
         render_scene(gm, gt_cgs, targets;
                      base=path)
     end

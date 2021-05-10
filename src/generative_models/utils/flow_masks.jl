@@ -34,7 +34,7 @@ function update_flow_masks(flow_masks::FlowMasks, new_masks::Vector{Matrix{Float
     masks = flow_masks.decay_function.(masks)
     masks[end,:] = new_masks
     
-    clamp!.(masks, 1e-5, 1.0 - 1e-5)
+    clamp!.(masks, 1e-10, 1.0 - 1e-10)
 
     return FlowMasks(masks, flow_masks.decay_function)
 end

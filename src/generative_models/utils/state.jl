@@ -14,7 +14,7 @@ end
 
 @gen function sample_init_tracker(gm::AbstractGMParams)::Dot
     @unpack area_width, area_height, dot_radius = gm
-    
+
     x = @trace(uniform(-area_width/2 + dot_radius, area_width/2 - dot_radius), :x)
     y = @trace(uniform(-area_height/2 + dot_radius, area_height/2 - dot_radius), :y)
 
@@ -24,10 +24,8 @@ end
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
 
-    return Dot([x,y,z], [vx, vy])
+    return Dot([x,y,z], [vx, vy], dot_radius)
 end
-
-init_trackers_map = Gen.Map(sample_init_tracker)
 
 @gen function sample_init_state(gm::GMParams, dm)
     trackers_gm = fill(gm, gm.n_trackers)
