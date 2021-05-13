@@ -5,6 +5,7 @@ abstract type AbstractGMParams end
 include("utils/utils.jl")
 include("dynamics_models/dynamics_models.jl")
 include("graphics/graphics.jl")
+include("state/state.jl")
 
 include("inertia/gm_inertia.jl")
 include("isr/gm_isr.jl")

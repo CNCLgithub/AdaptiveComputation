@@ -2,14 +2,11 @@ export Object,
         Dot,
         BDot
 
-using LightGraphs
-using MetaGraphs
-#const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Vector{Float64}}
-const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Float64}
-
 # objects are things that dynamics models and generative processes
 # work over (e.g. Dot)
-abstract type Object end
+abstract type Thing end
+abstract type Object <: Thing end
+abstract type Ensemble <: Thing end
 
 @with_kw struct Dot <: Object
     pos::Vector{Float64} = zeros(3)
@@ -20,7 +17,6 @@ abstract type Object end
     width::Float64 = 40.0
     height::Float64 = 40.0
 end
-
 
 @with_kw struct Pylon <: Object
     pos::Vector{Float64} = zeros(3)
@@ -52,7 +48,6 @@ end
 abstract type Polygon <: Object end
 
 
-
 @with_kw mutable struct NGon <: Polygon
     pos::Vector{Float64}
     rot::Float64
@@ -61,6 +56,7 @@ abstract type Polygon <: Object end
     radius::Float64
     nv::Int64
 end
+
 @with_kw mutable struct UGon <: Polygon
     pos::Vector{Float64}
     vel::Vector{Float64}
@@ -78,40 +74,14 @@ radius(p::NGon) = p.radius
 radius(p::UGon) = 0
 
 
-# assuming first N vertices are walls
-walls(cg::CausalGraph) = get_prop(cg, :walls)
-
-function force(cg::CausalGraph, v::Int64)
-    fs = @>> v begin
-        inneighbors(cg)
-        map(i -> Edge(i, v))
-        Base.filter(e -> has_prop(cg, e, :force))
-        map(e -> get_prop(cg, e, :force))
-    end
-
-    return isempty(fs) ? zeros(2) : sum(fs)
+struct UniformEnsemble
+    rate::Float64
+    pixel_prob::Float64
 end
 
-LightGraphs.vertices(cg::CausalGraph, v::Int64) = @>> v begin
-    outneighbors(cg)
-    collect(Int64)
-    Base.filter(i -> has_prop(cg, Edge(v, i), :parent))
-end
-
-
-parent(cg::CausalGraph, v::Int64) = @>> v begin
-    inneighbors(cg)
-    Base.filter(i -> has_prop(cg, Edge(i, v), :parent))
-    first
-    #(i -> get_prop(cg, i, :object))
-end
-
-get_objects(cg::CausalGraph, type::Type) = @>> cg begin
-    vertices
-    map(v -> get_prop(cg, v, :object))
-    Base.filter(v -> v isa type)
-end
-
-function get_object_verts(cg::CausalGraph, type::Type)
-    filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa type)
+function UniformEnsemble(cg::CausalGraph)
+    gm = get_gm(cg)
+    graphics = get_graphics(cg)
+    pixel_prob = (gm.dot_radius*pi^2)/prod(graphics.img_width)
+    UniformEnsemble(gm.distractor_rate, pixel_prob)
 end

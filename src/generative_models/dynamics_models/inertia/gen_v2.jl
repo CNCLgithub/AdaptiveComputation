@@ -36,10 +36,14 @@
 end
 
 
-@gen function inertial_update(dm::InertiaModel, cg::CausalGraph)
-    dots = get_objects(cg, Dot)
-    temp_state = @trace(Map(inertial_step)(fill(dm, length(dots)), dots), :brownian)
-    new_cg = process_temp_state(temp_state, cg, dm)
+@gen function inertial_update(cg::CausalGraph)
+    #dots = get_objects(cg, Dot)
+    vs = get_object_verts(cg, Dot)
+    cgs = fill(cg, length(vs))
+    things = @trace(Map(inertial_step)(cgs, vs), :brownian)
+    dm = get_dm(cg)
+    new_cg = dynamics_update(dm, cg, vs, things)
+
     return new_cg
 end
 

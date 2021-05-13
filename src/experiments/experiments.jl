@@ -1,31 +1,72 @@
 function run_inference(query::SequentialQuery,
                        proc::Gen_Compose.AbstractParticleFilter)
-
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = length(query))
 end
+
 function run_inference(query::SequentialQuery,
                        proc::Gen_Compose.AbstractParticleFilter,
                        path::String)
-
     results = sequential_monte_carlo(proc, query,
                                      buffer_size = length(query),
                                      path = path)
 end
 
-function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
-                           gm = gm_brownian_mask, dm = nothing,
-                           rf_params = nothing, fmasks_decay_function = nothing) where {T<:String, K<:Int64}
+
+function get_args(dm_params, gm_params, k,
+                  receptive_fields::Vector{AbstractReceptiveField},
+                  rf_prob_threshold::Float64)
+    args = [(t, dm_params, gm_params,
+             receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
+end
+
+function get_args(dm_params, gm_params, k)
+    args = [(t, dm_params, gm_params) for t in 1:k]
+end
+
+
+function get_observations(masks,
+                          rf_params,
+
+    observations = Vector{Gen.ChoiceMap}(undef, k)
+
+    # compiling further masks for the model
+    if isnothing(rf_params)
+        for t = 1:k
+            cm = Gen.choicemap()
+            cm[:kernel => t => :masks] = masks[t]
+            observations[t] = cm
+        end
+    else
+        receptive_fields = get_rectangle_receptive_fields(rf_params.rf_dims..., gm_params, overlap = rf_params.overlap)
+        args = [(t, dm, gm_params, receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
+
+        for t = 1:k
+            cm = Gen.choicemap()
+            
+            cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
+
+            for i=1:length(receptive_fields)
+                cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
+            end
+            observations[t] = cm
+        end
+    end
+    
+    return observations
+end
+
+function query_from_params(gm_func::Function,
+                           gm_params::AbstractGMParams,
+                           dm_params::AbstractDynamicsModel,
+                           scene_data)
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => isnothing(rf_params) ? extract_assignments : extract_assignments_receptive_fields,
                :causal_graph => extract_causal_graph,
                :trace => extract_trace)
                #:tracker_masks => extract_tracker_masks)
-
     latent_map = LatentMap(_lm)
-
-    gm_params = load(GMParams, gm_params_path, fmasks_decay_function = fmasks_decay_function)
 
     scene_data = load_scene(scene, dataset, gm_params;
                             generate_masks=true,
@@ -33,7 +74,8 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
 
     @show scene_data[:aux_data]
 
-    dm = isnothing(dm) ? scene_data[:dm] : dm
+    #dm = isnothing(dm) ? scene_data[:dm] : dm
+
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
 
@@ -51,32 +93,6 @@ function query_from_params(gm_params_path::T, dataset::T, scene::K, k::K;
     
     receptive_fields = nothing
 
-    # compiling further masks for the model
-    if isnothing(rf_params)
-        args = [(t, dm, gm_params) for t in 1:k]
-
-        observations = Vector{Gen.ChoiceMap}(undef, k)
-        for t = 1:k
-            cm = Gen.choicemap()
-            cm[:kernel => t => :masks] = masks[t]
-            observations[t] = cm
-        end
-    else
-        receptive_fields = get_rectangle_receptive_fields(rf_params.rf_dims..., gm_params, overlap = rf_params.overlap)
-        args = [(t, dm, gm_params, receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
-
-        observations = Vector{Gen.ChoiceMap}(undef, k)
-        for t = 1:k
-            cm = Gen.choicemap()
-            
-            cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
-
-            for i=1:length(receptive_fields)
-                cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
-            end
-            observations[t] = cm
-        end
-    end
    
 
     if isnothing(rf_params)

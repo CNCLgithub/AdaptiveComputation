@@ -1,28 +1,27 @@
 
-@gen static function inertia_kernel(t::Int,
-                                 prev_state::RFState,
-                                 dm::InertiaModel,
-                                 gm::GMParams,
-                                 receptive_fields::Vector{RectangleReceptiveField},
-                                 prob_threshold::Float64)
-    new_cg = @trace(inertial_update(dm, prev_state.cg), :dynamics)
-    dots = @>> get_objects(new_cg, Dot)
-    rfs_vec, flow_masks = get_rfs_vec(receptive_fields, dots, prob_threshold, gm,
-                                      flow_masks=prev_state.flow_masks)
+#@gen static function inertia_kernel(t::Int,
+@gen function inertia_kernel(t::Int, prev_cg::CausalGraph)
+    
+
+    # advancing causal graph according to dynamics
+    # (there is a deepcopy here)
+    cg = @trace(inertial_update(prev_cg), :dynamics) 
+
+    # updating graphics + making a prediction
+    rfs_vec = graphics_update!(cg)
     @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
-    new_state = RFState(new_cg, rfs_vec, flow_masks)
-    return new_state
+
+    return cg
 end
 
-inertia_chain = Gen.Unfold(inertia_kernel)
+@gen static function gm_inertia_mask(k::Int,
+                                     gm::GMParams,
+                                     dm::InertiaModel,
+                                     graphics::Graphics)
 
-@gen static function gm_inertia_mask(k::Int, dm::InertiaModel, gm::GMParams,
-                                 receptive_fields::Vector{RectangleReceptiveField},
-                                 prob_threshold::Float64)
-    init_state = @trace(sample_init_receptive_fields_state(gm, dm), :init_state)
-    states = @trace(inertia_chain(k, init_state, dm, gm,
-                                  receptive_fields, prob_threshold), :kernel)
-    result = (init_state, states, nothing)
+    init_cg = @trace(sample_init_cg(gm, dm, graphics), :init_cg)
+    cgs = @trace(Gen.Unfold(inertia_kernel)(k, init_cg), :kernel)
+    result = (init_cg, cgs)
     return result
 end
 

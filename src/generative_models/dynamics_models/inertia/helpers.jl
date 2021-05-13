@@ -1,47 +1,32 @@
-
-function get_walls(cg::CausalGraph, dm::InertiaModel)
-    @>> walls_idx(dm) begin
-        map(v -> get_prop(cg, v, :object))
+function dynamics_init(dm::InertiaModel, cg::CausalGraph, things::AbstractArray{Any, 1})
+    for w in walls_idx(dm)
+        add_vertex!(cg)
+        set_prop!(cg, w, :object, ws[w])
     end
+    set_prop!(cg, :walls, walls_idx(dm))
+
+    dynamics_update(dm, cg, things)
 end
 
 """
 Takes a list of `Tuple{Polygon, Dot[]}` and creates a new `CausalGraph`
 """
-function process_temp_state(current_state, old_cg::CausalGraph, dm::InertiaModel)
+function dynamics_update(dm::InertiaModel, prev_cg::CausalGraph,
+                         vs::Vector{Int64}, things::AbstractArray{Any, 1})
+    cg = deepcopy(prev_cg)
 
-    cg = CausalGraph(SimpleDiGraph())
-
-    # getting the walls from the previous causal graph
-    ws = get_walls(old_cg, dm) 
-    for w in walls_idx(dm)
-        add_vertex!(cg)
-        set_prop!(cg, w, :object, ws[w])
-    end
-    set_prop!(cg, :walls, walls_idx(dm))
-    
-    for dot in current_state
-        add_vertex!(cg)
-        v = MetaGraphs.nv(cg)
-        set_prop!(cg, v, :object, dot)
+    for (i, thing) in enumerate(things)
+        set_prop!(cg, vs[i], :object, thing)
     end
 
-    #calculate_repulsion!(cg, dm)
     return cg
 end
 
 walls_idx(dm::InertiaModel) = collect(1:4)
 
-function process_temp_state(current_state, gm::GMParams, dm::InertiaModel)
 
-    cg = CausalGraph(SimpleDiGraph())
-
-    # getting the walls from the previous causal graph
-    ws = init_walls(gm)
-    for w in walls_idx(dm)
-        add_vertex!(cg)
-        set_prop!(cg, w, :object, ws[w])
+function get_walls(cg::CausalGraph, dm::InertiaModel)
+    @>> walls_idx(dm) begin
+        map(v -> get_prop(cg, v, :object))
     end
-    set_prop!(cg, :walls, walls_idx(dm))
-    process_temp_state(current_state, cg, dm)
 end
