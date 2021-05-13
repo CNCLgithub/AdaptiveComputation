@@ -21,6 +21,11 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/dm.json"
 
+        "--graphics"
+        help = "Receptive fields parameters"
+        arg_type = String
+        default = "$(@__DIR__)/graphics.json"
+
         "--dataset"
         help = "jld2 dataset path"
         arg_type = String
@@ -96,9 +101,9 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/fixations_dataset.jld2",
-                 "scene" => 1,
+                 "scene" => 100,
                  "chain" => 1,
-                 "time" => 600,
+                 "time" => 300,
                  "restart" => true,
                  "viz" => true])
 
@@ -106,25 +111,20 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
     
-    #att = MOT.UniformAttention(sweeps = 1)
+    scene_data = load_scene(args["scene"], args["dataset"], gm_params;
+                            generate_masks=false, k=1)
+    @show scene_data[:aux_data]
 
-    dm = MOT.load(InertiaModel, args["dm"])
+    gm_params = load(GMParams, args["gm"])
+    dm_params = load(InertiaModel, args["dm"], dm_params_path)
+    graphics_params = load(Graphics, args["graphics"])
 
-    # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (3,2),
-                 overlap = 1,
-                 rf_prob_threshold = 0.01)
-    fmasks_decay_rate = -0.1
-
-    fmasks_decay_function = x -> MOT.default_decay_function(x, fmasks_decay_rate)
-
-    query, gt_causal_graphs, gm_params, receptive_fields = query_from_params(args["gm"], args["dataset"],
-                                                           args["scene"], args["time"],
-                                                           gm = gm_inertia_mask,
-                                                           dm = dm,
-                                                           rf_params = rf_params,
-                                                           fmasks_decay_function = fmasks_decay_function)
-    
+    query = query_from_params(scene_data,
+                              gm_inertia_mask,
+                              gm_params,
+                              dm_params,
+                              graphics_params,
+                              args["time"])
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,

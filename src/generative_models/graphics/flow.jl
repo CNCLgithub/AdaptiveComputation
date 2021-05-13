@@ -1,4 +1,4 @@
-abstract type Flow{T} where {T <: Space} end
+abstract type Flow{T<:Space} end
 
 evolve(::Flow, ::Space) = error("not implemented")
 
@@ -6,11 +6,6 @@ evolve(::Flow, ::Space) = error("not implemented")
 @with_kw struct ExponentialFlow{T} <: Flow{T}
     decay_rate::Float64
     memory::T
-end
-
-function ExponentialFlow(cg::CausalGraph, space::Space)
-    graphics = get_graphics(cg)
-    ExponentialFlow{Space}(graphics.flow_decay_rate, space)
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}

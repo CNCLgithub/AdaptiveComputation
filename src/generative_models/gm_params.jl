@@ -1,3 +1,4 @@
+abstract type AbstractGMParams end
 
 @with_kw struct GMParams <: AbstractGMParams
     n_trackers::Int = 4
@@ -73,7 +74,5 @@ end
 function load(::Type{HGMParams}, path::String)
     HGMParams(;read_json(path)...)
 end
-
-#const default_hgm = HGMParams()
 
 export GMParams, HGMParams

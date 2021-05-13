@@ -6,14 +6,23 @@ get_observations(::AbstractGraphics) = error("not implemented")
 
 @with_kw struct Graphics <: AbstractGraphics
     img_dims::Tuple{Int64, Int64}
-    receptive_fields::Matrix{AbstractReceptiveField}
-    flow_decay_rate::Float64
+    receptive_fields
+    flow
 end
 
-function Graphics(::Type{AbstractReceptiveField},
-                  dims::Tuple{Int64, Int64})
-    error("not implemented")
+function load(::Type{Graphics}, path::String)
+    data = read_json(path)
+    @unpack img_dims, rf_dims, rf_threshold, overlap, decay_rate = data
+    receptive_fields = get_rectangle_receptive_field(rf_dims,
+                                                     img_dims,
+                                                     rf_threshold, overlap)
+    flow = ExponentialFlow(decay_rate, zeros(img_dims))
+
+    Graphics(img_dims, receptive_fields, flow)
 end
+
+
+include("space.jl")
 
 function predict(graphics::Graphics, e::Dot, space::Space)
     BernoulliElement{Array}(graphics.bern_existence_prob, mask, space)
@@ -67,22 +76,10 @@ end
 
 
 
-
-
-
-
 include("utils.jl")
-
 include("shapes.jl")
 include("masks.jl")
 include("receptive_fields/receptive_fields.jl")
-#include("flow_masks/flow_masks.jl")
-
-
 include("flow.jl")
-include("space.jl")
-include("graphical_objects.jl")
-include("graphical_ensemble.jl")
-include("graphical_state.jl")
 
 

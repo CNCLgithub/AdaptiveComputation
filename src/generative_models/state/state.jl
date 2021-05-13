@@ -1,20 +1,3 @@
-abstract type AbstractState end
-
-get_cg(s::AbstractState) = error("ni")
-get_graphical_state(s::AbstractState) = error("ni")
-get_prediction(s::AbstractState) = error("ni")
-
-# classic state
-struct State <: AbstractState
-    cg::CausalGraph
-    graphical_state::GraphicalState
-    prediction
-end
-get_cg(s::State) = s.cg
-get_graphical_state(s::State) = s.graphical_state
-get_prediction(s::State) = s.get_prediction
-
-
 @gen function sample_init_tracker(cg::CausalGraph)::Dot
     @unpack area_width, area_height, dot_radius = (get_gm(cg))
 
@@ -30,15 +13,14 @@ get_prediction(s::State) = s.get_prediction
     return Dot([x,y,z], [vx, vy], dot_radius)
 end
 
-
-@gen function sample_init_trackers(cg::CausalGraph)
+@gen function sample_init_cg(cg::CausalGraph)
     @unpack n_trackers = (get_gm(cg))
     cgs = fill(cg, n_trackers)
     init_trackers = @trace(Gen.Map(sample_init_tracker)(cgs), :trackers)
     ensemble = UniformEnsemble(cg)
+    
+    dynamics_init!(cg, [init_trackers; ensemble])
+    graphics_init!(cg)
 
-    cg = dynamics_init(cg, [init_trackers; ensemble])
-
-
-    graphics_init(cg)
+    return cg
 end

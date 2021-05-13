@@ -1,4 +1,5 @@
 abstract type AbstractReceptiveField end
+abstract type NullReceptiveFields end # used to indicate absence of RF
 
 include("receptive_fields_gen.jl")
 
@@ -21,6 +22,9 @@ struct RectangleReceptiveField <: AbstractReceptiveField
     p2::Tuple{Int64, Int64}
     threshold::Float64
 end
+
+
+RectangleReceptiveFields = Vector{RectangleReceptiveField}
 
 function crop(rf::RectangleReceptiveField,
               mask_distribution::Union{Matrix{Float64}, BitMatrix})
@@ -64,53 +68,6 @@ function get_mask_distributions(objects, gm::GMParams; flow_masks=nothing)
     return (mask_distributions, flow_masks)
 end
 
-
-function get_pmbrfs(rf::AbstractReceptiveField,
-                    mds::Vector{Matrix{Float64}},
-                    graphics::Graphics,
-                    gs::GraphicalState)
-
-    n = length(mds) + 1 # |mbrfs| + 1 for PPP
-    
-    # getting the bernoulli existence probabilities for each object
-    bern_existence_probs = @>> gs begin
-        get_graphical_objects
-        map(get_bern_existence_prob)
-    end
-
-    # getting the individual ppp rate and ppp pixel prob for this rec field
-    ensemble = @>> gs get_graphical_ensemble
-    rf_ppp_rate, rf_ppp_pixel_prob = get_rf_ppp_rate_pixel_prob(ensemble, rf, graphics)
-
-    clutter_mask = fill(rf_ppp_pixel_prob, get_dimensions(rf)...)
-
-    pmbrfs = RFSElements{Array}(undef, n)
-    pmbrfs[1] = PoissonElement{Array}(rf_ppp_rate, mask, (clutter_mask,))
-    for i=2:n
-        pmbrfs[i] = BernoulliElement{Array}(graphics.bern_existence_prob, mask, (mds[i-1],))
-    end
-    
-    return pmbrfs
-end
-                    
-
-# gets the vector of random finite sets for each receptive field
-function predict(graphics::Graphics,
-                 gs::GraphicalState,
-                 gm::AbstractGMParams)
-    
-    # accumulating the flows of individual objects
-    flows = @>> gs get_graphical_objects get_flow
-    mds = @>> flows map(render) # rendering to mask distributions
-    
-    # cropping big masks to receptive fields
-    rec_fields = graphics.receptive_fields
-    mds_rf = @>> rec_fields map(rf -> get_mds_rf(rf, mds))
-    
-    # getting the parameters for the vector of pmbrfs (i.e. prediction)
-    prediction = map(get_pmbrfs, rec_fields,
-                     mds_rf, fill(gs, length(rec_fields)))
-end
 
 
 ###############
@@ -176,7 +133,7 @@ function Graphics(::Type{RectangleReceptiveField},
 
     receptive_fields = get_rectangle_receptive_fields(rf_dims, img_dims, rf_threshold, overlap)
     
-    Graphics(img_dims, receptive_fields, scale)
+    Graphics(img_dims, receptive_fields, flow_decay_rate)
 end
 
 

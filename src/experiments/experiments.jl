@@ -13,39 +13,18 @@ function run_inference(query::SequentialQuery,
 end
 
 
-function get_args(dm_params, gm_params, k,
-                  receptive_fields::Vector{AbstractReceptiveField},
-                  rf_prob_threshold::Float64)
-    args = [(t, dm_params, gm_params,
-             receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
-end
-
-function get_args(dm_params, gm_params, k)
-    args = [(t, dm_params, gm_params) for t in 1:k]
-end
-
-
-function get_observations(masks,
-                          rf_params,
-
+function get_observations(graphics::AbstractGraphics, masks)
+    k = length(cgs)
     observations = Vector{Gen.ChoiceMap}(undef, k)
+    receptive_fields = graphics.receptive_fields
+    
+    for t=1:k
+        cm = Gen.choicemap()
 
-    # compiling further masks for the model
-    if isnothing(rf_params)
-        for t = 1:k
-            cm = Gen.choicemap()
+        if receptive_fields isa NullReceptiveFields
             cm[:kernel => t => :masks] = masks[t]
-            observations[t] = cm
-        end
-    else
-        receptive_fields = get_rectangle_receptive_fields(rf_params.rf_dims..., gm_params, overlap = rf_params.overlap)
-        args = [(t, dm, gm_params, receptive_fields, rf_params.rf_prob_threshold) for t in 1:k]
-
-        for t = 1:k
-            cm = Gen.choicemap()
-            
+        else
             cropped_masks = @>> receptive_fields map(rf -> cropfilter(rf, masks[t]))
-
             for i=1:length(receptive_fields)
                 cm[:kernel => t => :receptive_fields => i => :masks] = cropped_masks[i]
             end
@@ -56,9 +35,27 @@ function get_observations(masks,
     return observations
 end
 
+
+function get_init_constraints(cg::CausalGraph)
+    cm = Gen.choicemap()
+
+    init_dots = get_objects(gt_causal_graphs[1], Dot)
+    for i=1:gm_params.n_trackers
+        addr = :init_state => :trackers => i => :x
+        cm[addr] = init_dots[i].pos[1]
+        addr = :init_state => :trackers => i => :y
+        cm[addr] = init_dots[i].pos[2]
+    end
+
+    return cm
+end
+
+
 function query_from_params(gm_func::Function,
                            gm_params::AbstractGMParams,
                            dm_params::AbstractDynamicsModel,
+                           graphics_params::AbstractGraphics,
+                           k::Int64,
                            scene_data)
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
@@ -74,32 +71,16 @@ function query_from_params(gm_func::Function,
 
     @show scene_data[:aux_data]
 
-    #dm = isnothing(dm) ? scene_data[:dm] : dm
-
     masks = scene_data[:masks]
     gt_causal_graphs = scene_data[:gt_causal_graphs]
+    init_cg = gt_causal_graphs[1]
+    cgs = gt_causal_graphs[2:end]
 
-    # initial observations based on init_positions
-    # model knows where trackers start off
-    constraints = Gen.choicemap()
-    init_dots = get_objects(gt_causal_graphs[1], Dot)
-
-    for i=1:gm_params.n_trackers
-        addr = :init_state => :trackers => i => :x
-        constraints[addr] = init_dots[i].pos[1]
-        addr = :init_state => :trackers => i => :y
-        constraints[addr] = init_dots[i].pos[2]
-    end
-    
-    receptive_fields = nothing
-
-   
-
-    if isnothing(rf_params)
-        init_args = (0, dm, gm_params)
-    else
-        init_args = (0, dm, gm_params, receptive_fields, rf_params.rf_prob_threshold)
-    end
+    init_constraints = get_init_constraints(init_cg)
+    observations = get_observations(graphics_params, masks)
+  
+    init_args = (0, cg)
+    args = [(t,) for t in 1:k]
 
     query = Gen_Compose.SequentialQuery(latent_map,
                                         gm,

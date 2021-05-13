@@ -6,24 +6,26 @@ get_dm(cg::CausalGraph) = get_prop(cg, :dm)
 get_gm(cg::CausalGraph) = get_prop(cg, :gm)
 get_graphics(cg::CausalGraph) = get_prop(cg, :graphics)
 
-function init_cg(gm::AbstractGMParams,
-                dm::AbstractDynamicsModel,
-                graphics::AbstractGraphics)
+#function init_cg(gm::AbstractGMParams, dm::AbstractDynamicsModel, graphics::AbstractGraphics)
+# idk how to properly solve this interdependence conflict CausalGraph <-> params
+function init_cg(gm, dm, graphics)
 
     cg = CausalGraph(SimpleDiGraph())
-    set_prop!(cg, :gm) = gm
-    set_prop!(cg, :dm) = dm
-    set_prop!(cg, :graphics) = graphics
+    set_prop!(cg, :gm, gm)
+    set_prop!(cg, :dm, dm)
+    set_prop!(cg, :graphics, graphics)
 
     return cg
 end
 
-function dynamics_init(cg::CausalGraph, trackers::Vector{Object})
-    cg = dynamics_init(get_dm(cg), cg, trackers)
+function dynamics_init!(cg::CausalGraph, trackers::Vector{Object})
+    dynamics_init!(get_dm(cg), cg, trackers)
+    return cg
 end
 
-function dynamics_update(cg::CausalGraph, trackers::Vector{Object})
-    cg = dynamics_update(get_dm(cg), cg, trackers)
+function dynamics_update!(cg::CausalGraph, trackers::Vector{Object})
+    dynamics_update!(get_dm(cg), cg, trackers)
+    return cg
 end
 
 # assuming first N vertices are walls

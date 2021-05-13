@@ -1,19 +1,20 @@
 
 #@gen static function inertia_kernel(t::Int,
 @gen function inertia_kernel(t::Int, prev_cg::CausalGraph)
-    
 
     # advancing causal graph according to dynamics
     # (there is a deepcopy here)
     cg = @trace(inertial_update(prev_cg), :dynamics) 
 
-    # updating graphics + making a prediction
+    # updating graphics + getting parameters for the prediction
     rfs_vec = graphics_update!(cg)
+    
     @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
 
     return cg
 end
 
+#@gen static function gm_inertia_mask(k::Int,
 @gen static function gm_inertia_mask(k::Int,
                                      gm::GMParams,
                                      dm::InertiaModel,

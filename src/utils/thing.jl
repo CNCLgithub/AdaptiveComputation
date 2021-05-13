@@ -1,12 +1,8 @@
 export Object,
-        Dot,
-        BDot
+        Dot
 
-# objects are things that dynamics models and generative processes
-# work over (e.g. Dot)
 abstract type Thing end
 abstract type Object <: Thing end
-abstract type Ensemble <: Thing end
 
 @with_kw struct Dot <: Object
     pos::Vector{Float64} = zeros(3)
@@ -18,25 +14,11 @@ abstract type Ensemble <: Thing end
     height::Float64 = 40.0
 end
 
-@with_kw struct Pylon <: Object
-    pos::Vector{Float64} = zeros(3)
-    radius::Float64 = 40.0
-    strength::Float64 = 10.0
-end
-
-Dot(pos::Vector{Float64}, vel::Vector{Float64}) = Dot(pos = pos, vel = vel)
-Dot(pos::Vector{Float64}, vel::Vector{Float64}, radius::Float64) = Dot(pos = pos, vel = vel,
-                                                                       radius = radius,
-                                                                       width = radius*2,
-                                                                       height = radius*2)
-
-# dot with bearing
-mutable struct BDot <: Object
-    pos::Vector{Float64}
-    bearing::Float64
-    vel::Float64
-end
-
+# Dot(pos::Vector{Float64}, vel::Vector{Float64}) = Dot(pos = pos, vel = vel)
+# Dot(pos::Vector{Float64}, vel::Vector{Float64}, radius::Float64) = Dot(pos = pos, vel = vel,
+                                                                       # radius = radius,
+                                                                       # width = radius*2,
+                                                                       # height = radius*2)
 
 @with_kw struct Wall <: Object
     p1::Vector{Float64}
@@ -44,9 +26,7 @@ end
     n::Vector{Float64} # wall normal
 end
 
-
 abstract type Polygon <: Object end
-
 
 @with_kw mutable struct NGon <: Polygon
     pos::Vector{Float64}
@@ -66,7 +46,6 @@ get_pos(w::Wall) = (w.p2.+w.p1)/2
 get_pos(d::Dot) = d.pos
 get_pos(p::Polygon) = p.pos
 
-#nv(p::Polygon)::Int64
 nv(p::NGon) = p.nv
 nv(p::UGon) = 1
 
@@ -74,12 +53,14 @@ radius(p::NGon) = p.radius
 radius(p::UGon) = 0
 
 
-struct UniformEnsemble
+abstract type Ensemble <: Thing end
+
+struct UniformEnsemble <: Ensemble
     rate::Float64
     pixel_prob::Float64
 end
 
-function UniformEnsemble(cg::CausalGraph)
+function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
     pixel_prob = (gm.dot_radius*pi^2)/prod(graphics.img_width)

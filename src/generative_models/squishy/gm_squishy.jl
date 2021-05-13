@@ -1,11 +1,8 @@
 
 include("helpers.jl")
 
-@gen function sample_init_polygon(hgm)
-    
-    #n_dots = @trace(categorical([0.5; fill((1-0.5)/5, 5)]), :n_dots)
-
-    @unpack max_vertices, init_pos_spread, dist_pol_verts = hgm
+@gen function sample_init_polygon(cg::CausalGraph)::Polygon
+    @unpack max_vertices, init_pos_spread, dist_pol_verts = (get_gm(cg))
     n_dots = @trace(Gen.categorical(fill(1.0/max_vertices, max_vertices)), :n_dots)
     
     x = @trace(uniform(-init_pos_spread, init_pos_spread), :x)
@@ -44,49 +41,27 @@ include("helpers.jl")
     end
 end
 
+@gen function sample_init_squishy_cg(cg::CausalGraph)
+    @unpack n_trackers = (get_gm(cg))
+    cgs = fill(cg, n_trackers)
+    init_trackers = @trace(Gen.Map(sample_init_polygon)(cgs), :polygons)
+    ensemble = UniformEnsemble(cg)
 
-@gen function sample_init_squishy_state(hgm::HGMParams,
-                                        dm::SquishyDynamicsModel)
-
-    hgm_trackers = fill(hgm, hgm.n_trackers)
-    ws = init_walls(hgm)
-    current_state = @trace(Gen.Map(sample_init_polygon)(hgm_trackers), :polygons)
-    
-    cg = process_temp_state(current_state, hgm, dm)
-    pmbrfs = RFSElements{Array}(undef, 0)
-
-    if hgm.fmasks
-        fmasks = Array{Matrix{Float64}}(undef, hgm.n_trackers, hgm.fmasks_n)
-        for i=1:hgm.n_trackers
-            for j=1:hgm.fmasks_n
-                fmasks[i,j] = zeros(hgm.img_height, hgm.img_width)
-            end
-        end
-        flow_masks = FlowMasks(fmasks,
-                               hgm.fmasks_decay_function)
-    else
-        flow_masks = nothing
-    end
+    dynamics_init!(cg, [init_trackers; ensemble])
+    graphics_init!(cg)
 
     return State(cg, pmbrfs, flow_masks)
 end
 
-
-@gen function squishy_gm_pos_kernel(t::Int,
-                                    prev_state::State,
-                                    dm::AbstractDynamicsModel,
-                                    hgm::HGMParams)
-    new_cg = @trace(squishy_update(dm, prev_state.cg, hgm), :dynamics)
-    pmbrfs = prev_state.rfs # pass along this reference for effeciency
-    new_state = State(new_cg, pmbrfs, nothing)
-    return new_state
+@gen function squishy_gm_pos_kernel(t::Int, prev_cg::CausalGraph)
+    cg = @trace(squishy_update(prev_cg), :dynamics) # deepcopy inside
+    return cg
 end
 
 @gen function squishy_gm_pos(k::Int,
-                             dm::SquishyDynamicsModel,
-                             hgm::HGMParams)
-    init_state = @trace(sample_init_squishy_state(hgm, dm), :init_state)
-    states = @trace(Gen.Unfold(squishy_gm_pos_kernel)(k, init_state, dm, hgm), :kernel)
+                             cg::CausalGraph)
+    init_cg = @trace(sample_init_squishy_cg(cg), :init_state)
+    cgs = @trace(Gen.Unfold(squishy_gm_pos_kernel)(k, init_cg), :kernel)
     result = (init_state, states)
     return result
 end
