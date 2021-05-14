@@ -8,9 +8,10 @@ get_graphics(cg::CausalGraph) = get_prop(cg, :graphics)
 
 #function init_cg(gm::AbstractGMParams, dm::AbstractDynamicsModel, graphics::AbstractGraphics)
 # idk how to properly solve this interdependence conflict CausalGraph <-> params
-function init_cg(gm, dm, graphics)
+function get_init_cg(gm, dm, graphics)
 
     cg = CausalGraph(SimpleDiGraph())
+
     set_prop!(cg, :gm, gm)
     set_prop!(cg, :dm, dm)
     set_prop!(cg, :graphics, graphics)
@@ -18,12 +19,12 @@ function init_cg(gm, dm, graphics)
     return cg
 end
 
-function dynamics_init!(cg::CausalGraph, trackers::Vector{Object})
-    dynamics_init!(get_dm(cg), cg, trackers)
+function dynamics_init!(cg::CausalGraph, trackers::Vector{Thing})
+    dynamics_init!(get_dm(cg), get_gm(cg), cg, trackers)
     return cg
 end
 
-function dynamics_update!(cg::CausalGraph, trackers::Vector{Object})
+function dynamics_update!(cg::CausalGraph, trackers::Vector{Thing})
     dynamics_update!(get_dm(cg), cg, trackers)
     return cg
 end
@@ -63,5 +64,6 @@ get_objects(cg::CausalGraph, type::Type) = @>> cg begin
 end
 
 function get_object_verts(cg::CausalGraph, type::Type)
-    filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa type)
+    vs = filter_vertices(cg, (g, v) -> get_prop(g, v, :object) isa type)
+    collect(vs)
 end

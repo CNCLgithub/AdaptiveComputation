@@ -20,9 +20,11 @@ end
 
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
     args = get_args(first(pf_state.traces))
-    t, motion, gm = args
-
+    t, gm, dm, graphics = args
+    
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
+    
+    @show pf_state.log_weights
 
     rtrace.stats = get_stats(attention, pf_state) # TODO implement TD for receptive_fields
     #rtrace.stats = zeros(gm.n_trackers)

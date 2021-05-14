@@ -4,7 +4,7 @@ abstract type NullReceptiveFields end # used to indicate absence of RF
 include("receptive_fields_gen.jl")
 
 function crop(rf::AbstractReceptiveField,
-              mask_distribution::Union{Matrix{Float64}, BitMatrix})
+              space::Space)
     println("not implemented")
 end
 
@@ -27,10 +27,10 @@ end
 RectangleReceptiveFields = Vector{RectangleReceptiveField}
 
 function crop(rf::RectangleReceptiveField,
-              mask_distribution::Union{Matrix{Float64}, BitMatrix})
-    cs = CartesianIndices(size(mask_distribution))
+              space::Space)
+    cs = CartesianIndices(size(space))
     idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    mask_distribution[idxs]
+    space[idxs]
 end
 
 """
@@ -41,15 +41,8 @@ function get_dimensions(rf::RectangleReceptiveField)
     return (h, w)
 end
 
-# gets the mask distributions for a given receptive field
-function get_mds_rf(rf::AbstractReceptiveField,
-                    mds::Vector{Matrix{Float64}},
-                    rf_threshold::Float64)
-    error("not implemented")
-end
-
 function get_mds_rf(rf::RectangleReceptiveField,
-                    mds::Vector{Matrix{Float64}})
+                    mds::Vector{Space})
     # cropping masks to receptive fields and filtering only with mass
     @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> rf.threshold))
 end
@@ -117,7 +110,7 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
     w, h = ceil.(Int64, img_dims ./ rf_dims)
 
     # first index is the row (height) and second index is the col (width)
-    rf_cidx = CartesianIndices((n_y, n_x))
+    rf_cidx = CartesianIndices(reverse(rf_dims))
     @>> rf_cidx begin
         vec
         map(cidx -> get_rectangle_receptive_field(cidx, w, h, img_dims, rf_threshold, overlap))

@@ -1,35 +1,29 @@
 export get_masks,
         draw_dot_mask,
         draw_gaussian_dot_mask,
-        translate_area_to_img
+        translate_area_to_img,
+        generate_masks
 
 # translates coordinate from euclidean to image space
-function translate_area_to_img(x, y, img_height, img_width,
-                               area_height, area_width;
-                               whole_number=true)
+function translate_area_to_img(x, y, img_width, img_height,
+                               area_width, area_height)
 
     x *= img_width/area_width
     x += img_width/2
-    if whole_number
-        x = round(Int, x)
-    end
 
     # inverting y
     y *= -1 * img_height/area_height
     y += img_height/2
-    if whole_number
-        y = round(Int, y)
-    end
     
     return x, y
 end
 
 
 # draws a dot
-function draw_dot_mask(pos, r, h, w, ah, aw)
-    x, y = translate_area_to_img(pos[1], pos[2], h, w, ah, aw)
+function draw_dot_mask(pos, r, w, h, aw, ah)
+    x, y = translate_area_to_img(pos[1], pos[2], w, h, aw, ah)
     
-    mask = BitArray{2}(zeros(h, w))
+    mask = BitMatrix(zeros(h, w))
 
     radius = ceil(r * w / aw)
     draw_circle!(mask, [x,y], radius, true)
@@ -53,7 +47,7 @@ drawing a gaussian dot with two components:
     and giving some gradient if the tracker is completely off
 """
 function draw_gaussian_dot_mask(center::Vector{Float64},
-                                r::Real, h::Int, w::Int,
+                                r::Real, w::Int, h::Int,
                                 gauss_r_multiple::Float64,
                                 gauss_amp::Float64, gauss_std::Float64)
     scaled_sd = r * gauss_std
@@ -85,10 +79,13 @@ end
     ;
     background - true if you want background masks
 """
-function get_masks(cgs::Vector{CausalGraph}, gm;
+function get_masks(cgs::Vector{CausalGraph},
+                   graphics::AbstractGraphics,
+                   gm::AbstractGMParams;
                    background=false)
+
     k = length(cgs)
-    masks = Vector{Vector{BitArray{2}}}(undef, k)
+    masks = Vector{Vector{BitMatrix}}(undef, k)
     
     for t=1:k
         print("get_masks timestep: $t / $k \r")
@@ -99,15 +96,15 @@ function get_masks(cgs::Vector{CausalGraph}, gm;
         positions = positions[depth_perm]
 
         # initially empty image
-        img_so_far = BitArray{2}(zeros(gm.img_height, gm.img_width))
+        img_so_far = BitArray{2}(zeros(reverse(graphics.img_dims)))
         
         n_objects = size(positions,1)
         masks_t = Vector{BitMatrix}(undef, n_objects)
 
         for i=1:n_objects
             mask = draw_dot_mask(positions[i], gm.dot_radius,
-                                 gm.img_height, gm.img_width,
-                                 gm.area_height, gm.area_width)
+                                 graphics.img_dims...,
+                                 gm.area_width, gm.area_height)
             mask[img_so_far] .= false
             masks_t[i] = mask
             img_so_far .|= mask
@@ -129,3 +126,34 @@ function get_masks(cgs::Vector{CausalGraph}, gm;
     return masks
 end
 
+
+function generate_masks(cgs::Vector{CausalGraph},
+                        graphics::AbstractGraphics,
+                        gm::AbstractGMParams)
+    k = length(cgs)
+    bit_masks = get_masks(cgs, graphics, gm)
+    # time x receptive_field x object
+    bit_masks_rf = Vector{Vector{Vector{BitMatrix}}}(undef, k)
+
+    vs = @> first(cgs) begin
+        filter_vertices((g, v) -> get_prop(g, v, :object) isa Dot)
+        collect
+    end
+    
+    init_memory = zeros(reverse(graphics.img_dims))
+    decay_rate = graphics.flow_decay_rate
+    flows = @>> vs map(v -> ExponentialFlow(decay_rate, init_memory))
+
+    for t=1:k
+        for i=1:length(bit_masks[t])
+            flows[i] = evolve(flows[i], convert(Matrix{Float64}, bit_masks[t][i])) # evolve the flow
+            bit_masks[t][i] = mask(flows[i].memory) # mask is the composed flow thing
+        end
+        
+        bit_masks_rf[t] = @>> graphics.receptive_fields begin
+            map(rf -> cropfilter(rf, bit_masks[t]))
+        end
+    end
+
+    bit_masks_rf
+end

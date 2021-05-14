@@ -10,10 +10,12 @@
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
 
-    return Dot([x,y,z], [vx, vy], dot_radius)
+    return Dot(pos=[x,y,z], vel=[vx, vy], radius=dot_radius)
 end
 
-@gen function sample_init_cg(cg::CausalGraph)
+@gen function sample_init_state(cg::CausalGraph)
+    cg = deepcopy(cg)
+
     @unpack n_trackers = (get_gm(cg))
     cgs = fill(cg, n_trackers)
     init_trackers = @trace(Gen.Map(sample_init_tracker)(cgs), :trackers)

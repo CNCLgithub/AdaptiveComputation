@@ -1,4 +1,5 @@
 abstract type Flow{T<:Space} end
+abstract type NullFlow end
 
 evolve(::Flow, ::Space) = error("not implemented")
 

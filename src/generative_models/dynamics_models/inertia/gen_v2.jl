@@ -1,5 +1,7 @@
 
-@gen function inertial_step(dm::InertiaModel, dot::Dot)
+@gen function inertial_step(cg::CausalGraph, v::Int64)
+    dot = get_prop(cg, v, :object)
+    dm = get_dm(cg)
 
     _x, _y, z = dot.pos
     _vx, _vy = dot.vel
@@ -37,14 +39,14 @@ end
 
 
 @gen function inertial_update(cg::CausalGraph)
-    #dots = get_objects(cg, Dot)
+    cg = deepcopy(cg)
     vs = get_object_verts(cg, Dot)
+
     cgs = fill(cg, length(vs))
     things = @trace(Map(inertial_step)(cgs, vs), :brownian)
-    dm = get_dm(cg)
-    new_cg = dynamics_update(dm, cg, vs, things)
+    dynamics_update!(get_dm(cg), cg, things)
 
-    return new_cg
+    return cg
 end
 
 export InertiaModel

@@ -1,6 +1,7 @@
 using CSV
 using MOT
 using ArgParse
+using Setfield
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -98,12 +99,13 @@ function main()
     #args = parse_commandline()
     args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
                  "dm" => "$(@__DIR__)/dm.json",
+                 "graphics" => "$(@__DIR__)/graphics.json",
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/fixations_dataset.jld2",
-                 "scene" => 100,
+                 "scene" => 1,
                  "chain" => 1,
-                 "time" => 300,
+                 "time" => 20,
                  "restart" => true,
                  "viz" => true])
 
@@ -111,20 +113,31 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields)
     
-    scene_data = load_scene(args["scene"], args["dataset"], gm_params;
-                            generate_masks=false, k=1)
-    @show scene_data[:aux_data]
+    scene_data = load_scene(args["scene"], args["dataset"])
+    k = args["time"]
+    gt_cgs = scene_data[:gt_causal_graphs][1:k]
+    aux_data = scene_data[:aux_data]
+    @show aux_data
 
-    gm_params = load(GMParams, args["gm"])
-    dm_params = load(InertiaModel, args["dm"], dm_params_path)
-    graphics_params = load(Graphics, args["graphics"])
+    gm_params = MOT.load(GMParams, args["gm"])
+    @set gm_params.n_trackers = count(aux_data[:targets])
+    @set gm_params.distractor_rate = count(iszero, aux_data[:targets])
 
-    query = query_from_params(scene_data,
+    dm_params = MOT.load(InertiaModel, args["dm"])
+    @set dm_params.vel = aux_data[:vel_avg]
+
+    graphics_params = MOT.load(Graphics, args["graphics"])
+    masks = generate_masks(gt_cgs,
+                           graphics_params,
+                           gm_params)
+
+    query = query_from_params(gt_cgs,
+                              masks,
                               gm_inertia_mask,
                               gm_params,
                               dm_params,
                               graphics_params,
-                              args["time"])
+                              k)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,

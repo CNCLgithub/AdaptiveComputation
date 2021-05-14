@@ -15,14 +15,13 @@
 end
 
 #@gen static function gm_inertia_mask(k::Int,
-@gen static function gm_inertia_mask(k::Int,
-                                     gm::GMParams,
-                                     dm::InertiaModel,
-                                     graphics::Graphics)
-
-    init_cg = @trace(sample_init_cg(gm, dm, graphics), :init_cg)
-    cgs = @trace(Gen.Unfold(inertia_kernel)(k, init_cg), :kernel)
-    result = (init_cg, cgs)
+@gen function gm_inertia_mask(k::Int,
+                              gm, dm, graphics)
+    
+    cg = get_init_cg(gm, dm, graphics)
+    init_state = @trace(sample_init_state(cg), :init_state)
+    states = @trace(Gen.Unfold(inertia_kernel)(k, init_state), :kernel)
+    result = (init_state, states)
     return result
 end
 

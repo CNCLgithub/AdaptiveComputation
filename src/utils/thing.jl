@@ -23,7 +23,20 @@ end
 @with_kw struct Wall <: Object
     p1::Vector{Float64}
     p2::Vector{Float64}
-    n::Vector{Float64} # wall normal
+end
+
+
+function init_walls(area_width::Int64, area_height::Int64)
+    ws = Vector{Wall}(undef, 4)
+    ps = Iterators.product([-area_width/2, +area_width/2], [-area_height/2, +area_height/2])
+    ps = @>> ps map(x -> [x[1], x[2]]) vec
+    combs = [[1,2], [1,3], [2,4], [3,4]]
+    for i=1:4
+        p1 = ps[combs[i][1]]
+        p2 = ps[combs[i][2]]
+        ws[i] = Wall(p1, p2)
+    end
+    return ws
 end
 
 abstract type Polygon <: Object end
@@ -63,6 +76,8 @@ end
 function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
-    pixel_prob = (gm.dot_radius*pi^2)/prod(graphics.img_width)
+    pixel_prob = (gm.dot_radius*pi^2)/prod(graphics.img_dims[1])
     UniformEnsemble(gm.distractor_rate, pixel_prob)
 end
+
+get_pos(e::UniformEnsemble) = [0,0,-Inf]
