@@ -134,10 +134,11 @@ end
  crop masks to receptive fields and then
  filter so each mask is non zero
 """
-function cropfilter(rf, masks)
+function cropfilter(rf, masks::Vector{BitMatrix})
     @>> masks begin
         map(mask -> crop(rf, mask))
-        filter(mask -> !iszero(sum(mask)))
+        #filter(mask -> !iszero(sum(mask)))
+        filter(mask -> sum(mask) > 0)
     end
 end
 

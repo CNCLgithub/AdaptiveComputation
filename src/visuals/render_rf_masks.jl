@@ -43,8 +43,8 @@ function get_rf_masks(cgs::Vector{CausalGraph}, t::Int64, rf::Int64,
 
     vs = get_prop(cgs[t], :graphics_vs)
     rf_masks = @>> vs begin
-        map(v -> get_prop(cg, v, :space))
-        cropfilter(rf)
+        map(v -> get_prop(cgs[t], v, :space))
+        cropfilter(receptive_fields[rf])
     end
     push!(rf_masks, init_rf_mask)
     return rf_masks
@@ -64,21 +64,22 @@ function get_rf_masks(choices::ChoiceMap, t::Int64, rf::Int64,
     return rf_masks
 end
 
-function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64, gm::AbstractGMParams,
-                         receptive_fields::Vector{RectangleReceptiveField}, out_dir::String)
+function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
+                         gm::AbstractGMParams,
+                         graphics::AbstractGraphics,
+                         out_dir::String)
     
-    masks = @>> 1:length(receptive_fields) begin
-        map(rf -> get_rf_masks(data, t, rf, receptive_fields))
+    masks = @>> 1:length(graphics.receptive_fields) begin
+        map(rf -> get_rf_masks(data, t, rf, graphics.receptive_fields))
     end
 
     aggregated_masks = @>> masks begin
         map(rf_masks -> _aggregate_masks(rf_masks))
         collect(Matrix{Float64})
     end
+    img = get_img(aggregated_masks, graphics.receptive_fields)
 
-    img = get_img(aggregated_masks, receptive_fields)
-    
-    img_resized = imresize(img, ratio=gm.area_width/size(img, 1))
+    #img = imresize(img, ratio=gm.area_width/size(img, 1))
     path = joinpath(out_dir, "$t.png")
-    save(path, img_resized)
+    save(path, img)
 end

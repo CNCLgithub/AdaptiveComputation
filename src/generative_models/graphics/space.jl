@@ -6,6 +6,7 @@ function render!(cg::CausalGraph)
     spaces = render!(cg, graphics)
 end
 
+
 function render!(cg::CausalGraph, graphics::Graphics)
     vs = get_prop(cg, :graphics_vs)
     depth_perm = get_depth_perm(cg, vs)
@@ -17,6 +18,14 @@ function render!(cg::CausalGraph, graphics::Graphics)
     for (i, space) in enumerate(spaces)
         set_prop!(cg, vs[i], :space, space)
     end
+    
+    # TODO remove
+    spaces_resized = @>> spaces map(s -> imresize(s, ratio=get_gm(cg).area_width/size(s, 1)))
+    @>> 1:length(spaces) begin
+        foreach(i-> save("testing_refactor/prediction/$i.png", spaces_resized[i]))
+    end
+    #render_rf_masks([cg], 1, get_gm(cg), graphics, joinpath("testing_refactor", "prediction"))
+
     return spaces
 end
 
@@ -60,7 +69,7 @@ function compose!(spaces::Vector{Space}, cg::CausalGraph, depth_perm::Vector{Int
     for i in depth_perm
         spaces[i] -= canvas
         canvas += spaces[i]
-        clamp!(spaces[i], 0.0, 1.0)
+        clamp!(spaces[i], 1e-10, 1.0 - 1e-10)
     end
 
     return nothing

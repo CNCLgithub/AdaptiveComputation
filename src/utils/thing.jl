@@ -76,7 +76,7 @@ end
 function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
-    pixel_prob = (gm.dot_radius*pi^2)/prod(graphics.img_dims[1])
+    pixel_prob = (gm.dot_radius*pi^2)/(gm.area_width * gm.area_height)
     UniformEnsemble(gm.distractor_rate, pixel_prob)
 end
 

@@ -24,8 +24,9 @@ function draw_dot_mask(pos, r, w, h, aw, ah)
     x, y = translate_area_to_img(pos[1], pos[2], w, h, aw, ah)
     
     mask = BitMatrix(zeros(h, w))
-
+    
     radius = ceil(r * w / aw)
+
     draw_circle!(mask, [x,y], radius, true)
     
     return mask
@@ -79,10 +80,10 @@ end
     ;
     background - true if you want background masks
 """
-function get_masks(cgs::Vector{CausalGraph},
-                   graphics::AbstractGraphics,
-                   gm::AbstractGMParams;
-                   background=false)
+function get_bit_masks(cgs::Vector{CausalGraph},
+                       graphics::AbstractGraphics,
+                       gm::AbstractGMParams;
+                       background=false)
 
     k = length(cgs)
     masks = Vector{Vector{BitMatrix}}(undef, k)
@@ -131,7 +132,7 @@ function generate_masks(cgs::Vector{CausalGraph},
                         graphics::AbstractGraphics,
                         gm::AbstractGMParams)
     k = length(cgs)
-    bit_masks = get_masks(cgs, graphics, gm)
+    bit_masks = get_bit_masks(cgs, graphics, gm)
     # time x receptive_field x object
     bit_masks_rf = Vector{Vector{Vector{BitMatrix}}}(undef, k)
 

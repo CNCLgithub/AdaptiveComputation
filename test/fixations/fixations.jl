@@ -130,6 +130,7 @@ function main()
     masks = generate_masks(gt_cgs,
                            graphics_params,
                            gm_params)
+    
 
     query = query_from_params(gt_cgs,
                               masks,

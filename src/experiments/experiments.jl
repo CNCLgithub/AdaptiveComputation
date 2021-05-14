@@ -76,6 +76,12 @@ function query_from_params(gt_causal_graphs,
 
     init_constraints = get_init_constraints(init_gt_cg)
     observations = get_observations(graphics_params, masks)
+
+    path = "testing_refactor"
+    for t=1:k
+        render_rf_masks(observations[t], t, gm_params, graphics_params,
+                        joinpath(path, "obs_rf_masks"))
+    end
     
     init_args = (0, gm_params, dm_params, graphics_params)
     args = [(t, gm_params, dm_params, graphics_params) for t in 1:k]
