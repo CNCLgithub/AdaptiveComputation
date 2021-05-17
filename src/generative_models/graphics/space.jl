@@ -18,13 +18,6 @@ function render!(cg::CausalGraph, graphics::Graphics)
     for (i, space) in enumerate(spaces)
         set_prop!(cg, vs[i], :space, space)
     end
-    
-    # TODO remove
-    spaces_resized = @>> spaces map(s -> imresize(s, ratio=get_gm(cg).area_width/size(s, 1)))
-    @>> 1:length(spaces) begin
-        foreach(i-> save("testing_refactor/prediction/$i.png", spaces_resized[i]))
-    end
-    #render_rf_masks([cg], 1, get_gm(cg), graphics, joinpath("testing_refactor", "prediction"))
 
     return spaces
 end
