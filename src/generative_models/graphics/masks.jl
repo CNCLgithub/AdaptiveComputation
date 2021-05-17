@@ -127,7 +127,7 @@ end
 
 
 function generate_masks(cgs::Vector{CausalGraph},
-                        graphics::AbstractGraphics,
+                        graphics::Graphics,
                         gm::AbstractGMParams)
     k = length(cgs)
     bit_masks = get_bit_masks(cgs, graphics, gm)
@@ -138,10 +138,12 @@ function generate_masks(cgs::Vector{CausalGraph},
         filter_vertices((g, v) -> get_prop(g, v, :object) isa Dot)
     end
 
-    init_memory = zeros(reverse(graphics.img_dims))
+    @unpack img_dims, flow_decay_rate, gauss_amp = graphics
     decay_rate = graphics.flow_decay_rate
     flows = @>> vs begin
-        map(v -> ExponentialFlow(decay_rate, init_memory))
+        map(v -> ExponentialFlow(decay_rate,
+                                 zeros(reverse(img_dims)),
+                                 gauss_amp))
         collect(ExponentialFlow)
     end
 

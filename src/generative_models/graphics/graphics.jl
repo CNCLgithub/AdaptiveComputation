@@ -53,6 +53,11 @@ function predict(graphics::Graphics, e::UniformEnsemble, space::Space)
 end
 
 function graphics_init!(cg::CausalGraph)
+    g = get_graphics(cg)
+    graphics_init!(cg, g)
+end
+
+function graphics_init!(cg::CausalGraph, graphics::Graphics)
     vs = @> cg begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa
                         Union{Dot, UniformEnsemble})

@@ -42,7 +42,7 @@ function render!(cg::CausalGraph, v::Int64, d::Dot)
         flow = evolve(get_prop(cg, v, :flow), space)
     else
         @unpack flow_decay_rate = (get_prop(cg, :graphics))
-        flow = ExponentialFlow(flow_decay_rate, space)
+        flow = ExponentialFlow(flow_decay_rate, space, gauss_amp)
     end
     set_prop!(cg, v, :flow, flow)
     
