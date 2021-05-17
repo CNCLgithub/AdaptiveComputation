@@ -13,25 +13,19 @@ function run_inference(query::SequentialQuery,
 end
 
 
-function get_observations(graphics::AbstractGraphics, masks)
-    k = length(masks)
+function get_observations(graphics::Graphics, masks)
+    k = size(masks, 1)
     observations = Vector{Gen.ChoiceMap}(undef, k)
-    receptive_fields = graphics.receptive_fields
+    @unpack receptive_fields = graphics
     
     for t=1:k
         cm = Gen.choicemap()
-
-        if receptive_fields isa NullReceptiveFields
-            cm[:kernel => t => :masks] = masks[t]
-        else
-            for i=1:length(receptive_fields)
-                cm[:kernel => t => :receptive_fields => i => :masks] = masks[t][i]
-            end
+        for i=1:length(receptive_fields)
+            @debug "# of masks for rf $(i): $(length(masks[t][i]))"
+            cm[:kernel => t => :receptive_fields => i => :masks] = masks[t][i]
         end
-
         observations[t] = cm
     end
-    
     return observations
 end
 
@@ -51,11 +45,10 @@ end
 
 
 function query_from_params(gt_causal_graphs,
-                           masks,
                            generative_model,
                            gm_params::AbstractGMParams,
                            dm_params::AbstractDynamicsModel,
-                           graphics_params::AbstractGraphics,
+                           graphics_params::Graphics,
                            k::Int64)
     
     if graphics_params.receptive_fields isa NullReceptiveFields
@@ -63,6 +56,7 @@ function query_from_params(gt_causal_graphs,
     else
         assignments_func = extract_assignments_receptive_fields
     end
+
 
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => assignments_func,
@@ -75,13 +69,23 @@ function query_from_params(gt_causal_graphs,
     gt_cgs = gt_causal_graphs[2:end]
 
     init_constraints = get_init_constraints(init_gt_cg)
+
+
+    masks = generate_masks(gt_causal_graphs,
+                           graphics_params,
+                           gm_params)
     observations = get_observations(graphics_params, masks)
 
-    path = "testing_refactor"
-    for t=1:k
-        render_rf_masks(observations[t], t, gm_params, graphics_params,
-                        joinpath(path, "obs_rf_masks"))
-    end
+    ms = observations[1][:kernel => 1 => :receptive_fields => 1 => :masks]
+    @debug "number of masks $(length(ms))"
+
+    path = "output/testing_refactor"
+    # for t=1:k
+    #     render_rf_masks(observations[t], t, gm_params, graphics_params,
+    #                     joinpath(path, "obs_rf_masks"))
+    # end
+    ms = observations[1][:kernel => 1 => :receptive_fields => 1 => :masks]
+    @debug "number of masks $(length(ms))"
     
     init_args = (0, gm_params, dm_params, graphics_params)
     args = [(t, gm_params, dm_params, graphics_params) for t in 1:k]
@@ -92,6 +96,13 @@ function query_from_params(gt_causal_graphs,
                                         init_constraints,
                                         args,
                                         observations)
+
+
+
+
+    q = first(query)
+    ms = q.observations[:kernel => 1 => :receptive_fields => 1 => :masks]
+    @debug "number of masks $(length(ms))"
     
     return query
 end

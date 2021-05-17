@@ -16,25 +16,8 @@ b_pdf(x::Bool, p::Float64) = Gen.logpdf(bernoulli, x, p)
 
 using UnicodePlots
 function Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64})
+    @assert sum(image) > 0
     lpdf = sum(b_pdf.(image, ps))
-    
-    @show lpdf
-    mat = reverse(ps, dims = 1)
-    println(UnicodePlots.heatmap(mat,
-                    title = "ps",
-                    border = :none,
-                    colorbar_border = :none,
-                    colormap = :inferno
-                    ))
-    mat = reverse(image, dims = 1)
-    println(UnicodePlots.heatmap(mat,
-                    title = "image",
-                    border = :none,
-                    colorbar_border = :none,
-                    colormap = :inferno
-                    ))
-
-    return lpdf
 end
 
 (::Mask)(ps) = Gen.random(Mask(), ps)

@@ -66,6 +66,35 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
 end
 
 
+function get_bit_masks(cg::CausalGraph,
+                       graphics::Graphics,
+                       gm::AbstractGMParams)
+
+    positions = @>> get_objects(cg, Dot) map(x -> x.pos)
+
+    # sorting according to depth
+    depth_perm = sortperm(map(x->x[3], positions))
+    positions = positions[depth_perm]
+
+    # initially empty image
+    img_so_far = BitArray{2}(zeros(reverse(graphics.img_dims)))
+
+    n_objects = size(positions,1)
+    masks = Vector{BitMatrix}(undef, n_objects)
+
+    for i=1:n_objects
+        mask = draw_dot_mask(positions[i], gm.dot_radius,
+                             graphics.img_dims...,
+                             gm.area_width, gm.area_height)
+        mask[img_so_far] .= false
+        masks[i] = mask
+        img_so_far .|= mask
+    end
+
+    masks = masks[invperm(depth_perm)]
+    masks
+end
+
 
 """
     get_masks(cgs::Vector{CausalGraph})
@@ -89,39 +118,8 @@ function get_bit_masks(cgs::Vector{CausalGraph},
     masks = Vector{Vector{BitMatrix}}(undef, k)
     
     for t=1:k
-        print("get_masks timestep: $t / $k \r")
-        positions = @>> get_objects(cgs[t], Dot) map(x -> x.pos)
-
-        # sorting according to depth
-        depth_perm = sortperm(map(x->x[3], positions))
-        positions = positions[depth_perm]
-
-        # initially empty image
-        img_so_far = BitArray{2}(zeros(reverse(graphics.img_dims)))
-        
-        n_objects = size(positions,1)
-        masks_t = Vector{BitMatrix}(undef, n_objects)
-
-        for i=1:n_objects
-            mask = draw_dot_mask(positions[i], gm.dot_radius,
-                                 graphics.img_dims...,
-                                 gm.area_width, gm.area_height)
-            mask[img_so_far] .= false
-            masks_t[i] = mask
-            img_so_far .|= mask
-        end
-
-        masks_t = masks_t[invperm(depth_perm)]
-    
-        if background
-            # pushing background to the end
-            bg = BitArray{2}(undef, h, w)
-            bg .= true
-            bg -= img_so_far
-            prepend!(masks_t, [bg])
-        end
-
-        masks[t] = masks_t
+        @debug "get_masks timestep: $t / $k \r"
+        masks[t] = get_bit_masks(cgs[t], graphics, gm)
     end
 
     return masks
@@ -138,22 +136,26 @@ function generate_masks(cgs::Vector{CausalGraph},
 
     vs = @> first(cgs) begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa Dot)
-        collect
     end
-    
+
     init_memory = zeros(reverse(graphics.img_dims))
     decay_rate = graphics.flow_decay_rate
-    flows = @>> vs map(v -> ExponentialFlow(decay_rate, init_memory))
+    flows = @>> vs begin
+        map(v -> ExponentialFlow(decay_rate, init_memory))
+        collect(ExponentialFlow)
+    end
 
     for t=1:k
-        for i=1:length(bit_masks[t])
-            flows[i] = evolve(flows[i], convert(Matrix{Float64}, bit_masks[t][i])) # evolve the flow
+        # first create the amodal mask for each object
+        for (i, m) in enumerate(bit_masks[t])
+            flows[i] = evolve(flows[i], convert(Matrix{Float64}, m)) # evolve the flow
             bit_masks[t][i] = mask(flows[i].memory) # mask is the composed flow thing
         end
-        
+        # then parse each mask across receptive fields
         bit_masks_rf[t] = @>> graphics.receptive_fields begin
             map(rf -> cropfilter(rf, bit_masks[t]))
         end
+        @debug "# of masks per rf : $(map(length, bit_masks_rf[t]))"
     end
 
     bit_masks_rf

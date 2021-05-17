@@ -3,6 +3,7 @@ export PopParticleFilter,
 
 using Statistics
 using Gen_Compose
+using Gen_Compose: initial_args, initial_constraints
 
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
@@ -33,13 +34,18 @@ function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
     return rtrace
 end
 
-function Gen_Compose.initialize_procedure(proc::ParticleFilter,
-                                          query::StaticQuery)
+function Gen_Compose.initialize_procedure(proc::PopParticleFilter,
+                                          query::SequentialQuery)
+    @debug "initializing pf state"
+    args = initial_args(query)
+    constraints = initial_constraints(query)
     state = Gen.initialize_particle_filter(query.forward_function,
-                                           query.args,
-                                           query.observations,
+                                           args,
+                                           constraints,
                                            proc.particles)
-    rejuvenate!(proc, state)
+    @debug "initial pf state log weights $(state.log_weights)"
+    # @debug "applying initial rejuvination"
+    # Gen_Compose.rejuvenate!(proc, state)
     return state
 end
 
@@ -47,28 +53,38 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
                                proc::PopParticleFilter,
                                query::StaticQuery)
 
+
+    @debug "smc_step!"
     # Resample before moving on...
     # TODO: Potentially bad for initial step
     Gen_Compose.resample!(proc, state, true)
 
     # update the state of the particles
     if isnothing(proc.proposal)
+        @debug "step without proposal"
+
+
+        # masks = query.observations[:kernel => 1 => :receptive_fields => 1 => :masks]
+        # @debug "number of masks $(length(masks))"
+
         Gen.particle_filter_step!(state, query.args,
                                   (UnknownChange(),),
                                   query.observations)
+        @debug "step pf state log weights $(state.log_weights)"
     else
+        @debug "step with proposal"
         Gen.particle_filter_step!(state, query.args,
                                   (UnknownChange(),),
                                   query.observations,
                                   proc.proposal,
                                   (query.observations, proc.prop_args...))
+
     end
 
 
+    @debug "rejuvinating particles"
     aux_contex = Gen_Compose.rejuvenate!(proc, state)
     
-    println()
-
     return aux_contex
 end
 

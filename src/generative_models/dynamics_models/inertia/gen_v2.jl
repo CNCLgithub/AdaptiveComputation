@@ -38,8 +38,8 @@
 end
 
 
-@gen function inertial_update(cg::CausalGraph)
-    cg = deepcopy(cg)
+@gen function inertial_update(prev_cg::CausalGraph)
+    cg = deepcopy(prev_cg)
     vs = get_object_verts(cg, Dot)
 
     cgs = fill(cg, length(vs))

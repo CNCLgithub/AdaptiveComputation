@@ -105,7 +105,7 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 20,
+                 "time" => 10,
                  "restart" => true,
                  "viz" => true])
 
@@ -127,13 +127,9 @@ function main()
     @set dm_params.vel = aux_data[:vel_avg]
 
     graphics_params = MOT.load(Graphics, args["graphics"])
-    masks = generate_masks(gt_cgs,
-                           graphics_params,
-                           gm_params)
-    
+
 
     query = query_from_params(gt_cgs,
-                              masks,
                               gm_inertia_mask,
                               gm_params,
                               dm_params,
@@ -166,14 +162,14 @@ function main()
     df = MOT.analyze_chain_receptive_fields(results,
                                             n_trackers = gm_params.n_trackers,
                                             n_dots = gm_params.n_trackers + gm_params.distractor_rate,
-                                            gt_cg_end = gt_causal_graphs[args["time"]])
+                                            gt_cg_end = gt_cgs[args["time"]])
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)
 
     if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params,
-                            receptive_fields, rf_params.rf_dims, att, path)
+        visualize_inference(results, gt_cgs, gm_params,
+                            graphics_params, att, path)
     end
 
     return nothing

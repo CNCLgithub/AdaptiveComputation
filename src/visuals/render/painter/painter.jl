@@ -49,7 +49,7 @@ end
 function paint(p::InitPainter, cg::CausalGraph)
     height, width = p.dimensions
     Drawing(width, height, p.path)
-    origin()
+    Luxor.origin()
     background(p.background)
 end
 

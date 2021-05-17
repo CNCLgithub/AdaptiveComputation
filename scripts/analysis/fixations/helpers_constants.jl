@@ -13,12 +13,12 @@ function translate(x, y;
     y -= min_y
     
     # making it smaller
-    scale_ratio = target_w/(max_x - min_x)
+    scale_ratio = TARGET_W/(max_x - min_x)
     x *= scale_ratio
     y *= scale_ratio
     
-    x -= target_w/2
-    y -= target_h/2
+    x -= TARGET_W/2
+    y -= TARGET_H/2
 
     y *= -1  # fliping y
 

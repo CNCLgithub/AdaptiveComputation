@@ -1,4 +1,6 @@
 using JSON
+using Statistics: mean
+using LinearAlgebra: norm
 using JLD2
 using MOT
 using MOT: CausalGraph, SimpleDiGraph, add_vertex!, MetaGraphs.nv, set_prop!
@@ -25,7 +27,7 @@ end
 
 
 function pos_to_dots(pos)
-    @>> pos map(p -> Dot([p; 0.0], zeros(2), dot_radius))
+    @>> pos map(p -> Dot(pos = [p; 0.0], radius = DOT_RADIUS))
 end
 
 function dots_to_cg(dots)
@@ -94,7 +96,7 @@ end
 
 
 # getting data from one subject
-dir = joinpath("output", "data", "fixations", "MOT_json_files")
+dir = "output/fixations/MOT_json_files"
 fn_start = "behavior test trajectories_0_0_random_with fixation from sub_"
 fn = @>> readdir(dir) filter(fn -> occursin(fn_start, fn)) first
 sub_data = JSON.parsefile(joinpath(dir, fn))

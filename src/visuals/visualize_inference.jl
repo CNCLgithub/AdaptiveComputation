@@ -8,7 +8,7 @@ export visualize_inference
         3) renders the scene
 """
 function visualize_inference(results, gt_causal_graphs, gm,
-                             receptive_fields, rf_dims, attention, path;
+                             graphics, attention, path;
                              render_model=false,
                              padding = 3,
                              n_back_cgs = 3)
@@ -37,15 +37,15 @@ function visualize_inference(results, gt_causal_graphs, gm,
     # rendering observed flow masks from receptive fields
     choices = get_choices(traces[end,1])
     for t=1:k
-        render_rf_masks(choices, t, gm, receptive_fields,
+        render_rf_masks(choices, t, gm, graphics,
                         joinpath(path, "obs_rf_masks"))
     end
     
     # rendering predicted distribution flow masks from receptive fields
     states = get_retval(traces[end,1])[2]
-    states = collect(RFState, states)
+    states = collect(CausalGraph, states)
     for t=1:k
-        render_rf_masks(states, t, gm, receptive_fields,
+        render_rf_masks(states, t, gm, graphics,
                         joinpath(path, "pred_dist_rf_masks"))
     end
 
@@ -54,12 +54,12 @@ function visualize_inference(results, gt_causal_graphs, gm,
     # T x n_steps_back of cgs
     pf_cgs = @>> traces[:,1] map(trace -> get_n_back_cgs(trace, n_back_cgs))
     render_scene(gm, gt_causal_graphs, pf_cgs,
-                 rf_dims, attended;
+                 graphics.rf_dims, attended;
                  base = joinpath(path, "render"))
 end
 
 function get_n_back_cgs(trace::Trace, n_back_cgs::Int64)::Vector{CausalGraph}
     t, dm, gm = Gen.get_args(trace)
     ret = Gen.get_retval(trace)
-    @>> 0:n_back_cgs-1 reverse map(i -> ret[2][max(1, t-i)].cg)
+    @>> 0:n_back_cgs-1 reverse map(i -> ret[2][max(1, t-i)])
 end

@@ -137,7 +137,15 @@ end
 function cropfilter(rf, masks::Vector{BitMatrix})
     @>> masks begin
         map(mask -> crop(rf, mask))
-        #filter(mask -> !iszero(sum(mask)))
+        filter(mask -> sum(mask) > 0)
+    end
+end
+
+
+# TODO: consolidate?
+function cropfilter(rf, masks::Vector{Matrix{Float64}})
+    @>> masks begin
+        map(mask -> crop(rf, mask))
         filter(mask -> sum(mask) > 0)
     end
 end

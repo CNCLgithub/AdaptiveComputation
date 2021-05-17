@@ -19,20 +19,21 @@ function early_stopping(::AbstractAttentionModel, prev_stats, new_stats)
 end
 
 function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::AbstractAttentionModel)
+    @debug "attention"
     args = get_args(first(pf_state.traces))
     t, gm, dm, graphics = args
     
     rtrace = RejuvTrace(0, 0, nothing, zeros(gm.n_trackers))
     
-    @show pf_state.log_weights
+    @debug "log weights: $(pf_state.log_weights)"
 
     rtrace.stats = get_stats(attention, pf_state) # TODO implement TD for receptive_fields
     #rtrace.stats = zeros(gm.n_trackers)
     weights = sum(rtrace.stats) == 0 ? fill(1.0/gm.n_trackers, gm.n_trackers) : get_weights(attention, rtrace.stats)
     sweeps = get_sweeps(attention, rtrace.stats)
 
-    println("categorical weights: $weights")
-    println("sweeps: $sweeps")
+    @debug "attention weights $(weights)"
+    @debug "compute cycles $(sweeps)"
 
     fails = 0
     # main loop going through rejuvenation
@@ -46,16 +47,13 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     end
 
     rtrace.acceptance = rtrace.acceptance / rtrace.attempts
-    println("acceptance: $(rtrace.acceptance)")
-    println("attended_trackers: $(rtrace.attended_trackers)")
+    @debug "acceptance: $(rtrace.acceptance)"
+    @debug "attended_trackers: $(rtrace.attended_trackers)"
     # just getting the MAP TD and A
     t, gm = Gen.get_args(first(pf_state.traces))
-    println("timestep: $t")
+    @debug "timestep: $t"
 
     order = sortperm(pf_state.log_weights, rev=true)
-    #assocs = extract_assignments(pf_state.traces[first(order)])
-    #println("top assocs")
-    #display(Dict(zip(assocs...)))
     return rtrace
 end
 

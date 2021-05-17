@@ -21,7 +21,7 @@ end
     init_trackers = @trace(Gen.Map(sample_init_tracker)(cgs), :trackers)
     ensemble = UniformEnsemble(cg)
     
-    dynamics_init!(cg, [init_trackers; ensemble])
+    dynamics_init!(cg, [ensemble; init_trackers])
     graphics_init!(cg)
 
     return cg

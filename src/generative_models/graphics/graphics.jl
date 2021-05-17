@@ -56,7 +56,7 @@ function graphics_init!(cg::CausalGraph)
     vs = @> cg begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa
                         Union{Dot, UniformEnsemble})
-        collect
+        (@>> collect(Int64))
     end
     set_prop!(cg, :graphics_vs, vs)
     return vs
@@ -68,8 +68,7 @@ function graphics_update!(cg::CausalGraph)
 end
 
 function graphics_update!(cg::CausalGraph, graphics::Graphics)
-    # retrieve vertices that should be rendered or initialize them
-    vs = has_prop(cg, :graphics_vs) ? get_prop(cg, :graphics_vs) : init_graphics_vs!(cg)
+    vs = get_prop(cg, :graphics_vs)
 
     spaces = render!(cg) # project to graphical space
     spaces_rf = @>> graphics.receptive_fields begin
@@ -81,11 +80,11 @@ function graphics_update!(cg::CausalGraph, graphics::Graphics)
         rfes = RFSElements{Array}(undef, length(spaces_rf[i]))
         for (j, space_rf) in enumerate(spaces_rf[i])
             rfes[j] = predict(graphics, get_prop(cg, vs[j], :object), space_rf)
-            #set_prop!(cg, vs[j], :rfe, rfes[j])
         end
         rfs_vec[i] = rfes
     end
-    
+    set_prop!(cg, :rfs_vec, rfs_vec)
+
     return rfs_vec
 end
 
