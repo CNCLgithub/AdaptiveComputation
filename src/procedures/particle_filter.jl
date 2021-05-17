@@ -63,10 +63,6 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     if isnothing(proc.proposal)
         @debug "step without proposal"
 
-
-        # masks = query.observations[:kernel => 1 => :receptive_fields => 1 => :masks]
-        # @debug "number of masks $(length(masks))"
-
         Gen.particle_filter_step!(state, query.args,
                                   (UnknownChange(),),
                                   query.observations)

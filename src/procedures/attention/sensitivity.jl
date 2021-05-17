@@ -143,7 +143,11 @@ end
 function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
-    tracker_assocs = map(c -> Set(vcat(c[2:end]...)), record.table)
+    @assert first(pmbrfs) isa PoissonElement
+
+    tracker_assocs = @>> (record.table) begin
+        map(c -> Set(vcat(c[2:end]...)))
+    end
     unique_tracker_assocs = unique(tracker_assocs)
     td = Dict{Set{Int64}, Float64}()
     for tracker_assoc in unique_tracker_assocs
@@ -157,16 +161,19 @@ function target_designation_receptive_fields(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
 
     rfs_vec = @>> Gen.get_retval(tr) begin
-        last
-        last
-        (cg -> get_prop(cg, :rfs_vec))
-    end
+        last # get the states
+        last # get the last state
+        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
+    end # rfes for each rf
+
     receptive_fields = @> tr begin
         get_choices
         get_submap(:kernel => t => :receptive_fields)
         get_submaps_shallow
-    end
-    xss = @>> receptive_fields map(rf -> rf[2])
+        # vec of tuples (rf id, rf mask choicemap)
+    end # masks for each rf
+
+    # @debug "receptive fields $(typeof(receptive_fields[1]))"
     tds = @>> receptive_fields begin
         map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
     end

@@ -56,6 +56,12 @@ version = "0.4.3"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Statistics", "UUIDs"]
+git-tree-sha1 = "068fda9b756e41e6c75da7b771e6f89fa8a43d15"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "0.7.0"
+
 [[Blosc]]
 deps = ["Blosc_jll"]
 git-tree-sha1 = "84cf7d0f8fd46ca6f1b3e0305b4b4a37afe50fd6"
@@ -467,7 +473,7 @@ uuid = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 version = "0.4.1"
 
 [[GenRFS]]
-deps = ["Cassette", "Combinatorics", "Gen", "LRUCache", "ProfileView", "Revise", "StatProfilerHTML", "Test"]
+deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "Gen", "IterTools", "LRUCache", "Lazy", "Revise", "StatProfilerHTML", "Test"]
 path = "deps/GenRFS"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"

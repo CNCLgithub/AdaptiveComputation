@@ -1,6 +1,7 @@
 
-#@gen static function inertia_kernel(t::Int,
-@gen function inertia_kernel(t::Int, prev_cg::CausalGraph)
+# @gen function inertia_kernel(t::Int,
+@gen static function inertia_kernel(t::Int,
+                                    prev_cg::CausalGraph)
 
     # advancing causal graph according to dynamics
     # (there is a deepcopy here)
@@ -14,8 +15,8 @@
     return cg
 end
 
-#@gen static function gm_inertia_mask(k::Int,
-@gen function gm_inertia_mask(k::Int,
+@gen static function gm_inertia_mask(k::Int,
+# @gen function gm_inertia_mask(k::Int,
                               gm, dm, graphics)
     
     cg = get_init_cg(gm, dm, graphics)
