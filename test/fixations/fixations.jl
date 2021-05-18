@@ -2,6 +2,8 @@ using CSV
 using MOT
 using ArgParse
 using Setfield
+using Profile
+using StatProfilerHTML
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -32,8 +34,13 @@ function parse_commandline()
         arg_type = String
         default = joinpath("/datasets", "fixations_dataset.jld2")
 
+        "--fps", "-f"
+        help = "Frames per step"
+        arg_type = Int64
+        default = 24
+
         "--time", "-t"
-        help = "How many frames"
+        help = "Number of steps"
         arg_type = Int64
         default = 600
 
@@ -103,9 +110,10 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/fixations_dataset.jld2",
-                 "scene" => 1,
+                 "scene" => 10,
                  "chain" => 1,
-                 "time" => 10,
+                 "fps" => 24,
+                 "time" => 30,
                  "restart" => true,
                  "viz" => true])
 
@@ -114,27 +122,34 @@ function main()
                    objective = MOT.target_designation_receptive_fields)
     
     scene_data = load_scene(args["scene"], args["dataset"])
-    k = args["time"]
-    gt_cgs = scene_data[:gt_causal_graphs][1:k]
+    fps = round(Int64, 60 / args["fps"])
+    t = args["time"]
+    gt_cgs = scene_data[:gt_causal_graphs][1:fps:t]
     aux_data = scene_data[:aux_data]
-    @show aux_data
+
 
     gm_params = MOT.load(GMParams, args["gm"])
-    @set gm_params.n_trackers = count(aux_data[:targets])
-    @set gm_params.distractor_rate = count(iszero, aux_data[:targets])
+    gm_params = @set gm_params.n_trackers = sum(aux_data[:targets])
+    gm_params = @set gm_params.distractor_rate = count(iszero, aux_data[:targets])
 
     dm_params = MOT.load(InertiaModel, args["dm"])
-    @set dm_params.vel = aux_data[:vel_avg]
+    dm_params = @set dm_params.vel = aux_data[:vel_avg]
 
     graphics_params = MOT.load(Graphics, args["graphics"])
 
 
+    prof_query = query_from_params(gt_cgs,
+                              gm_inertia_mask,
+                              gm_params,
+                              dm_params,
+                              graphics_params,
+                              1)
     query = query_from_params(gt_cgs,
                               gm_inertia_mask,
                               gm_params,
                               dm_params,
                               graphics_params,
-                              k)
+                              length(gt_cgs))
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
@@ -157,6 +172,10 @@ function main()
     end
 
     println("running chain $c")
+    Profile.init(delay = 0.001,
+                 n = 10^6)
+    # @profilehtml results = run_inference(prof_query, proc)
+    # @profilehtml results = run_inference(query, proc)
     results = run_inference(query, proc)
 
     df = MOT.analyze_chain_receptive_fields(results,
@@ -172,7 +191,7 @@ function main()
                             graphics_params, att, path)
     end
 
-    return nothing
+    return results
 end
 
-main();
+results = main();

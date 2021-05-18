@@ -23,7 +23,7 @@ function get_trial_fixations!(trial_fixations, sub_data)
     end
 end
 
-dir = joinpath("output", "data", "fixations", "MOT_json_files")
+dir = joinpath("output", "fixations", "MOT_json_files")
 fn_start = "behavior test trajectories_0_0_random_with fixation from sub_"
 fns = @>> readdir(dir) filter(fn -> occursin(fn_start, fn))
 
@@ -42,7 +42,7 @@ end
 
 @show trial_fixations
 
-outdir = joinpath("output", "data", "fixations", "parsed_fixations")
+outdir = joinpath("output", "fixations", "parsed_fixations")
 outpath = joinpath(outdir, "trial_fixations.jld2")
 save(outpath, Dict("trial_fixations" => trial_fixations,
                    "dimensions" => "n_trials x n_frames x n_subjects x 2"))

@@ -13,6 +13,7 @@ end
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
     memory = flow.memory * exp(flow.decay_rate)
     memory += space
+    memory *= 0.5
     clamp!(memory, 0.0, flow.upper)
     ExponentialFlow{T}(flow.decay_rate, memory, flow.upper)
 end

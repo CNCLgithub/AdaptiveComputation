@@ -68,7 +68,7 @@ end
 
 function get_bit_masks(cg::CausalGraph,
                        graphics::Graphics,
-                       gm::AbstractGMParams)
+                       gm::GMParams)
 
     positions = @>> get_objects(cg, Dot) map(x -> x.pos)
 
@@ -143,7 +143,8 @@ function generate_masks(cgs::Vector{CausalGraph},
     flows = @>> vs begin
         map(v -> ExponentialFlow(decay_rate,
                                  zeros(reverse(img_dims)),
-                                 gauss_amp))
+                                 # TODO make this a param in graphics
+                                 1.0))
         collect(ExponentialFlow)
     end
 

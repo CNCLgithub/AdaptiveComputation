@@ -76,17 +76,7 @@ function query_from_params(gt_causal_graphs,
                            gm_params)
     observations = get_observations(graphics_params, masks)
 
-    ms = observations[1][:kernel => 1 => :receptive_fields => 1 => :masks]
-    @debug "number of masks $(length(ms))"
 
-    path = "output/testing_refactor"
-    # for t=1:k
-    #     render_rf_masks(observations[t], t, gm_params, graphics_params,
-    #                     joinpath(path, "obs_rf_masks"))
-    # end
-    ms = observations[1][:kernel => 1 => :receptive_fields => 1 => :masks]
-    @debug "number of masks $(length(ms))"
-    
     init_args = (0, gm_params, dm_params, graphics_params)
     args = [(t, gm_params, dm_params, graphics_params) for t in 1:k]
 

@@ -14,7 +14,7 @@ end
 """
 function load_scene(scene, dataset_path)
     
-	file = jldopen(dataset_path, "r")
+    file = jldopen(dataset_path, "r")
     scene = read(file, "$scene")
     gt_causal_graphs = scene["gt_causal_graphs"]
     aux_data = try_read(scene, "aux_data")
