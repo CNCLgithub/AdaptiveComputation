@@ -16,14 +16,15 @@ function paint(p::FixationsPainter, fixations::Array{Float64, 2})
 end
 
 function paint(p::FixationsPainter, fixations::Array{Float64, 3})
-    # going through subjects
-    nt = size(fixations, 1)
-    for i=1:size(fixations, 2)
-        for k = nt:-2:2
-            start = fixations[k,i,:]
-            stop = fixations[k - 1,i,:]
-            _draw_line(start, stop,
-                       p.fixations_color, opacity=p.fixations_opacity)
+    nt, nsub, _ = size(fixations)
+
+    for i=reverse(1:nt)
+        for j=1:nsub
+            a = max(i-1, 1)
+            start = fixations[a,j,:]
+            stop = fixations[i,j,:]
+            _draw_line(start, stop, p.fixations_color,
+                       opacity=p.fixations_opacity)
         end
     end
 end

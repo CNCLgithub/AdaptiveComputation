@@ -2,6 +2,7 @@ using MOT
 using JLD2
 using FileIO
 using Luxor
+using Lazy: @>>
 
 function paint_fixations(gm, gt_cgs, pf_cgs,
                          fixations, attended;
@@ -44,16 +45,23 @@ function paint_fixations(gm, gt_cgs, pf_cgs,
         MOT.paint(p, gt_cgs[i])
     
         p = FixationsPainter()
-        MOT.paint(p, fixations[i, :, :])
+        a = max(1, i-10)
+        MOT.paint(p, fixations[a:i, :, :])
 
-        # p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
-        #                                 dims = (gm.area_height, gm.area_width),
-        #                                 attention_color = "blue")
-        # MOT.paint(p, pf_cgs[i][end], fill(0.25, 4))
-
-        # attention center
         p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
                                      dims = (50, 37))
+        MOT.paint(p, pf_cgs[i][end], attended[i])
+
+        # attention center
+        p = AttentionCentroidPainter(tau = 1.0,
+                                     opacity = 0.3,
+                                     color="red")
+        MOT.paint(p, pf_cgs[i][end], attended[i])
+
+        # geometric centroid
+        p = AttentionCentroidPainter(tau = 0.0,
+                                     opacity = 0.3,
+                                     color="blue")
         MOT.paint(p, pf_cgs[i][end], attended[i])
 
         finish()
@@ -77,14 +85,20 @@ function paint_fixations(gm, gt_cgs, pf_cgs,
 end
 
 
-function render_fixations(scene_number, chain;
+function render_fixations(scene_number, results,
+                          fps, time;
                           experiment_path = "/experiments/fixations_target_designation",
                           fixations_subjects_path = "output/fixations/trial_fixations.jld2",
-                          fixations_dataset_path = "output/datasets/fixations_dataset.jld2")
+                          fixations_dataset_path = "output/datasets/fixations_dataset.jld2",
+                          fpsdataset = 60)
 
     fixations = load(fixations_subjects_path)["trial_fixations"][scene_number, :, :, :]
     scene_data = MOT.load_scene(scene_number, fixations_dataset_path)
-
+    
+    frames_per_step = round(Int64, fpsdataset / fps)
+    last_frame = round(Int64, time * fpsdataset)
+    
+    cgs = scene_data[:gt_causal_graphs][1:frames_per_step:last_frame]
     aux_data = scene_data[:aux_data]
 
     extracted = extract_chain(results)
@@ -100,12 +114,10 @@ function render_fixations(scene_number, chain;
         attended[t] = aux_state[t].attended_trackers
     end
 
-    cgs = scene_data[:gt_causal_graphs]
     gm = HGMParams(area_height = 586,
                   area_width = 800,
                   dot_radius = 15,
                   targets = aux_data[:targets])
-    # gm = scene_data[:gm]
 
     traces = extracted["unweighted"][:trace]
     pf_cgs = @>> traces[:,1] map(trace -> MOT.get_n_back_cgs(trace, 1))

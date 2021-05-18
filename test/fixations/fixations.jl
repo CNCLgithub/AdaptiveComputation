@@ -35,14 +35,19 @@ function parse_commandline()
         default = joinpath("/datasets", "fixations_dataset.jld2")
 
         "--fps", "-f"
-        help = "Frames per step"
+        help = "Frames per second"
         arg_type = Int64
         default = 24
 
-        "--time", "-t"
-        help = "Number of steps"
+        "--fpsdataset", "-f"
+        help = "Frames per second dataset"
         arg_type = Int64
-        default = 600
+        default = 60
+
+        "--time", "-t"
+        help = "Seconds to track"
+        arg_type = Int64
+        default = 10
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -112,8 +117,9 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 10,
                  "chain" => 1,
-                 "fps" => 24,
-                 "time" => 30,
+                 "fps" => 30,
+                 "fpsdataset" => 60,
+                 "time" => 3.0, # this is now seconds
                  "restart" => true,
                  "viz" => true])
 
@@ -122,9 +128,13 @@ function main()
                    objective = MOT.target_designation_receptive_fields)
     
     scene_data = load_scene(args["scene"], args["dataset"])
-    fps = round(Int64, 60 / args["fps"])
-    t = args["time"]
-    gt_cgs = scene_data[:gt_causal_graphs][1:fps:t]
+    frames_per_step = round(Int64, args["fpsdataset"] / args["fps"])
+    last_frame = round(Int64, args["time"] * args["fpsdataset"])
+
+    @show frames_per_step
+    @show last_frame
+
+    gt_cgs = scene_data[:gt_causal_graphs][1:frames_per_step:last_frame]
     aux_data = scene_data[:aux_data]
 
 
@@ -181,7 +191,7 @@ function main()
     df = MOT.analyze_chain_receptive_fields(results,
                                             n_trackers = gm_params.n_trackers,
                                             n_dots = gm_params.n_trackers + gm_params.distractor_rate,
-                                            gt_cg_end = gt_cgs[args["time"]])
+                                            gt_cg_end = gt_cgs[end])
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)

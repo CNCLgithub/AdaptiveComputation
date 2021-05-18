@@ -111,5 +111,5 @@ function _draw_line(startpoint, endpoint, color;
     sethue(color)
     p1 = Luxor.Point(startpoint[1], -startpoint[2])
     p2 = Luxor.Point(endpoint[1], -endpoint[2])
-    Luxor.line(p1, p2)
+    Luxor.line(p1, p2, :stroke)
 end
