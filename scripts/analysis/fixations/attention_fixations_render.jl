@@ -92,12 +92,12 @@ function render_fixations(scene_number, results,
                           fixations_dataset_path = "output/datasets/fixations_dataset.jld2",
                           fpsdataset = 60)
 
-    fixations = load(fixations_subjects_path)["trial_fixations"][scene_number, :, :, :]
-    scene_data = MOT.load_scene(scene_number, fixations_dataset_path)
-    
     frames_per_step = round(Int64, fpsdataset / fps)
     last_frame = round(Int64, time * fpsdataset)
     
+    fixations = load(fixations_subjects_path)["trial_fixations"][scene_number, 1:frames_per_step:last_frame, :, :]
+
+    scene_data = MOT.load_scene(scene_number, fixations_dataset_path)
     cgs = scene_data[:gt_causal_graphs][1:frames_per_step:last_frame]
     aux_data = scene_data[:aux_data]
 
