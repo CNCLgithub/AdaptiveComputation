@@ -40,7 +40,8 @@ function heatmap(df, x, y, z; points=false)
     Gadfly.draw(SVG("heatmap.svg", 6Gadfly.inch, 4Gadfly.inch), p)
 end
 
-function plot_compute_weights(weights::Matrix{Float64}, path::String)
+function plot_compute_weights(weights::Matrix{Float64}, path::String;
+                              tracker_colors = TRACKER_COLORSCHEME)
     k,n = size(weights)
     ts = repeat(1:k, 1, size(weights, 2))
     data = []
@@ -54,7 +55,7 @@ function plot_compute_weights(weights::Matrix{Float64}, path::String)
     plt = plot(data,
                x = :t, y = :weight, color = :tracker,
                Geom.line,
-               # Scale.y_continuous(minvalue=0, maxvalue=15),
+               Scale.color_discrete_manual(tracker_colors...),
                Theme(background_color = "white"))
     out = joinpath(path, "compute_weights.png")
     plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
@@ -74,7 +75,7 @@ function plot_rejuvenation(rejuvenations, path="plots")
              Scale.y_continuous(minvalue=0, maxvalue=20),
              Guide.xlabel("Time"),
              Guide.ylabel("Allocated Compute"),
-             Theme(default_color="black",
+             Theme(default_color="red",
                    background_color="white",
                    minor_label_font_size=20pt,
                    major_label_font_size=30pt)
@@ -85,9 +86,8 @@ end
 """
 Plots distribution of attention accross time
 """
-default_colors = ["indigo", "green", "blue", "yellow", "red", "orange"]
 function plot_attention(attended, max_sweeps::Int, path::String;
-                        tracker_colors=default_colors)
+                        tracker_colors=TRACKER_COLORSCHEME)
     mkpath(path)
 
     k = length(attended)
@@ -116,7 +116,7 @@ function plot_attention(attended, max_sweeps::Int, path::String;
 
     p = vstack(Tuple(plots)...)
 
-    Gadfly.draw(PNG(joinpath(path, "attention.png"), 4Gadfly.inch, 8Gadfly.inch), p)
+    Gadfly.draw(PNG(joinpath(path, "attention.png"), 4Gadfly.inch, n_trackers*2Gadfly.inch), p)
 end
 
 """

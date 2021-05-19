@@ -1,3 +1,6 @@
+using ColorSchemes
+const TRACKER_COLORSCHEME = colorschemes[:Set1_9]
+
 include("render/renderv2.jl")
 include("trace_plots.jl")
 include("render_scene.jl")

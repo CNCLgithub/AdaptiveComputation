@@ -58,9 +58,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BenchmarkTools]]
 deps = ["JSON", "Logging", "Printf", "Statistics", "UUIDs"]
-git-tree-sha1 = "068fda9b756e41e6c75da7b771e6f89fa8a43d15"
+git-tree-sha1 = "01ca3823217f474243cc2c8e6e1d1f45956fe872"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "0.7.0"
+version = "1.0.0"
 
 [[Blosc]]
 deps = ["Blosc_jll"]
@@ -186,9 +186,9 @@ version = "0.3.0"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "0a817fbe51c976de090aa8c997b7b719b786118d"
+git-tree-sha1 = "e4e2b39db08f967cc1360951f01e8a75ec441cab"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.28.0"
+version = "3.30.0"
 
 [[CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -924,9 +924,9 @@ version = "0.5.3"
 
 [[LogExpFunctions]]
 deps = ["DocStringExtensions", "LinearAlgebra"]
-git-tree-sha1 = "ed26854d7c2c867d143f0e07c198fc9e8b721d10"
+git-tree-sha1 = "1ba664552f1ef15325e68dc4c05c3ef8c2d5d885"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.2.3"
+version = "0.2.4"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"

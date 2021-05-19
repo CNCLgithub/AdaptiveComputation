@@ -1,6 +1,5 @@
 export render_scene
 
-
 function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}};
                      base = "/renders/render_scene")
     @unpack area_width, area_height = gm
@@ -32,7 +31,7 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
             MOT.paint(p, pf_cg)
 
             p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-                              IDPainter(colors = ["purple", "green", "blue", "yellow"],
+                              IDPainter(colors = TRACKER_COLORSCHEME[:],
                                         label = false,
                                         alpha = j/length(pf_cgs[i])))
             MOT.paint(p, pf_cg)
