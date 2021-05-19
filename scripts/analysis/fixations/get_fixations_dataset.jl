@@ -1,5 +1,5 @@
 using JSON
-using Statistics: mean
+using Statistics: mean, std, var
 using LinearAlgebra: norm
 using JLD2
 using MOT
@@ -71,7 +71,10 @@ function get_cg!(cgs::Vector{CausalGraph}, frame_data)
     cgs[frame_number] = cg
 end
 
-function get_avg_vel(cgs::Vector{CausalGraph})::Float64
+"""
+    returns stats
+"""
+function get_stats(cgs::Vector{CausalGraph})::NamedTuple
     n_frames = length(cgs)
     n_objects = length(MOT.get_objects(first(cgs), Dot))
 
@@ -87,11 +90,35 @@ function get_avg_vel(cgs::Vector{CausalGraph})::Float64
     pos_t1 = pos[2:end,:,:]
     delta_pos = pos_t1 - pos_t0
     
-    @>> Iterators.product(1:n_frames-1, 1:n_objects) begin
+    # getting velocity vectors
+    vels = @>> Iterators.product(1:n_frames-1, 1:n_objects) begin
         map(ij -> delta_pos[ij[1], ij[2], :])
-        map(norm)
-        mean
     end
+    
+    # magnitude
+    mags = norm.(vels)
+    vel_mu = mean(mags)
+    vel_std = std(mags, mean=vel_mu)
+    
+    # angle
+    angs = @>> vels begin
+        map(vel -> atan(vel...))
+    end
+    angs_t0 = angs[1:end-1,:,:]
+    angs_t1 = angs[2:end,:,:]
+    delta_angs = angs_t1 - angs_t0
+    
+    # when kappa is large (small variance), it's approximately a normal distribution:
+    # https://en.wikipedia.org/wiki/Von_Mises_distribution#Limiting_behavior
+    ang_var = var(delta_angs)
+    ang_kappa = 1/ang_var
+
+    stats = (vel_mu = vel_mu,
+             vel_std = vel_std,
+             ang_var = ang_var,
+             ang_kappa = ang_kappa)
+    @show stats
+    return stats
 end
 
 
@@ -128,9 +155,10 @@ jldopen(dataset_path, "w") do file
                                area_height = TARGET_H,
                                dot_radius = DOT_RADIUS,
                                targets = targets)
+        
         scene["aux_data"] = (targets = targets,
                              vel_deg_sec = scene_data[1]["Speed (deg/sec)"],
-                             vel_avg = get_avg_vel(cgs))
+                             vel_ang_stats = get_stats(cgs))
     end
 end
 
