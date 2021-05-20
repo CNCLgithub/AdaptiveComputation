@@ -79,7 +79,7 @@ function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
     end
     img = get_img(aggregated_masks, graphics.receptive_fields)
 
-    #img = imresize(img, ratio=gm.area_width/size(img, 1))
+    img = imresize(img, ratio=gm.area_width/size(img, 1))
     path = joinpath(out_dir, "$t.png")
     save(path, img)
 end

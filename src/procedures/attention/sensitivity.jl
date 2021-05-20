@@ -10,7 +10,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
-    for i = max(1, t-3):t
+    for i = max(1, t-5):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
@@ -23,7 +23,7 @@ function retrieve_latents(tr::Gen.Trace)
     collect(1:ntrackers)
 end
 
-@with_kw struct MapSensitivity <: AbstractAttentionModel
+@with_kw mutable struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
     latents::Function = t -> retrieve_latents(t)
     jitter::Function = jitter
@@ -35,6 +35,8 @@ end
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
     uniform_sweeps::Int = 0
+    weights::Vector{Float64}
+    weights_tau::Float64 = 0.5
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
@@ -88,45 +90,57 @@ end
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
 
     seeds = Gen.sample_unweighted_traces(state, att.samples)
-    latents = att.latents(first(seeds))
     seed_obj = map(att.objective, seeds)
+
+    latents = att.latents(first(seeds))
     n_latents = length(latents)
+
     kls = zeros(att.samples, n_latents)
     lls = zeros(att.samples, n_latents)
     for i = 1:att.samples
-        jittered, ẟh = zip(map(idx -> att.jitter(seeds[i], idx),
-                                latents)...)
+        jittered, ẟh = @>> latents begin
+            map(idx -> att.jitter(seeds[i], idx))
+            x -> zip(x...)
+        end
         lls[i, :] = collect(ẟh)
         jittered_obj = map(att.objective, jittered)
-        ẟs = map(j -> relative_entropy(seed_obj[i], j),
-                        jittered_obj)
+        ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
         kls[i, :] = collect(ẟs)
     end
-    display(kls)
-    display(lls)
+    
+    println("log.(kls)")
+    display(log.(kls))
+    println("kls weights (exp)")
+    display(exp.(lls))
+    
     gs = Vector{Float64}(undef, n_latents)
     lse = Vector{Float64}(undef, n_latents)
+    # normalizing accross samples
     for i = 1:n_latents
         lse[i] = logsumexp(lls[:, i])
         gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
-        # gs[i] =  logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
     end
-    gs = gs .+ (lse .- logsumexp(lse))
-    println("weights: $(gs)")
-    return gs
+    println("compute weights: $gs")
+    # normalizing accross trackers for unstable version
+    #gs = gs .+ (lse .- logsumexp(lse)) 
+    att.weights = att.weights_tau * gs  + (1.0 - att.weights_tau) * att.weights
+    return att.weights
 end
 
 function get_weights(att::MapSensitivity, stats)
     # # making it smoother
-    gs = att.smoothness.*stats
-    println("smoothed weights: $(gs)")
-    softmax(gs)
+    mean_weights = fill(mean(att.weights), length(att.weights))
+    weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
+    weights = softmax(weights)
+    println("sampling weights: $(weights)")
+    weights
 end
 
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
     #amp = att.sweeps*exp(att.k*min(x, 0.0))
     amp = att.sweeps*exp(att.k*(x - att.x0))
+
     println("k: $(att.k)")
     println("x: $(x), amp: $(amp)")
     sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
@@ -233,13 +247,15 @@ function resolve_correspondence(p::T, q::T) where T<:Dict
 end
 
 # this is for receptive fields
-function relative_entropy(p::T, q::T) where T<:Array
-    kls = @>> zip(p, q) map(x -> relative_entropy(x[1], x[2]; error_on_empty=false))
-    mean(kls)
+function relative_entropy(ps::T, qs::T) where T<:Array
+    @>> zip(ps, qs) begin
+        map(x -> relative_entropy(x[1], x[2]; error_on_empty=false))
+        mean
+    end
 end
 
 function relative_entropy(p::T, q::T;
-                         error_on_empty=true) where T<:Dict
+                          error_on_empty=true) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
     if isempty(labels)
         display(p); display(q)
@@ -249,18 +265,16 @@ function relative_entropy(p::T, q::T;
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
-    # display(p); display(q)
+    #display(p); display(q)
     order = sortperm(probs[:, 1], rev= true)
-    # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
-    # println("new set")
+    #display(Dict(zip(labels[order], eachrow(probs[order, :]))))
     kl = 0.0
     for i in order
         _kl = 0.0
         _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
         kl += isnan(_kl) ? 0.0 : _kl
-        # println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
-
+        #println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
     end
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end

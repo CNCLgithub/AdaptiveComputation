@@ -4,6 +4,57 @@ using ArgParse
 using Setfield
 using Profile
 using StatProfilerHTML
+using Lazy: @>>
+using Statistics: norm, mean, std, var
+
+"""
+    returns stats
+"""
+function get_stats(cgs::Vector{MOT.CausalGraph})::NamedTuple
+    n_frames = length(cgs)
+    n_objects = length(MOT.get_objects(first(cgs), Dot))
+
+    pos = Array{Float64}(undef, n_frames, n_objects, 2)
+    for i=1:n_frames
+        dots = MOT.get_objects(cgs[i], Dot)
+        for j=1:n_objects
+            pos[i,j,:] = dots[j].pos[1:2]
+        end
+    end
+
+    pos_t0 = pos[1:end-1,:,:]
+    pos_t1 = pos[2:end,:,:]
+    delta_pos = pos_t1 - pos_t0
+    
+    # getting velocity vectors
+    vels = @>> Iterators.product(1:n_frames-1, 1:n_objects) begin
+        map(ij -> delta_pos[ij[1], ij[2], :])
+    end
+    
+    # magnitude
+    mags = norm.(vels)
+    vel_mu = mean(mags)
+    vel_std = std(mags, mean=vel_mu)
+    
+    # angle
+    angs = @>> vels begin
+        map(vel -> atan(vel...))
+    end
+    angs_t0 = angs[1:end-1,:,:]
+    angs_t1 = angs[2:end,:,:]
+    delta_angs = angs_t1 - angs_t0
+    
+    # when kappa is large (small variance), it's approximately a normal distribution:
+    # https://en.wikipedia.org/wiki/Von_Mises_distribution#Limiting_behavior
+    ang_var = var(delta_angs)
+    ang_kappa = 1/ang_var
+
+    stats = (vel_mu = vel_mu,
+             vel_std = vel_std,
+             ang_var = ang_var,
+             ang_kappa = ang_kappa)
+end
+
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -117,16 +168,12 @@ function main()
                  "dataset" => "/datasets/fixations_dataset.jld2",
                  "scene" => 10,
                  "chain" => 1,
-                 "fps" => 30,
+                 "fps" => 60,
                  "fpsdataset" => 60,
-                 "time" => 3.0, # this is now seconds
+                 "time" => 1.0, # this is now seconds
                  "restart" => true,
                  "viz" => true])
 
-    att_mode = "target_designation"
-    att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields)
-    
     scene_data = load_scene(args["scene"], args["dataset"])
     frames_per_step = round(Int64, args["fpsdataset"] / args["fps"])
     last_frame = round(Int64, args["time"] * args["fpsdataset"])
@@ -136,17 +183,20 @@ function main()
 
     gt_cgs = scene_data[:gt_causal_graphs][1:frames_per_step:last_frame]
     aux_data = scene_data[:aux_data]
+    scene_stats = get_stats(gt_cgs) 
 
+    @show aux_data
+    @show scene_stats
 
     gm_params = MOT.load(GMParams, args["gm"])
     gm_params = @set gm_params.n_trackers = sum(aux_data[:targets])
     gm_params = @set gm_params.distractor_rate = count(iszero, aux_data[:targets])
 
     dm_params = MOT.load(InertiaModel, args["dm"])
-    dm_params = @set dm_params.vel = aux_data[:vel_avg]
+    dm_params = @set dm_params.vel = scene_stats.vel_mu
+    dm_params = @set dm_params.k_max = scene_stats.ang_kappa
 
     graphics_params = MOT.load(Graphics, args["graphics"])
-
 
     prof_query = query_from_params(gt_cgs,
                               gm_inertia_mask,
@@ -160,6 +210,11 @@ function main()
                               dm_params,
                               graphics_params,
                               length(gt_cgs))
+
+    att_mode = "target_designation"
+    att = MOT.load(MapSensitivity, args[att_mode]["params"],
+                   objective = MOT.target_designation_receptive_fields,
+                   weights = fill(-50.0, sum(aux_data[:targets])))
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,

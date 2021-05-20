@@ -75,7 +75,7 @@ function plot_rejuvenation(rejuvenations, path="plots")
              Scale.y_continuous(minvalue=0, maxvalue=20),
              Guide.xlabel("Time"),
              Guide.ylabel("Allocated Compute"),
-             Theme(default_color="red",
+             Theme(default_color="black",
                    background_color="white",
                    minor_label_font_size=20pt,
                    major_label_font_size=30pt)

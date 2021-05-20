@@ -16,6 +16,7 @@ function paint_fixations(gm, gt_cgs, pf_cgs,
     nt = length(gt_cgs)
     
     frame = 1
+    pf_targets = fill(true, gm.n_trackers)
 
     for i = 1:padding
         p = InitPainter(path = "$base/$frame.png",
@@ -41,16 +42,16 @@ function paint_fixations(gm, gt_cgs, pf_cgs,
         p = PsiturkPainter()
         MOT.paint(p, gt_cgs[i])
 
-        p = TargetPainter(targets = gm.targets)
-        MOT.paint(p, gt_cgs[i])
+        # p = TargetPainter(targets = gm.targets)
+        # MOT.paint(p, gt_cgs[i])
     
         p = FixationsPainter()
         a = max(1, i-10)
         MOT.paint(p, fixations[a:i, :, :])
 
-        p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
-                                     dims = (50, 37))
-        MOT.paint(p, pf_cgs[i][end], attended[i])
+        # p = AttentionGaussianPainter(area_dims = (gm.area_height, gm.area_width),
+                                     # dims = (50, 37))
+        # MOT.paint(p, pf_cgs[i][end], attended[i])
 
         # attention center
         p = AttentionCentroidPainter(tau = 1.0,
@@ -63,6 +64,23 @@ function paint_fixations(gm, gt_cgs, pf_cgs,
                                      opacity = 0.3,
                                      color="blue")
         MOT.paint(p, pf_cgs[i][end], attended[i])
+
+        for (j, pf_cg) in enumerate(pf_cgs[i])
+            p = SubsetPainter(cg -> MOT.only_targets(cg, pf_targets),
+                              IDPainter(colors = ["purple", "green", "blue", "yellow"],
+                                        label = false,
+                                        alpha = j/length(pf_cgs[i])))
+            MOT.paint(p, pf_cg)
+
+            p = SubsetPainter(cg -> MOT.only_targets(cg, pf_targets),
+                              KinPainter(alpha = j/length(pf_cgs[i])))
+            MOT.paint(p, pf_cg)
+        end
+        
+        p = AttentionRingsPainter()
+        MOT.paint(p, pf_cgs[i][end], attended[i])
+
+
 
         finish()
         frame += 1
