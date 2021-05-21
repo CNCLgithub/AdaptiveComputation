@@ -49,4 +49,3 @@ end
     return cg
 end
 
-export InertiaModel
