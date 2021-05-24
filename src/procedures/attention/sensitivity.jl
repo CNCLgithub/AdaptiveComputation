@@ -35,56 +35,12 @@ end
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
     uniform_sweeps::Int = 0
-    weights::Vector{Float64}
+    weights::Union{Vector{Float64}, Nothing} = nothing
     weights_tau::Float64 = 0.5
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
-end
-
-
-function pos_objective(traces, weights, tracker)
-
-    positions = Matrix{Float64}(undef, 2, length(traces))
-    for i=1:length(traces)
-        (init_state, states) = Gen.get_retval(traces[i])
-        trackers = states[end].graph.elements
-        positions[1:2,i] = trackers[tracker].pos[1:2]
-    end
-    
-    display(positions)
-    display(weights)
-    distribution = fit_mle(MvNormal, positions, weights)
-    return mean(distribution), cov(distribution)
-end
-
-"""
-    KL between multivariate Gaussian distributions
-    https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence#Multivariate_normal_distributions
-"""
-function kl_mv_normal(mu_1, mu_2, sigma_1, sigma_2)
-    # display(mu_1)
-    # display(mu_2)
-    # display(sigma_1)
-    # display(sigma_2)
-    if length(mu_1) != length(mu_2)
-        error("dimensions must match!")
-    end
-    
-    sigma_2_inv = inv(sigma_2)
-    dim = length(mu_1)
-    0.5*(
-         tr(sigma_2_inv * sigma_1)
-         + transpose(mu_2 - mu_1)*sigma_2_inv*(mu_2 - mu_1)
-         - dim
-         + log(det(sigma_2)/det(sigma_1))
-        )
-end
-
-function get_categorical_weights(log_weights)
-    (_, log_normalized_weights) = normalize_weights(log_weights)
-    weights = exp.(log_normalized_weights)
 end
 
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
@@ -118,19 +74,26 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     # normalizing accross samples
     for i = 1:n_latents
         lse[i] = logsumexp(lls[:, i])
-        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
+        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i] .- lse[i])
     end
     println("compute weights: $gs")
     # normalizing accross trackers for unstable version
-    #gs = gs .+ (lse .- logsumexp(lse)) 
-    att.weights = att.weights_tau * gs  + (1.0 - att.weights_tau) * att.weights
+    # gs = gs .+ (lse .- logsumexp(lse))
+    if isnothing(att.weights)
+        att.weights = gs
+    else
+        att.weights = log.(
+            exp.(att.weights .+ log(att.weights_tau)) .+
+            exp.(gs .+ log(1.0 - att.weights_tau)))
+    end
+    println("time-smoothed weights: $(att.weights)")
     return att.weights
 end
 
 function get_weights(att::MapSensitivity, stats)
-    # # making it smoother
-    mean_weights = fill(mean(att.weights), length(att.weights))
-    weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
+    # mean_weights = fill(mean(att.weights), length(att.weights))
+    # weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
+    weights = att.smoothness * stats
     weights = softmax(weights)
     println("sampling weights: $(weights)")
     weights
@@ -262,6 +225,11 @@ function relative_entropy(p::T, q::T;
         error_on_empty && error("empty intersect")
         return 1.0
     end
+    println("probs = ")
+    display(Dict(zip(labels, eachrow(probs))))
+    display(logsumexp(probs[:, 1]))
+    display(logsumexp(probs[:, 2]))
+    display(typeof(probs))
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
@@ -270,11 +238,10 @@ function relative_entropy(p::T, q::T;
     #display(Dict(zip(labels[order], eachrow(probs[order, :]))))
     kl = 0.0
     for i in order
-        _kl = 0.0
-        _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
+        _kl = 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
         kl += isnan(_kl) ? 0.0 : _kl
-        #println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
+        println("$(labels[i]) => $(probs[i, :]) | $(ms[i]) => kl = $(log(kl))")
     end
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end

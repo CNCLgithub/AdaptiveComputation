@@ -62,7 +62,7 @@ state_move(trace, args) = Gen.mh(trace, state_perturb_proposal, args, state_pert
 rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
 
 function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T;
-                                ancestral_steps::Int = 3) where {T<:Vector{Float64}}
+                                ancestral_steps::Int = 0) where {T<:Vector{Float64}}
 
     t = first(Gen.get_args(trace))
     tracker = Gen.categorical(probs)
