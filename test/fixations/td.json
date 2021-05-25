@@ -1,10 +1,10 @@
 {
-    "smoothness": 0.0,
+    "smoothness": 1.0,
     "k": 0.05,
     "x0": -10.0,
     "scale": 495.0,
     "samples": 6,
-    "sweeps": 15,
+    "sweeps": 0,
     "ancestral_steps": 3,
     "weights_tau": 0.2
 }

@@ -170,7 +170,7 @@ function main()
                  "chain" => 1,
                  "fps" => 60,
                  "fpsdataset" => 60,
-                 "time" => 1.0, # this is now seconds
+                 "time" => 3.0, # this is now seconds
                  "restart" => true,
                  "viz" => true])
 

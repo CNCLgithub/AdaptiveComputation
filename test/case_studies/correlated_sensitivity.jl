@@ -73,7 +73,7 @@ function get_cgs(t::Int64)
     # right target that moves towards 0,0 from upper right
     add_vertex!(cg)
     v = MetaGraphs.nv(cg)
-    set_prop!(cg, v, :object, Dot(pos = [190.0, 50, 0]))
+    set_prop!(cg, v, :object, Dot(pos = [190.0, 45, 0]))
 
     # distractor that gets closer to right tracker
     add_vertex!(cg)
@@ -96,7 +96,9 @@ function get_cgs(t::Int64)
         v = MetaGraphs.nv(cg)
         dot = get_prop(cgs[k-1], v, :object)
         mag = 2.0
-        ang = (pi / 3.0)
+        ang = (pi / 4.0)
+        # ang = (pi / 60.0)
+        # ang = 0
         vx = mag * cos(ang)
         vy = mag * sin(ang)
         dot = @set dot.pos = dot.pos + [-vx, -vy, 0]
@@ -135,7 +137,7 @@ function main()
                  "scene" => 10,
                  "chain" => 1,
                  "fps" => 60,
-                 "frames" => 30,
+                 "frames" => 100,
                  "restart" => true,
                  "viz" => true])
 

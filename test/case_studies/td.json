@@ -3,8 +3,8 @@
     "k": 0.05,
     "x0": -10.0,
     "scale": 495.0,
-    "samples": 2,
-    "sweeps": 15,
+    "samples": 10,
+    "sweeps": 0,
     "ancestral_steps": 3,
-    "weights_tau": 0.1
+    "weights_tau": 0.0
 }

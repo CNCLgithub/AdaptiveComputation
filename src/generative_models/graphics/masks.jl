@@ -86,9 +86,9 @@ function get_bit_masks(cg::CausalGraph,
         mask = draw_dot_mask(positions[i], gm.dot_radius,
                              graphics.img_dims...,
                              gm.area_width, gm.area_height)
-        mask[img_so_far] .= false
+        # mask[img_so_far] .= false
         masks[i] = mask
-        img_so_far .|= mask
+        # img_so_far .|= mask
     end
 
     masks = masks[invperm(depth_perm)]

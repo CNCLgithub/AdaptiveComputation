@@ -10,7 +10,7 @@ function jitter(tr::Gen.Trace, tracker::Int)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
-    for i = max(1, t-5):t
+    for i = max(1, t-3):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
@@ -60,7 +60,8 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         end
         lls[i, :] = collect(ẟh)
         jittered_obj = map(att.objective, jittered)
-        ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
+        # ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
+        ẟs = @>> jittered_obj map(j -> l2_d(seed_obj[i], j))
         kls[i, :] = collect(ẟs)
     end
     
@@ -72,8 +73,10 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     gs = Vector{Float64}(undef, n_latents)
     lse = Vector{Float64}(undef, n_latents)
     # normalizing accross samples
+    clamp!(lls, -Inf, 0.)
     for i = 1:n_latents
         lse[i] = logsumexp(lls[:, i])
+        # gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
         gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i] .- lse[i])
     end
     println("compute weights: $gs")
@@ -117,6 +120,25 @@ function early_stopping(att::MapSensitivity, new_stats, prev_stats)
 end
 
 # Objectives
+
+function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
+    record = AssociationRecord(200)
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    @assert first(pmbrfs) isa PoissonElement
+
+    tracker_assocs = @>> (record.table) begin
+        map(c -> Set(vcat(c[2:end]...)))
+    end
+    k = length(xs)
+    denom = logsumexp(record.logscores)
+    td = Dict{Int64, Float64}()
+    for x = 1:k
+        idxs = findall(map(es -> in(x, es), tracker_assocs))
+        td[x] = logsumexp(record.logscores[idxs])
+    end
+    td
+end
+
 function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
@@ -152,7 +174,7 @@ function target_designation_receptive_fields(tr::Gen.Trace)
 
     # @debug "receptive fields $(typeof(receptive_fields[1]))"
     tds = @>> receptive_fields begin
-        map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+        map(rf -> _td2(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
     end
 end
 
@@ -245,6 +267,62 @@ function relative_entropy(p::T, q::T;
     end
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
+
+function jeffs_d(ps::T, qs::T) where T<:Array
+    @>> zip(ps, qs) begin
+        map(x -> jeffs_d(x[1], x[2]; error_on_empty=false))
+        mean
+    end
+end
+
+function jeffs_d(p::T, q::T;
+                 error_on_empty=true) where T<:Dict
+    labels, probs = resolve_correspondence(p, q)
+    if isempty(labels)
+        display(p); display(q)
+        error_on_empty && error("empty intersect")
+        return 1.0
+    end
+    println("probs = ")
+    display(Dict(zip(labels, eachrow(probs))))
+    display(logsumexp(probs[:, 1]))
+    display(logsumexp(probs[:, 2]))
+    probs[:, 1] .-= logsumexp(probs[:, 1])
+    probs[:, 2] .-= logsumexp(probs[:, 2])
+    order = sortperm(probs[:, 1], rev= true)
+    jd = 0.0
+    for i in order
+        _jd = exp(probs[i, 1]) - exp(probs[i, 2])
+        _jd *= (probs[i, 1] - probs[i, 2])
+        jd += _jd
+        println("$(labels[i]) => $(probs[i, :]) => jd = $(log(jd))")
+    end
+    return jd
+    # isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
+end
+
+function l2_d(ps::T, qs::T) where T<:Array
+    @>> zip(ps, qs) begin
+        map(x -> l2_d(x[1], x[2]; error_on_empty=false))
+        mean
+    end
+end
+
+
+function l2_d(p::T, q::T;
+                 error_on_empty=true) where T<:Dict
+    labels, probs = resolve_correspondence(p, q)
+    if isempty(labels)
+        display(p); display(q)
+        error_on_empty && error("empty intersect")
+        return 1.0
+    end
+    println("probs = ")
+    display(Dict(zip(labels, eachrow(probs))))
+    norm(probs[:, 1] - probs[:, 2])
+    # norm(exp.(probs[:, 1]) - exp.(probs[:, 2]))
+end
+
 
 function index_pairs(n::Int)
     if !iseven(n)
