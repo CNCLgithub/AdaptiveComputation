@@ -1,0 +1,14 @@
+{
+    "repulsion" : true,
+    "dot_repulsion" : 80.0,
+    "wall_repulsion" : 50.0,
+    "distance" : 60.0,
+    "vel" : 3.0,
+    "rep_inertia" : 0.9,
+
+    "brownian" : true,
+    "inertia" : 0.8,
+    "spring" : 0.002,
+    "sigma_x" : 1.0,
+    "sigma_y" : 1.0
+}
