@@ -19,6 +19,17 @@ function get_init_cg(gm, dm, graphics)
     return cg
 end
 
+# if generating just the motion
+function get_init_cg(gm, dm)
+
+    cg = CausalGraph(SimpleDiGraph())
+
+    set_prop!(cg, :gm, gm)
+    set_prop!(cg, :dm, dm)
+
+    return cg
+end
+
 function dynamics_init!(cg::CausalGraph, trackers::Vector{Thing})
     dynamics_init!(get_dm(cg), get_gm(cg), cg, trackers)
     return cg
