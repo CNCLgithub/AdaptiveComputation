@@ -14,9 +14,7 @@ end
 
 b_pdf(x::Bool, p::Float64) = Gen.logpdf(bernoulli, x, p)
 
-using UnicodePlots
 function Gen.logpdf(::Mask, image::Matrix, ps::Matrix{Float64})
-    @assert sum(image) > 0
     lpdf = sum(b_pdf.(image, ps))
 end
 

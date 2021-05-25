@@ -14,7 +14,7 @@ function render!(cg::CausalGraph, graphics::Graphics)
         map(v -> render!(cg, v, get_prop(cg, v, :object)))
         collect(Space)
     end
-    compose!(spaces, cg, depth_perm)
+    # compose!(spaces, cg, depth_perm)
     for (i, space) in enumerate(spaces)
         set_prop!(cg, vs[i], :space, space)
     end

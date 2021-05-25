@@ -137,7 +137,7 @@ function main()
                  "scene" => 10,
                  "chain" => 1,
                  "fps" => 60,
-                 "frames" => 100,
+                 "frames" => 30,
                  "restart" => true,
                  "viz" => true])
 
@@ -176,6 +176,7 @@ function main()
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields,
+                   # objective = MOT.data_correspondence_receptive_fields,
                    )
                    # weights = fill(-50.0, sum(scene_data[:targets])))
 

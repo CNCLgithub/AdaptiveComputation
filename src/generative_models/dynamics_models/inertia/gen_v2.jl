@@ -44,13 +44,9 @@ end
 
 
 @gen (static) function inertial_update(prev_cg::CausalGraph)
-    cg = deepcopy(prev_cg)
-    vs = get_object_verts(cg, Dot)
-
-    cgs = fill(cg, length(vs))
+    (cgs, vs) = inertia_step_args(prev_cg)
     things = @trace(Map(inertial_step)(cgs, vs), :brownian)
-    foo = dynamics_update!(get_dm(cg), cg, things)
-
-    return cg
+    new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)
+    return new_cg
 end
 

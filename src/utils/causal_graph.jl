@@ -19,16 +19,6 @@ function get_init_cg(gm, dm, graphics)
     return cg
 end
 
-function dynamics_init!(cg::CausalGraph, trackers::Vector{Thing})
-    dynamics_init!(get_dm(cg), get_gm(cg), cg, trackers)
-    return cg
-end
-
-function dynamics_update!(cg::CausalGraph, trackers::Vector{Thing})
-    dynamics_update!(get_dm(cg), cg, trackers)
-    return cg
-end
-
 # assuming first N vertices are walls
 walls(cg::CausalGraph) = get_prop(cg, :walls)
 
