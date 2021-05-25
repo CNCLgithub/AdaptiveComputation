@@ -6,7 +6,7 @@ export UniformAttention
 end
 
 function get_stats(::UniformAttention, state::Gen.ParticleFilterState)
-    t, motion, gm = Gen.get_args(first(state.traces))
+    t, gm, dm, graphics = Gen.get_args(first(state.traces))
     return zeros(gm.n_trackers)
 end
 

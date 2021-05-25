@@ -5,12 +5,12 @@ using LinearAlgebra
 
 export MapSensitivity
 
-function jitter(tr::Gen.Trace, tracker::Int)
+function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
     args = Gen.get_args(tr)
     t = first(args)
     diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
-    for i = max(1, t-5):t
+    for i = max(1, t-att.ancestral_steps):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
@@ -99,7 +99,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     lls = zeros(att.samples, n_latents)
     for i = 1:att.samples
         jittered, ẟh = @>> latents begin
-            map(idx -> att.jitter(seeds[i], idx))
+            map(idx -> att.jitter(seeds[i], idx, att))
             x -> zip(x...)
         end
         lls[i, :] = collect(ẟh)

@@ -39,8 +39,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     # main loop going through rejuvenation
     for sweep = 1:sweeps
         # making a rejuvenation move (rejuvenating velocity)
-        acceptance, attended_trackers = perturb_state!(pf_state, weights;
-                                                       ancestral_steps=attention.ancestral_steps)
+        acceptance, attended_trackers = perturb_state!(pf_state, weights, attention)
         rtrace.acceptance += acceptance
         rtrace.attended_trackers += attended_trackers
         rtrace.attempts += 1
