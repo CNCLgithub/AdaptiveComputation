@@ -19,3 +19,6 @@ function load(::Type{ISRDynamics}, path::String)
     ISRDynamics(;read_json(path)...)
 end
 
+#include("helpers.jl")
+include("dynamics.jl")
+include("gen.jl")

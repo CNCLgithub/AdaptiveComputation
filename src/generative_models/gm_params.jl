@@ -7,6 +7,7 @@ abstract type AbstractGMParams end
     area_height::Int64 = 800
     area_width::Int64 = 800
     dot_radius::Float64 = 20.0
+    targets::Vector{Bool} = zeros(8)
 
     # # rfs parameters
     # record_size::Int = 100 # number of associations

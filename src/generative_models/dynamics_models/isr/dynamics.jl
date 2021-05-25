@@ -1,47 +1,52 @@
-function get_repulsion_from_wall(distance, wall_repulsion, pos, gm_params)
-    # repulsion from walls
-    walls = Matrix{Float64}(undef, 4, 3)
-    walls[1,:] = [gm_params.area_width/2, pos[2], pos[3]]
-    walls[2,:] = [pos[1], gm_params.area_height/2, pos[3]]
-    walls[3,:] = [-gm_params.area_width/2, pos[2], pos[3]]
-    walls[4,:] = [pos[1], -gm_params.area_height/2, pos[3]]
 
-    force = zeros(3)
-    for j = 1:4
-        v = pos - walls[j,:]
-        #(norm(v) > min_distance) && continue
-        absolute_force = wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2))
+# projects p onto the line defined by a and b
+function _project(p::T, a::T, b::T) where {T <: Vector{Float64}}
+    ap = p .- a
+    ab = b .- a
+    a .+ dot(ap, ab) / dot(ab, ab) * ab
+end
+
+function get_repulsion_from_wall(dm::ISRDynamics, pos::Vector{Float64},
+                                 walls::Vector{Wall})::Vector{Float64}
+
+    # idea is to project the point onto the walls
+    pos_proj = @>> walls map(w -> _project(pos, w.p1, w.p2))
+
+    force = zeros(2)
+    for i = 1:4
+        v = pos - pos_proj[i]
+        absolute_force = dm.wall_repulsion*exp(-(v[1]^2 + v[2]^2)/(dm.distance^2))
         force .+= absolute_force * v/norm(v)
     end
     return force
 end
 
 
-function get_repulsion_object_to_object(distance, repulsion, pos, other_pos)
-    force = zeros(3)
+function get_repulsion_object_to_object(dm::ISRDynamics, pos::T,
+                                        other_pos::Vector{T})::T where {T <: Vector{Float64}}
+    force = zeros(2)
     for j = 1:length(other_pos)
         v = pos - other_pos[j]
-        #(norm(v) > distance) && continue
-        absolute_force = repulsion*exp(-(v[1]^2 + v[2]^2)/(distance^2))
+        absolute_force = dm.dot_repulsion*exp(-(v[1]^2 + v[2]^2)/(dm.distance^2))
         force .+= absolute_force * v/norm(v)
     end
     return force
 end
 
-function get_repulsion_force_dots(model, objects, gm_params)
-    
-    n = length(objects)
-    #dots_inds = @>> 1:n filter(i -> objects[i] isa Dot)
-    rep_forces = fill(zeros(2), n)
-    positions = map(d->d.pos, objects)
+function get_repulsion_force_dots(cg::CausalGraph)::Vector{Vector{Float64}}
+    dm = get_dm(cg)
+    dots = get_objects(cg, Dot)
 
-    #for i = dots_inds
+    n = length(dots)
+    rep_forces = fill(zeros(2), n)
+    positions = map(d->d.pos[1:2], dots)
+
     for i = 1:n
-        dot = objects[i]
-        
+        dot = dots[i]
         other_pos = positions[map(j -> i != j, 1:n)]
-        dot_applied_force = get_repulsion_object_to_object(model.distance, model.dot_repulsion, dot.pos, other_pos)
-        wall_applied_force = get_repulsion_from_wall(model.distance, model.wall_repulsion, dot.pos, gm_params)
+
+        dot_applied_force = get_repulsion_object_to_object(dm, dot.pos[1:2], other_pos)
+        wall_applied_force = get_repulsion_from_wall(dm, dot.pos[1:2], get_walls(cg, dm))
         
         println("WALLLLLL!!!")
         println(wall_applied_force)
@@ -49,35 +54,33 @@ function get_repulsion_force_dots(model, objects, gm_params)
         println(dot_applied_force)
         println()
 
-        rep_forces[i] = dot_applied_force[1:2]+wall_applied_force[1:2]
+        rep_forces[i] = dot_applied_force + wall_applied_force
     end
     
     rep_forces
 end
 
-function isr_repulsion_step(cg::CausalGraph)::CausalGraph
+function isr_repulsion_step(cg::CausalGraph)::Vector{Dot}
+    rep_forces = get_repulsion_force_dots(cg)
+
     dm = get_dm(cg)
     dots = get_objects(cg, Dot)
-    gm = get_gm(cg)
 
-    rep_forces = get_repulsion_force_dots(dm, dots, gm)
-    n = length(dots)
-
-    for i = 1:n
+    for i=1:length(dots)
         vel = dots[i].vel
         if sum(vel) != 0
             vel *= dm.vel/norm(vel)
         end
         vel *= dm.rep_inertia
         vel += (1.0-dm.rep_inertia)*(rep_forces[i])
-        dots[i] = Dot(dots[i].pos, vel)
+        dots[i] = Dot(pos=dots[i].pos, vel=vel)
     end
     
     return dots
 end
 
 
-function dynamics_init!(dm::InertiaModel, gm::GMParams,
+function dynamics_init!(dm::ISRDynamics, gm::GMParams,
                         cg::CausalGraph, things)
 
     ws = init_walls(gm.area_width, gm.area_height)
@@ -97,7 +100,7 @@ function dynamics_init!(dm::InertiaModel, gm::GMParams,
     return cg
 end
 
-function dynamics_update!(dm::InertiaModel,
+function dynamics_update!(dm::ISRDynamics,
                           cg::CausalGraph,
                           things)
     vs = get_object_verts(cg, Dot)
@@ -109,9 +112,9 @@ function dynamics_update!(dm::InertiaModel,
     return cg
 end
 
-walls_idx(dm::InertiaModel) = collect(1:4)
+walls_idx(dm::ISRDynamics) = collect(1:4)
 
-function get_walls(cg::CausalGraph, dm::InertiaModel)
+function get_walls(cg::CausalGraph, dm::ISRDynamics)
     @>> walls_idx(dm) begin
         map(v -> get_prop(cg, v, :object))
     end

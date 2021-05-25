@@ -1,4 +1,7 @@
+# MAYBE NO NEED FOR ANY OF THIS
+
 using LinearAlgebra: cross
+
 
 function poly_step_args(dm::SquishyDynamicsModel,
                         cg::CausalGraph)
@@ -138,56 +141,3 @@ function get_walls(cg::CausalGraph, dm::SquishyDynamicsModel)
     end
 end
 
-"""
-Takes a list of `Tuple{Polygon, Dot[]}` and creates a new `CausalGraph`
-"""
-function process_temp_state(current_state, old_cg::CausalGraph, dm::SquishyDynamicsModel)
-
-    cg = CausalGraph(SimpleDiGraph())
-
-    # getting the walls from the previous causal graph
-    ws = get_walls(old_cg, dm) 
-    for w in walls_idx(dm)
-        add_vertex!(cg)
-        set_prop!(cg, w, :object, ws[w])
-    end
-    set_prop!(cg, :walls, walls_idx(dm))
-
-    for (poly, verts) in current_state
-        add_vertex!(cg)
-        poly_v = MetaGraphs.nv(cg)
-        set_prop!(cg, poly_v, :object, poly)
-
-        # @show poly
-        # @show verts
-        for (index, v) in enumerate(verts)
-            add_vertex!(cg)
-            vi = MetaGraphs.nv(cg)
-            add_edge!(cg, poly_v, vi)
-            set_prop!(cg, vi, :object, v)
-            # to calculate position wrt polygon
-            set_prop!(cg, vi, :order, index) 
-            set_prop!(cg, Edge(poly_v, vi),
-                      :parent, true)
-        end
-    end
-
-    calculate_repulsion!(cg, dm)
-    return cg
-end
-
-walls_idx(dm::SquishyDynamicsModel) = collect(1:4)
-
-function process_temp_state(current_state, hgm::HGMParams, dm::SquishyDynamicsModel)
-
-    cg = CausalGraph(SimpleDiGraph())
-
-    # getting the walls from the previous causal graph
-    ws = init_walls(hgm)
-    for w in walls_idx(dm)
-        add_vertex!(cg)
-        set_prop!(cg, w, :object, ws[w])
-    end
-    set_prop!(cg, :walls, walls_idx(dm))
-    process_temp_state(current_state, cg, dm)
-end
