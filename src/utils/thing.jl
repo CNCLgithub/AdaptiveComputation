@@ -23,8 +23,8 @@ end
 @with_kw struct Wall <: Object
     p1::Vector{Float64}
     p2::Vector{Float64}
+    n::Vector{Float64} # wall normal pointing inwards
 end
-
 
 function init_walls(area_width::Int64, area_height::Int64)
     ws = Vector{Wall}(undef, 4)
@@ -34,9 +34,28 @@ function init_walls(area_width::Int64, area_height::Int64)
     for i=1:4
         p1 = ps[combs[i][1]]
         p2 = ps[combs[i][2]]
-        ws[i] = Wall(p1, p2)
+        ws[i] = Wall(p1, p2, _get_wall_normal(p1, p2, area_width, area_height))
     end
     return ws
+end
+
+function _contains(p::Vector{Float64}, area_width::Real, area_height::Real)::Bool
+    xmin, xmax = (-area_width/2, area_width/2)
+    ymin, ymax = (-area_height/2, area_height/2)
+
+    xcheck = p[1] >= xmin && p[1] <= xmax
+    ycheck = p[2] >= ymin && p[2] <= ymax
+
+    return xcheck && ycheck
+end
+function _get_wall_normal(p1::Vector{Float64}, p2::Vector{Float64},
+                          area_width::Real, area_height::Real)::Vector{Float64}
+    wall_vec = p2 .- p1
+    x = wall_vec[2]/norm(wall_vec)
+    y = -wall_vec[1]/norm(wall_vec)
+    n = [x,y]
+
+    return _contains(n, area_width, area_height) ? n : -n
 end
 
 abstract type Polygon <: Object end
