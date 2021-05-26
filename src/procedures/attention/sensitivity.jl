@@ -8,13 +8,14 @@ export MapSensitivity
 function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
     args = Gen.get_args(tr)
     t = first(args)
-    diffs = Tuple(fill(NoChange(), length(args)))
+    # diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
     for i = max(1, t-att.ancestral_steps):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
-    (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addrs...)), 2)
+    # (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addrs...)), 2)
+    (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
 end
 
 function retrieve_latents(tr::Gen.Trace)
@@ -35,56 +36,12 @@ end
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
     uniform_sweeps::Int = 0
-    weights::Vector{Float64}
+    weights::Union{Vector{Float64}, Nothing} = nothing
     weights_tau::Float64 = 0.5
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
-end
-
-
-function pos_objective(traces, weights, tracker)
-
-    positions = Matrix{Float64}(undef, 2, length(traces))
-    for i=1:length(traces)
-        (init_state, states) = Gen.get_retval(traces[i])
-        trackers = states[end].graph.elements
-        positions[1:2,i] = trackers[tracker].pos[1:2]
-    end
-    
-    display(positions)
-    display(weights)
-    distribution = fit_mle(MvNormal, positions, weights)
-    return mean(distribution), cov(distribution)
-end
-
-"""
-    KL between multivariate Gaussian distributions
-    https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence#Multivariate_normal_distributions
-"""
-function kl_mv_normal(mu_1, mu_2, sigma_1, sigma_2)
-    # display(mu_1)
-    # display(mu_2)
-    # display(sigma_1)
-    # display(sigma_2)
-    if length(mu_1) != length(mu_2)
-        error("dimensions must match!")
-    end
-    
-    sigma_2_inv = inv(sigma_2)
-    dim = length(mu_1)
-    0.5*(
-         tr(sigma_2_inv * sigma_1)
-         + transpose(mu_2 - mu_1)*sigma_2_inv*(mu_2 - mu_1)
-         - dim
-         + log(det(sigma_2)/det(sigma_1))
-        )
-end
-
-function get_categorical_weights(log_weights)
-    (_, log_normalized_weights) = normalize_weights(log_weights)
-    weights = exp.(log_normalized_weights)
 end
 
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
@@ -104,7 +61,9 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
         end
         lls[i, :] = collect(ẟh)
         jittered_obj = map(att.objective, jittered)
-        ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
+        # ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
+        ẟs = @>> jittered_obj map(j -> jeffs_d(seed_obj[i], j))
+        # ẟs = @>> jittered_obj map(j -> l2_d(seed_obj[i], j))
         kls[i, :] = collect(ẟs)
     end
     
@@ -116,21 +75,30 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     gs = Vector{Float64}(undef, n_latents)
     lse = Vector{Float64}(undef, n_latents)
     # normalizing accross samples
+    clamp!(lls, -Inf, 0.)
     for i = 1:n_latents
         lse[i] = logsumexp(lls[:, i])
-        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i])
+        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
+        # gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i] .- lse[i])
     end
     println("compute weights: $gs")
     # normalizing accross trackers for unstable version
-    #gs = gs .+ (lse .- logsumexp(lse)) 
-    att.weights = att.weights_tau * gs  + (1.0 - att.weights_tau) * att.weights
+    # gs = gs .+ (lse .- logsumexp(lse))
+    if isnothing(att.weights)
+        att.weights = gs
+    else
+        att.weights = log.(
+            exp.(att.weights .+ log(att.weights_tau)) .+
+            exp.(gs .+ log(1.0 - att.weights_tau)))
+    end
+    println("time-smoothed weights: $(att.weights)")
     return att.weights
 end
 
 function get_weights(att::MapSensitivity, stats)
-    # # making it smoother
-    mean_weights = fill(mean(att.weights), length(att.weights))
-    weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
+    # mean_weights = fill(mean(att.weights), length(att.weights))
+    # weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
+    weights = att.smoothness * stats
     weights = softmax(weights)
     println("sampling weights: $(weights)")
     weights
@@ -154,6 +122,25 @@ function early_stopping(att::MapSensitivity, new_stats, prev_stats)
 end
 
 # Objectives
+
+function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
+    record = AssociationRecord(200)
+    Gen.logpdf(rfs, xs, pmbrfs, record)
+    @assert first(pmbrfs) isa PoissonElement
+
+    tracker_assocs = @>> (record.table) begin
+        map(c -> Set(vcat(c[2:end]...)))
+    end
+    k = length(xs)
+    denom = logsumexp(record.logscores)
+    td = Dict{Int64, Float64}()
+    for x = 1:k
+        idxs = findall(map(es -> in(x, es), tracker_assocs))
+        td[x] = logsumexp(record.logscores[idxs])
+    end
+    td
+end
+
 function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
@@ -201,13 +188,35 @@ function target_designation(tr::Gen.Trace)
     current_td = _td(xs, pmbrfs, t)
 end
 
-function _dc(tr::Gen.Trace, t::Int64,  scale::Float64)
-    xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].rfs
-    record = AssociationRecord(100)
+function _dc(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
+    record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
+    @assert first(pmbrfs) isa PoissonElement
     Dict{Vector{Vector{Int64}}, Float64}(zip(record.table,
-                                             record.logscores ./ scale))
+                                             record.logscores))
+end
+
+
+function data_correspondence_receptive_fields(tr::Gen.Trace)
+    t = first(Gen.get_args(tr))
+
+    rfs_vec = @>> Gen.get_retval(tr) begin
+        last # get the states
+        last # get the last state
+        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
+    end # rfes for each rf
+
+    receptive_fields = @> tr begin
+        get_choices
+        get_submap(:kernel => t => :receptive_fields)
+        get_submaps_shallow
+        # vec of tuples (rf id, rf mask choicemap)
+    end # masks for each rf
+
+    # @debug "receptive fields $(typeof(receptive_fields[1]))"
+    tds = @>> receptive_fields begin
+        map(rf -> _dc(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+    end
 end
 
 function data_correspondence(tr::Gen.Trace; scale::Float64 = 1.0)
@@ -262,22 +271,81 @@ function relative_entropy(p::T, q::T;
         error_on_empty && error("empty intersect")
         return 1.0
     end
+    # println("probs = ")
+    # display(Dict(zip(labels, eachrow(probs))))
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
     ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
     #display(p); display(q)
     order = sortperm(probs[:, 1], rev= true)
-    #display(Dict(zip(labels[order], eachrow(probs[order, :]))))
+    # display(ms)
+    # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
     kl = 0.0
     for i in order
-        _kl = 0.0
-        _kl += 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
+        # println("$(labels[i]) => $(probs[i, :]) | $(ms[i])")
+        _kl = 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
         kl += isnan(_kl) ? 0.0 : _kl
-        #println("$(labels[i]) => $(probs[i, :]) | kl = $(kl)")
+        # println("$(labels[i]) => $(probs[i, :]) | $(ms[i]) => kl = $(_kl)")
     end
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
+
+function jeffs_d(ps::T, qs::T) where T<:Array
+    @>> zip(ps, qs) begin
+        map(x -> jeffs_d(x[1], x[2]; error_on_empty=false))
+        mean
+    end
+end
+
+function jeffs_d(p::T, q::T;
+                 error_on_empty=true) where T<:Dict
+    labels, probs = resolve_correspondence(p, q)
+    if isempty(labels)
+        display(p); display(q)
+        error_on_empty && error("empty intersect")
+        return 1.0
+    end
+    # println("probs = ")
+    # display(Dict(zip(labels, eachrow(probs))))
+    # display(logsumexp(probs[:, 1]))
+    # display(logsumexp(probs[:, 2]))
+    probs[:, 1] .-= logsumexp(probs[:, 1])
+    probs[:, 2] .-= logsumexp(probs[:, 2])
+    order = sortperm(probs[:, 1], rev= true)
+    jd = 0.0
+    for i in order
+        _jd = exp(probs[i, 1]) - exp(probs[i, 2])
+        _jd *= (probs[i, 1] - probs[i, 2])
+        jd += _jd
+        # println("$(labels[i]) => $(probs[i, :]) => jd = $(log(_jd))")
+    end
+    return jd
+    # isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
+end
+
+function l2_d(ps::T, qs::T) where T<:Array
+    @>> zip(ps, qs) begin
+        map(x -> l2_d(x[1], x[2]; error_on_empty=false))
+        mean
+    end
+end
+
+
+function l2_d(p::T, q::T;
+                 error_on_empty=true) where T<:Dict
+    labels, probs = resolve_correspondence(p, q)
+    if isempty(labels)
+        display(p); display(q)
+        error_on_empty && error("empty intersect")
+        return 1.0
+    end
+    println("probs = ")
+    display(Dict(zip(labels, eachrow(probs))))
+    # norm(probs[:, 1] - probs[:, 2])
+    norm(exp.(probs[:, 1]) - exp.(probs[:, 2]))
+end
+
 
 function index_pairs(n::Int)
     if !iseven(n)

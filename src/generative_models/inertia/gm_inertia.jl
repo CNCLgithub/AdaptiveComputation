@@ -8,11 +8,11 @@
     cg = @trace(inertial_update(prev_cg), :dynamics) 
 
     # updating graphics + getting parameters for the prediction
-    rfs_vec = graphics_update!(cg)
-    
+    cg_rfs = graphics_update(cg)
+    rfs_vec = get_prop(cg_rfs, :rfs_vec)
     @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
 
-    return cg
+    return cg_rfs
 end
 
 @gen static function gm_inertia_mask(k::Int,

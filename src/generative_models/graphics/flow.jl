@@ -11,10 +11,11 @@ evolve(::Flow, ::Space) = error("not implemented")
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
-    memory = flow.memory * exp(flow.decay_rate)
-    memory += space
-    memory *= 0.5
+    memory = (flow.memory - space) .* exp(flow.decay_rate)
     clamp!(memory, 0.0, flow.upper)
+    memory += space
+    clamp!(memory, 0.0, flow.upper)
+    # memory *= 0.5
     ExponentialFlow{T}(flow.decay_rate, memory, flow.upper)
 end
 

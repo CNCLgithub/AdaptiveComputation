@@ -23,8 +23,13 @@
     #- mixture of previous velocity & base
     mu = inertia * mag + (1.0 - inertia) * dm.vel
     std = max(dm.w_min, (1.0 - inertia) * dm.w_max)
-    mag = @trace(normal(mu, std), :mag)
-    
+    mag = @trace(normal(mu, std), :std)
+
+    if mag > 3.5
+        println("mag $(mag)")
+        error()
+    end
+
     # converting back to vector form
     vx = mag * cos(ang)
     vy = mag * sin(ang)
@@ -39,13 +44,9 @@ end
 
 
 @gen (static) function inertial_update(prev_cg::CausalGraph)
-    cg = deepcopy(prev_cg)
-    vs = get_object_verts(cg, Dot)
-
-    cgs = fill(cg, length(vs))
+    (cgs, vs) = inertia_step_args(prev_cg)
     things = @trace(Map(inertial_step)(cgs, vs), :brownian)
-    foo = dynamics_update!(get_dm(cg), cg, things)
-
-    return cg
+    new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)
+    return new_cg
 end
 

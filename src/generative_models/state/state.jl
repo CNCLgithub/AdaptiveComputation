@@ -14,15 +14,14 @@
 end
 
 @gen function sample_init_state(cg::CausalGraph)
-    cg = deepcopy(cg)
 
     @unpack n_trackers = (get_gm(cg))
     cgs = fill(cg, n_trackers)
     init_trackers = @trace(Gen.Map(sample_init_tracker)(cgs), :trackers)
     ensemble = UniformEnsemble(cg)
     
-    dynamics_init!(cg, [ensemble; init_trackers])
-    graphics_init!(cg)
+    cg = dynamics_init(cg, [ensemble; init_trackers])
+    cg = graphics_init(cg)
 
     return cg
 end

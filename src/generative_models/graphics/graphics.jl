@@ -52,27 +52,29 @@ function predict(graphics::Graphics, e::UniformEnsemble, space::Space)
     PoissonElement{Array}(e.rate, mask, (space,))
 end
 
-function graphics_init!(cg::CausalGraph)
+function graphics_init(cg::CausalGraph)
     g = get_graphics(cg)
-    graphics_init!(cg, g)
+    graphics_init(cg, g)
 end
 
-function graphics_init!(cg::CausalGraph, graphics::Graphics)
+function graphics_init(cg::CausalGraph, graphics::Graphics)
+    cg = deepcopy(cg)
     vs = @> cg begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa
                         Union{Dot, UniformEnsemble})
         (@>> collect(Int64))
     end
     set_prop!(cg, :graphics_vs, vs)
-    return vs
+    return cg
 end
 
-function graphics_update!(cg::CausalGraph)
+function graphics_update(cg::CausalGraph)
     graphics = get_graphics(cg)
-    graphics_update!(cg, graphics)
+    graphics_update(cg, graphics)
 end
 
-function graphics_update!(cg::CausalGraph, graphics::Graphics)
+function graphics_update(cg::CausalGraph, graphics::Graphics)
+    cg = deepcopy(cg)
     vs = get_prop(cg, :graphics_vs)
 
     spaces = render!(cg) # project to graphical space
@@ -90,7 +92,7 @@ function graphics_update!(cg::CausalGraph, graphics::Graphics)
     end
     set_prop!(cg, :rfs_vec, rfs_vec)
 
-    return rfs_vec
+    return cg
 end
 
 include("utils.jl")

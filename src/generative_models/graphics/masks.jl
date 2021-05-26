@@ -86,9 +86,9 @@ function get_bit_masks(cg::CausalGraph,
         mask = draw_dot_mask(positions[i], gm.dot_radius,
                              graphics.img_dims...,
                              gm.area_width, gm.area_height)
-        mask[img_so_far] .= false
+        # mask[img_so_far] .= false
         masks[i] = mask
-        img_so_far .|= mask
+        # img_so_far .|= mask
     end
 
     masks = masks[invperm(depth_perm)]
@@ -139,9 +139,8 @@ function generate_masks(cgs::Vector{CausalGraph},
     end
 
     @unpack img_dims, flow_decay_rate, gauss_amp = graphics
-    decay_rate = graphics.flow_decay_rate
     flows = @>> vs begin
-        map(v -> ExponentialFlow(decay_rate,
+        map(v -> ExponentialFlow(flow_decay_rate,
                                  zeros(reverse(img_dims)),
                                  # TODO make this a param in graphics
                                  1.0))
