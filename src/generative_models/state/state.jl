@@ -25,3 +25,16 @@ end
 
     return cg
 end
+
+# positional version without ensemble or graphics
+@gen function sample_init_state_pos(cg::CausalGraph)
+    cg = deepcopy(cg)
+
+    @unpack n_trackers = (get_gm(cg))
+    cgs = fill(cg, n_trackers)
+    init_trackers = @trace(Gen.Map(sample_init_tracker)(cgs), :trackers)
+    init_trackers = collect(Thing, init_trackers)
+    dynamics_init!(cg, init_trackers)
+
+    return cg
+end

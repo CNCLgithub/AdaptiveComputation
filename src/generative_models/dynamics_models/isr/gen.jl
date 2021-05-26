@@ -1,14 +1,15 @@
 @gen function isr_brownian_step(cg::CausalGraph, v::Int64)::Dot
+    dm = get_dm(cg)
     dot = get_prop(cg, v, :object)
 
     _x, _y, _z = dot.pos
     vx, vy = dot.vel
     
-    if model.brownian
-        vx = @trace(normal(model.inertia * vx - model.spring * _x,
-                               model.sigma_x), :vx)
-        vy = @trace(normal(model.inertia * vy - model.spring * _y,
-                               model.sigma_y), :vy)
+    if dm.brownian
+        vx = @trace(normal(dm.inertia * vx - dm.spring * _x,
+                               dm.sigma_x), :vx)
+        vy = @trace(normal(dm.inertia * vy - dm.spring * _y,
+                               dm.sigma_y), :vy)
     end
 
     x = _x + vx
@@ -34,5 +35,4 @@ end
 
     return cg
 end
-
 

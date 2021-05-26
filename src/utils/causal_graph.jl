@@ -19,6 +19,18 @@ function get_init_cg(gm, dm, graphics)
     return cg
 end
 
+# if generating just the motion
+function get_init_cg(gm, dm)
+
+    cg = CausalGraph(SimpleDiGraph())
+
+    set_prop!(cg, :gm, gm)
+    set_prop!(cg, :dm, dm)
+
+    return cg
+end
+
+
 # assuming first N vertices are walls
 walls(cg::CausalGraph) = get_prop(cg, :walls)
 
