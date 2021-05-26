@@ -11,9 +11,11 @@ htmlcov
 .julia/
 mot.so
 mot.sif
-mot_env/
+.pyenv
 output/
 user.conf
 
 *.png
 *.gif
+statprof
+*.so
