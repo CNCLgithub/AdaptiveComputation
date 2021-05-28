@@ -134,7 +134,6 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset" => "/datasets/fixations_dataset.jld2",
-                 "scene" => 10,
                  "chain" => 1,
                  "fps" => 60,
                  "frames" => 30,
@@ -184,9 +183,7 @@ function main()
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))
 
-    base_path = "/experiments/$(experiment_name)_$(att_mode)"
-    scene = args["scene"]
-    path = joinpath(base_path, "$(scene)")
+    path = "/experiments/$(experiment_name)_$(att_mode)"
     try
         isdir(base_path) || mkpath(base_path)
         isdir(path) || mkpath(path)
@@ -211,9 +208,6 @@ function main()
                                             n_trackers = gm_params.n_trackers,
                                             n_dots = gm_params.n_trackers + gm_params.distractor_rate,
                                             gt_cg_end = gt_cgs[end])
-    df[!, :scene] .= args["scene"]
-    df[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c).csv"), df)
 
     if (args["viz"])
         visualize_inference(results, gt_cgs, gm_params,

@@ -1,0 +1,9 @@
+{
+    "n_trackers": 3,
+    "distractor_rate": 3.0,
+    "init_pos_spread": 500,
+    "dot_radius": 20,
+
+    "area_width": 500,
+    "area_height": 500
+}
