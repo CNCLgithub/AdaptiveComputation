@@ -19,19 +19,18 @@
 end
 
 
-
 @gen function isr_update(prev_cg::CausalGraph)
     cg = deepcopy(prev_cg)
     vs = get_object_verts(cg, Dot)
 
     # first start with repulsion step (deterministic)
     things = isr_repulsion_step(cg)
-    dynamics_update!(get_dm(cg), cg, things)
+    cg = dynamics_update(get_dm(cg), cg, things)
 
     # then brownian step (random)
     cgs = fill(cg, length(vs))
     things = @trace(Map(isr_brownian_step)(cgs, vs), :brownian)
-    dynamics_update!(get_dm(cg), cg, things)
+    cg = dynamics_update(get_dm(cg), cg, things)
 
     return cg
 end

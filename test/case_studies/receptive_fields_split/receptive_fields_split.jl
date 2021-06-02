@@ -31,7 +31,7 @@ function main()
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
-                 "k" => 1,
+                 "k" => 30,
                  "viz" => true])
    
     # generating some data using the isr dynamics (using minimum distance)
@@ -68,21 +68,6 @@ function main()
         println("could not make dir $(path)")
     end
     
-
-    scores = zeros(10000)
-    for i=1:10000
-        print("running $i/10000 \r")
-        results = run_inference(query, proc)
-        # getting the logscore of the trace
-        extracted = extract_chain(results)
-        # last timestep, first of the unweighted traces
-        trace = extracted["unweighted"][:trace][end, 1]
-        score = Gen.get_score(trace)
-        scores[i] = score
-    end
-
-    return scores
-
 
     df = MOT.analyze_chain_receptive_fields(results,
                                             n_trackers = gm.n_trackers,

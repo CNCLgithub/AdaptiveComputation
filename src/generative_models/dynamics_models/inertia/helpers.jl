@@ -2,6 +2,7 @@
 function dynamics_init(dm::InertiaModel, gm::GMParams,
                        cg::CausalGraph, things)
     cg = deepcopy(cg)
+
     ws = init_walls(gm.area_width, gm.area_height)
     for w in walls_idx(dm)
         add_vertex!(cg)

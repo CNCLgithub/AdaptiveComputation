@@ -5,25 +5,6 @@ using LinearAlgebra
 
 export MapSensitivity
 
-function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
-    args = Gen.get_args(tr)
-    t = first(args)
-    # diffs = Tuple(fill(NoChange(), length(args)))
-    addrs = []
-    for i = max(1, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :brownian => tracker
-        push!(addrs, addr)
-    end
-    # (new_tr, ll) = take(regenerate(tr, args, diffs, Gen.select(addrs...)), 2)
-    (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
-end
-
-function retrieve_latents(tr::Gen.Trace)
-    args = Gen.get_args(tr)
-    ntrackers = args[2].n_trackers
-    collect(1:ntrackers)
-end
-
 @with_kw mutable struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
     latents::Function = t -> retrieve_latents(t)
@@ -43,6 +24,25 @@ end
 function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
+
+function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
+    args = Gen.get_args(tr)
+    t = first(args)
+    # diffs = Tuple(fill(NoChange(), length(args)))
+    addrs = []
+    for i = max(1, t-att.ancestral_steps):t
+        addr = :kernel => i => :dynamics => :brownian => tracker
+        push!(addrs, addr)
+    end
+    (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
+end
+
+function retrieve_latents(tr::Gen.Trace)
+    args = Gen.get_args(tr)
+    ntrackers = args[2].n_trackers
+    collect(1:ntrackers)
+end
+
 
 function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
 
@@ -87,9 +87,11 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     if isnothing(att.weights)
         att.weights = gs
     else
-        att.weights = log.(
-            exp.(att.weights .+ log(att.weights_tau)) .+
-            exp.(gs .+ log(1.0 - att.weights_tau)))
+        # att.weights = log.(
+            # exp.(att.weights .+ log(att.weights_tau)) .+
+            # exp.(gs .+ log(1.0 - att.weights_tau)))
+        att.weights = (att.weights * att.weights_tau +
+                       gs * (1.0 - att.weights_tau))
     end
     println("time-smoothed weights: $(att.weights)")
     return att.weights
@@ -291,6 +293,11 @@ function relative_entropy(p::T, q::T;
     isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
 
+
+function get_entropy(ps::Vector{Float64})
+    @>> ps map(p -> (-p * log(p))) sum
+end
+
 function jeffs_d(ps::T, qs::T) where T<:Array
     @>> zip(ps, qs) begin
         map(x -> jeffs_d(x[1], x[2]; error_on_empty=false))
@@ -312,6 +319,7 @@ function jeffs_d(p::T, q::T;
     # display(logsumexp(probs[:, 2]))
     probs[:, 1] .-= logsumexp(probs[:, 1])
     probs[:, 2] .-= logsumexp(probs[:, 2])
+    
     order = sortperm(probs[:, 1], rev= true)
     jd = 0.0
     for i in order
@@ -320,8 +328,8 @@ function jeffs_d(p::T, q::T;
         jd += _jd
         # println("$(labels[i]) => $(probs[i, :]) => jd = $(log(_jd))")
     end
+
     return jd
-    # isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
 end
 
 function l2_d(ps::T, qs::T) where T<:Array

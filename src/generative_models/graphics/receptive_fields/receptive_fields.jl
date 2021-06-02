@@ -44,7 +44,13 @@ end
 function get_mds_rf(rf::RectangleReceptiveField,
                     mds::Vector{Space})
     # cropping masks to receptive fields and filtering only with mass
-    @>> mds map(md -> crop(rf, md)) filter(md -> any(md .> rf.threshold))
+    cropped_masks = @>> mds map(md -> crop(rf, md))
+    #@>> cropped_masks map(maximum) foreach(display)
+    filtered_masks = @>> cropped_masks filter(md -> any(md .>= rf.threshold))
+    
+    #@show length(filtered_masks)
+
+    filtered_masks
 end
 
 """

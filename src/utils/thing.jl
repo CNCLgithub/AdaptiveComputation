@@ -95,7 +95,11 @@ end
 function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
-    pixel_prob = (gm.dot_radius*pi^2)/(gm.area_width * gm.area_height)
+    #pixel_prob = (gm.dot_radius*pi^2)/(gm.area_width * gm.area_height)
+
+    # just add a tiny bit to the receptive field threshold
+    pixel_prob = @>> graphics.receptive_fields first (x -> x.threshold)
+
     UniformEnsemble(gm.distractor_rate, pixel_prob)
 end
 

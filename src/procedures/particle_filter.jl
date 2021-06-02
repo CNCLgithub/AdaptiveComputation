@@ -52,7 +52,15 @@ end
 function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
                                proc::PopParticleFilter,
                                query::StaticQuery)
-
+   
+    timestep = @>> state begin
+        get_traces
+        first
+        get_args
+        first
+    end
+    println()
+    @show timestep
 
     @debug "smc_step!"
     # Resample before moving on...

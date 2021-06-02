@@ -25,11 +25,6 @@
     std = max(dm.w_min, (1.0 - inertia) * dm.w_max)
     mag = @trace(normal(mu, std), :std)
 
-    if mag > 3.5
-        println("mag $(mag)")
-        error()
-    end
-
     # converting back to vector form
     vx = mag * cos(ang)
     vy = mag * sin(ang)

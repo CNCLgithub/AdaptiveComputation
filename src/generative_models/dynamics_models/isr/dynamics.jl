@@ -80,8 +80,9 @@ function isr_repulsion_step(cg::CausalGraph)::Vector{Dot}
 end
 
 
-function dynamics_init!(dm::ISRDynamics, gm::GMParams,
+function dynamics_init(dm::ISRDynamics, gm::GMParams,
                         cg::CausalGraph, things)
+    cg = deepcopy(cg)
 
     ws = init_walls(gm.area_width, gm.area_height)
     for w in walls_idx(dm)
@@ -100,9 +101,11 @@ function dynamics_init!(dm::ISRDynamics, gm::GMParams,
     return cg
 end
 
-function dynamics_update!(dm::ISRDynamics,
+function dynamics_update(dm::ISRDynamics,
                           cg::CausalGraph,
                           things)
+    cg = deepcopy(cg)
+
     vs = get_object_verts(cg, Dot)
 
     for (i, thing) in enumerate(things)
