@@ -2,6 +2,8 @@ using LightGraphs
 using MetaGraphs
 const CausalGraph = MetaGraphs.MetaDiGraph{Int64, Float64}
 
+export get_dm, get_gm, get_graphics
+
 get_dm(cg::CausalGraph) = get_prop(cg, :dm)
 get_gm(cg::CausalGraph) = get_prop(cg, :gm)
 get_graphics(cg::CausalGraph) = get_prop(cg, :graphics)

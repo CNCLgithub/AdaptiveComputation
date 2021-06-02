@@ -1,8 +1,4 @@
-export generate_dataset,
-        is_min_distance_satisfied,
-        are_dots_inside,
-        forward_scene_data!,
-        init_constraint_from_cg
+export generate_dataset
 
 include("generate_dataset_helpers.jl")
 
@@ -45,7 +41,7 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
         file["n_scenes"] = n_scenes
         for i=1:n_scenes
             println("generating scene $i/$n_scenes")
-            scene_data = nothing
+            init_gt_cgs = nothing
 
             # if no choicemaps, then create an empty one
             cm = isnothing(cms) ? choicemap() : cms[i]
@@ -56,25 +52,26 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
             while true
                 tries += 1
                 println("$tries \r")
+
                 # if ff_ks is not empty, then only generating those frames
                 init_k = !isnothing(ff_ks) ? ff_ks[i]+1 : k
-                scene_data = dgp(init_k, gms[i], dms[i];
-                                 generate_masks=false,
-                                 cm=cm,
-                                 generate_cm=true)
+                init_gt_cgs = dgp(init_k, dms[i], gms[i];
+                                  cm=cm)
 
                 # shifting scene data to the end if ff_ks are present
-                !isnothing(ff_ks) && forward_scene_data!(scene_data, ff_ks[i])
+                if !isnothing(ff_ks)
+                    init_gt_cgs = init_gt_cgs[ff_ks[i]:end]
+                end
                 
                 #break # TESTING
 
                 # checking whether dots are inside the area
-                di=are_dots_inside(scene_data, gms[i])
+                di=are_dots_inside(init_gt_cgs, gms[i])
                 println("dots inside: $di")
                 di || continue
 
                 # checking whether the minimum distance between dots is satisfied
-                md=is_min_distance_satisfied(scene_data, min_distance)
+                md=is_min_distance_satisfied(first(init_gt_cgs), min_distance)
                 println("minimum distance ($min_distance): $md")
                 md || continue
                 
@@ -83,19 +80,18 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
             end
             
             # generating the whole scene using the initial constraints from the loop above
-            scene_data = dgp(k, gms[i], dms[i];
-                             generate_masks=false,
-                             cm=init_constraint_from_cg(first(scene_data[:gt_causal_graphs]), scene_data[:cm]))
+            gt_cgs = dgp(k, dms[i], gms[i];
+                         cm=init_constraint_from_cg(first(init_gt_cgs)))
             
             # checking whether any dots escaped
-            !are_dots_inside(scene_data, gms[i]) && error("dots escaped the area")
+            !are_dots_inside(gt_cgs, gms[i]) && error("dots escaped the area")
 
             # saving the scene to a JLD2 structure
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gms[i]
             scene["dm"] = dms[i]
             scene["aux_data"] = isnothing(aux_data) ? nothing : aux_data[i]
-            scene["gt_causal_graphs"] = scene_data[:gt_causal_graphs]
+            scene["gt_causal_graphs"] = gt_cgs
         end
     end
 end

@@ -70,11 +70,13 @@ function ancestral_kernel_move!(attended_trackers::T, trace::Gen.Trace, probs::T
     
     # now let's do update on kinematics ancestrally
     addrs = []
+    constraints = choicemap()
     # it does ancestral steps + current step
     for i = max(1, t-att.ancestral_steps):t
         addr = :kernel => i => :dynamics => :brownian => tracker
         push!(addrs, addr)
     end
+
     mh(trace, Gen.select(addrs...))
 end
 

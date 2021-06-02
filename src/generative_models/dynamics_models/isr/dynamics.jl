@@ -47,12 +47,6 @@ function get_repulsion_force_dots(cg::CausalGraph)::Vector{Vector{Float64}}
 
         dot_applied_force = get_repulsion_object_to_object(dm, dot.pos[1:2], other_pos)
         wall_applied_force = get_repulsion_from_wall(dm, dot.pos[1:2], get_walls(cg, dm))
-        
-        println("WALLLLLL!!!")
-        println(wall_applied_force)
-        println("DOT!!!!!!")
-        println(dot_applied_force)
-        println()
 
         rep_forces[i] = dot_applied_force + wall_applied_force
     end
@@ -68,11 +62,12 @@ function isr_repulsion_step(cg::CausalGraph)::Vector{Dot}
 
     for i=1:length(dots)
         vel = dots[i].vel
+        vel *= dm.rep_inertia
+        vel += (1.0-dm.rep_inertia)*(rep_forces[i])
         if sum(vel) != 0
             vel *= dm.vel/norm(vel)
         end
-        vel *= dm.rep_inertia
-        vel += (1.0-dm.rep_inertia)*(rep_forces[i])
+
         dots[i] = Dot(pos=dots[i].pos, vel=vel)
     end
     

@@ -8,6 +8,9 @@ end
 function _dgp(dm::SquishyDynamicsModel, k::Int, gm::GMParams, cm::ChoiceMap)
     Gen.generate(squishy_gm_pos, (k, gm, dm), cm)
 end
+function _dgp(dm::InertiaModel, k::Int, gm::GMParams, cm::ChoiceMap)
+    Gen.generate(gm_inertia_pos, (k, gm, dm), cm)
+end
 
 function dgp(k::Int, dm::AbstractDynamicsModel, gm::GMParams;
              cm::ChoiceMap=choicemap())::Vector{CausalGraph}
@@ -15,8 +18,7 @@ function dgp(k::Int, dm::AbstractDynamicsModel, gm::GMParams;
     # new params with all dots having state for data generation
     gm = deepcopy(gm)
     gm = @set gm.n_trackers = round(Int, gm.n_trackers + gm.distractor_rate)
-
-    # running generative model on just positions (no need to go to masks)
+    
     trace, _ = _dgp(dm, k, gm, cm)
     init_cg, cgs = Gen.get_retval(trace)
 

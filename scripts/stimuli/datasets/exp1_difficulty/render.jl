@@ -57,10 +57,9 @@ n_scenes = file["n_scenes"]
 close(file)
 
 for scene_id=1:n_scenes
-    scene_data = MOT.load_scene(scene_id, dataset_path, HGMParams();
-                                generate_masks=false)
+    scene_data = MOT.load_scene(scene_id, dataset_path)
     #r_fields_dim = (5, 5)
-    gm = scene_data[:gm]
+    gm = @>> scene_data[:gt_causal_graphs] first get_gm
     k = length(scene_data[:gt_causal_graphs])
     gt_cgs = scene_data[:gt_causal_graphs]
     #targets = scene_data[:aux_data][:targets]
