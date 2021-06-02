@@ -50,10 +50,9 @@ for (i, vn) in enumerate(Iterators.product(vels, n_distractors, 1:n_scenes_per_p
 
     # adding auxiliary data about how the scene is structured for
     # rendering purposes (on psiturk and offline)
-    aux_data[i] = (scene_structure = fill(1, n_dist + gm.n_trackers),
-                   targets = targets,
+    aux_data[i] = (targets = targets,
                    vel = vel,
-                   n_dist = n_dist)
+                   n_distractors = n_dist)
 end
 
 println("generating exp1 difficulty dataset...")
@@ -65,4 +64,4 @@ include("../convert_dataset_to_json.jl")
 convert_dataset_to_json("output/datasets/exp1_difficulty.jld2",
                         "output/datasets/exp1_difficulty.json")
 run(`cp output/datasets/exp1_difficulty.json ../mot-psiturk/psiturk/static/data/dataset.json`)
-include("render.jl")
+#include("render.jl")
