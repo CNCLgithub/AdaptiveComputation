@@ -22,7 +22,6 @@ function render!(cg::CausalGraph, graphics::Graphics)
     return spaces
 end
 
-
 function render!(cg::CausalGraph, v::Int64, d::Dot)
 
     @unpack img_dims = (get_prop(cg, :graphics))

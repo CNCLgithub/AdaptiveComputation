@@ -3,7 +3,7 @@ using MOT: @set, choicemap
 using Random
 Random.seed!(4)
 
-k = 100
+k = 240
 
 dataset_file = "exp1_difficulty.jld2"
 datasets_folder = joinpath("output", "datasets")
@@ -14,11 +14,10 @@ main_gm = MOT.load(GMParams, "$(@__DIR__)/gm.json")
 main_dm = MOT.load(ISRDynamics, "$(@__DIR__)/dm.json")
 
 # dimension of difficulty: velocity and number of distractors
-vels = LinRange(2.0, 6.0, 5)
+vels = LinRange(5.0, 13.0, 5)
 n_distractors = collect(3:7)
-
-vels = [5.0, 13.0]
-n_distractors = [3, 7]
+#vels = [5.0, 13.0]
+#n_distractors = [3, 7]
 
 n_scenes_per_pair = 1
 n_scenes = length(vels) * length(n_distractors) * n_scenes_per_pair

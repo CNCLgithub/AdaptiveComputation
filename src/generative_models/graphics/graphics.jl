@@ -34,21 +34,60 @@ function load(::Type{Graphics}, path::String)
     #flow = ExponentialFlow(data[:flow_decay_rate], zeros(img_dims))
     
     flow_decay_rate = data[:flow_decay_rate]
-    gauss_r_multiple, gauss_amp, gauss_std = data[:gauss_r_multiple], data[:gauss_amp], data[:gauss_std]
+    gauss_r_multiple, gauss_amp, gauss_std = (data[:gauss_r_multiple], data[:gauss_amp],
+                                              data[:gauss_std])
     bern_existence_prob = data[:bern_existence_prob]
 
     Graphics(img_dims, rf_dims, receptive_fields, flow_decay_rate,
              gauss_r_multiple, gauss_amp, gauss_std, bern_existence_prob)
 end
 
-
 include("space.jl")
 
-function predict(graphics::Graphics, e::Dot, space::Space)
-    BernoulliElement{Array}(graphics.bern_existence_prob, mask, (space,))
+function get_decayed_existence_prob(cg::CausalGraph, e::Dot)
+    graphics = get_graphics(cg)
+    @unpack area_width, area_height = get_gm(cg)
+
+    # going from area dims to img dims
+    x, y = translate_area_to_img(get_pos(e)[1:2]..., graphics.img_dims...,
+                                 area_width, area_height)
+    
+    # @show x, y
+    # @>> graphics.receptive_fields foreach(display)
+
+    # we find the receptive_field
+    rf = @>> graphics.receptive_fields begin
+        filter(rf -> (rf.p1[1] <= x && rf.p1[2] <= y &&
+                      x <= rf.p2[1] + 1 && y <= rf.p2[2] + 1))
+        first
+    end
+    
+    # simplified way to find distance to receptive_field walls
+    a = x - rf.p1[1]
+    b = y - rf.p1[2]
+    c = rf.p2[1] - x
+    d = rf.p2[2] - y
+
+    decayed = @>> [a,b,c,d] begin
+        map(abs)
+        minimum
+        x -> -x/1000
+        exp
+    end
+    #@show decayed
+
+    # hah a mixture yet again
+    return decayed * 0.0 + (1.0 - decayed) * graphics.bern_existence_prob
 end
 
-function predict(graphics::Graphics, e::UniformEnsemble, space::Space)
+function predict(cg::CausalGraph, e::Dot, space::Space)
+    #ep = get_decayed_existence_prob(cg, e)
+    ep = get_graphics(cg).bern_existence_prob
+    #@show ep
+    BernoulliElement{Array}(ep, mask, (space,))
+end
+
+function predict(cg::CausalGraph, e::UniformEnsemble, space::Space)
     PoissonElement{Array}(e.rate, mask, (space,))
 end
 
@@ -86,7 +125,7 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
     for i in LinearIndices(graphics.rf_dims)
         rfes = RFSElements{Array}(undef, length(spaces_rf[i]))
         for (j, space_rf) in enumerate(spaces_rf[i])
-            rfes[j] = predict(graphics, get_prop(cg, vs[j], :object), space_rf)
+            rfes[j] = predict(cg, get_prop(cg, vs[j], :object), space_rf)
         end
         rfs_vec[i] = rfes
     end
