@@ -5,7 +5,7 @@ Random.seed!(4)
 
 k = 240
 
-dataset_file = "exp1_difficulty.jld2"
+dataset_file = "exp1_difficulty_instruction.jld2"
 datasets_folder = joinpath("output", "datasets")
 ispath(datasets_folder) || mkpath(datasets_folder)
 dataset_path = joinpath(datasets_folder, dataset_file)
@@ -14,10 +14,10 @@ main_gm = MOT.load(GMParams, "$(@__DIR__)/gm.json")
 main_dm = MOT.load(ISRDynamics, "$(@__DIR__)/dm.json")
 
 # dimension of difficulty: velocity and number of distractors
-vels = LinRange(2.0, 14.0, 13)
-n_distractors = collect(4:8)
-#vels = [5.0, 13.0]
-#n_distractors = [3, 7]
+#vels = LinRange(2.0, 13.0, 12)
+#n_distractors = collect(4:7)
+vels = [6.0, 9.0]
+n_distractors = [4, 6]
 
 n_scenes_per_pair = 1
 n_scenes = length(vels) * length(n_distractors) * n_scenes_per_pair
@@ -60,7 +60,7 @@ MOT.generate_dataset(dataset_path, n_scenes, k, gms, dms,
 println("generating exp1 difficulty dataset done. written to $dataset_path")
 
 include("../convert_dataset_to_json.jl")
-convert_dataset_to_json("output/datasets/exp1_difficulty.jld2",
-                        "output/datasets/exp1_difficulty.json")
-run(`cp output/datasets/exp1_difficulty.json ../mot-psiturk/psiturk/static/data/dataset.json`)
+convert_dataset_to_json("output/datasets/exp1_difficulty_instruction.jld2",
+                        "output/datasets/exp1_difficulty_instruction.json")
+run(`cp output/datasets/exp1_difficulty_instruction.json ../mot-psiturk/psiturk/static/data/instruction_dataset.json`)
 #include("render.jl")

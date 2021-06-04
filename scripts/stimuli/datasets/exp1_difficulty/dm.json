@@ -2,7 +2,7 @@
     "repulsion" : true,
     "dot_repulsion" : 150.0,
     "wall_repulsion" : 200.0,
-    "distance" : 40.0,
+    "distance" : 45.0,
     "vel" : 6.0,
     "rep_inertia" : 0.9,
 
