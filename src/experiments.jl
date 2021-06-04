@@ -57,7 +57,6 @@ function query_from_params(gt_causal_graphs,
         assignments_func = extract_assignments_receptive_fields
     end
 
-
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => assignments_func,
                :causal_graph => extract_causal_graph,
