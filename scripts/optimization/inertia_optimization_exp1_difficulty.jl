@@ -1,10 +1,10 @@
 using MOT
 using MOT: CausalGraph
-using Statistics: norm
+using Statistics: norm, mean
 using Gen
 using Setfield
 using Lazy: @>, @>>
-using BayesianOptimization, GaussianProcesses
+using BayesianOptimization, GaussianProcesses, Distributions
 
 function get_angs_mags(cgs::Vector{MOT.CausalGraph})
     n_frames = length(cgs)
@@ -60,34 +60,66 @@ function get_score(params, scene)
     
     gm_path = "$(@__DIR__)/gm.json"
     dataset_path = "/datasets/exp1_difficulty.jld2"
-    
+
     # loading scene data
     scene_data = MOT.load_scene(scene, dataset_path) 
     gt_cgs = scene_data[:gt_causal_graphs][1:end]
     aux_data = scene_data[:aux_data]
-    
+
     gm = MOT.load(GMParams, gm_path)
     @set gm.n_trackers = sum(aux_data.targets) + sum(aux_data.n_distractors)
     @set gm.distractor_rate = 0.0
 
     dm = InertiaModel(vel=aux_data[:vel], bern=bern, k_min=k_min, k_max=k_max,
                       w_min=w_min, w_max=w_max)
-
-    cm = MOT.get_init_constraints(first(gt_cgs))
-    get_constraints!(cm, gt_cgs)
-    display(cm)
     
     scores = []
-    for i=1:10
-        trace, score = Gen.generate(MOT.gm_inertia_pos, (length(gt_cgs), gm, dm), cm)
+
+    for t=1:length(gt_cgs)-1
+        cgs = gt_cgs[t:t+1]
+        cm = MOT.get_init_constraints(first(cgs))
+        get_constraints!(cm, cgs)
+        #display(cm)
+        
+        trace, score = Gen.generate(MOT.gm_inertia_pos, (length(cgs), gm, dm), cm)
+        score = isinf(score) ? -100000.0 : score
         push!(scores, score)
     end
 
-    return scores
+    return mean(scores)
 end
 
 scene = 1
-g = get_f(scene)
-scores = g([0.8, 1, 50, 0.01, 0.2])
-@show scores
+func = get_f(scene)
+#score = g([0.8, 1, 50, 0.01, 0.2])
+#@show score
+
+# Choose as a model an elastic GP with input dimensions 2.
+# The GP is called elastic, because data can be appended efficiently.
+model = ElasticGPE(2,                            # 2 input dimensions
+                   mean = MeanConst(0.),         
+                   kernel = SEArd([0., 0.], 5.),
+                   logNoise = 0.,
+                   capacity = 3000)              # the initial capacity of the GP is 3000 samples.
+set_priors!(model.mean, [Normal(1, 2)])
+
+# Optimize the hyperparameters of the GP using maximum a posteriori (MAP) estimates every 50 steps
+modeloptimizer = MAPGPOptimizer(every = 50, noisebounds = [-4, 3],       # bounds of the logNoise
+                                kernbounds = [[-1, -1, 0], [4, 4, 10]],  # bounds of the 3 parameters GaussianProcesses.get_param_names(model.kernel)
+                                maxeval = 40)
+opt = BOpt(func,
+           model,
+           UpperConfidenceBound(),                   # type of acquisition
+           modeloptimizer,                        
+           [0.0, 0.1, 0.1, 0.001, 0.001], [1.0, 200, 200, 5.0, 5.0], # lowerbounds, upperbounds       
+           repetitions = 5,                          # evaluate the function for each input 5 times
+           maxiterations = 100,                      # evaluate at 100 input positions
+           sense = Min,                              # minimize the function
+           acquisitionoptions = (method = :LD_LBFGS, # run optimization of acquisition function with NLopts :LD_LBFGS method
+                                 restarts = 5,       # run the NLopt method from 5 random initial conditions each time.
+                                 maxtime = 0.1,      # run the NLopt method for at most 0.1 second each time
+                                 maxeval = 1000),    # run the NLopt methods for at most 1000 iterations (for other options see https://github.com/JuliaOpt/NLopt.jl)
+            verbosity = Progress)
+
+result = boptimize!(opt)
 
