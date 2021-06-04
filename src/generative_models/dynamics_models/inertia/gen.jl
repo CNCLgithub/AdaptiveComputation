@@ -1,5 +1,6 @@
 
 @gen function inertial_step(cg::CausalGraph, v::Int64)
+
     dot = get_prop(cg, v, :object)
     dm = get_dm(cg)
 
@@ -12,7 +13,7 @@
     
     # sample inertia
     # inertia = @trace(beta(dm.a, dm.b), :inertia)
-    inertia = @trace(bernoulli(dm.a), :inertia)
+    inertia = @trace(bernoulli(dm.bern), :inertia)
 
     # sample new angle & magnitude
 
@@ -23,7 +24,7 @@
     #- mixture of previous velocity & base
     mu = inertia * mag + (1.0 - inertia) * dm.vel
     std = max(dm.w_min, (1.0 - inertia) * dm.w_max)
-    mag = @trace(normal(mu, std), :std)
+    mag = @trace(normal(mu, std), :mag)
 
     # converting back to vector form
     vx = mag * cos(ang)
@@ -37,8 +38,7 @@
     return d
 end
 
-
-@gen (static) function inertial_update(prev_cg::CausalGraph)
+@gen function inertial_update(prev_cg::CausalGraph)
     (cgs, vs) = inertia_step_args(prev_cg)
     things = @trace(Map(inertial_step)(cgs, vs), :brownian)
     new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)
