@@ -18,7 +18,7 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset_path" => "/datasets/exp1_difficulty.jld2",
-                 "k" => 30,
+                 "k" => 20,
                  "scene" => 1,
                  "viz" => true])
     
@@ -61,8 +61,8 @@ function main()
 
     Profile.init(delay = 0.001,
                  n = 10^6)
-    # @profilehtml results = run_inference(prof_query, proc)
-    # @profilehtml results = run_inference(query, proc)
+    #@profilehtml results = run_inference(query, proc)
+    #@profilehtml results = run_inference(query, proc)
     results = run_inference(query, proc)
 
     df = MOT.analyze_chain_receptive_fields(results,
