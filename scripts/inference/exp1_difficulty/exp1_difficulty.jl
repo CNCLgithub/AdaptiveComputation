@@ -1,6 +1,7 @@
 using CSV
 using MOT
 using ArgParse
+using Setfield
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -15,6 +16,11 @@ function parse_commandline()
         help = "Inference procedure params"
         arg_type = String
         default = "$(@__DIR__)/proc.json"
+
+        "--graphics"
+        help = "Graphics params"
+        arg_type = String
+        default = "$(@__DIR__)/graphics.json"
 
         "--dm"
         help = "Motion parameters for Inertia model"
@@ -95,44 +101,55 @@ function main()
                  "dm" => "$(@__DIR__)/dm.json",
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
+                 "graphics" => "$(@__DIR__)/graphics.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 1,
+                 "scene" => 30,
                  "chain" => 1,
-                 "time" => 10,
+                 "time" => 50,
                  "restart" => true,
                  "viz" => true])
 
-    #att_mode = args["%COMMAND%"]
-    att_mode = "target_designation"
-    att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields)
+    # loading scene data
+    scene_data = MOT.load_scene(args["scene"], args["dataset"])
+    gt_cgs = scene_data[:gt_causal_graphs][1:args["time"]]
+    aux_data = scene_data[:aux_data]
+    
+    gm = MOT.load(GMParams, args["gm"])
+    gm = @set gm.n_trackers = sum(aux_data.targets) # always 4 targets but whatever
+    gm = @set gm.distractor_rate = sum(aux_data.n_distractors)
 
     dm = MOT.load(InertiaModel, args["dm"])
+    dm = @set dm.vel = aux_data[:vel]
 
-    # TODO put these parameters in the ARGS
-    rf_params = (rf_dims = (4,4),
-                 overlap = 3,
-                 rf_prob_threshold = 0.01)
+    @show aux_data
+    @show dm
+    @show gm
 
-    query, gt_causal_graphs, gm_params = query_from_params(args["gm"], args["dataset"],
-                                                           args["scene"], args["time"],
-                                                           gm = gm_inertia_mask,
-                                                           dm = dm,
-                                                           rf_params = rf_params)
+    graphics = MOT.load(Graphics, args["graphics"])
+
+    query = query_from_params(gt_cgs,
+                              gm_inertia_mask,
+                              gm,
+                              dm,
+                              graphics,
+                              length(gt_cgs))
+    
+    att_mode = "target_designation"
+    att = MOT.load(MapSensitivity, args[att_mode]["params"],
+                   objective = MOT.target_designation_receptive_fields,
+                   )
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))
 
-    base_path = "/experiments/$(experiment_name)_$(att_mode)"
-    scene = args["scene"]
-    path = joinpath(base_path, "$(scene)")
+    path = "/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
     try
-        isdir(base_path) || mkpath(base_path)
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
     end
+
     c = args["chain"]
     out = joinpath(path, "$(c).jld2")
     if isfile(out) && !args["restart"]
@@ -143,19 +160,18 @@ function main()
     println("running chain $c")
     results = run_inference(query, proc)
 
-    if (args["viz"])
-        visualize_inference(results, gt_causal_graphs, gm_params, att, path;
-                            render_tracker_masks=false)
-    end
-
-    #df = MOT.analyze_chain(results)
     df = MOT.analyze_chain_receptive_fields(results,
-                                            n_trackers = gm_params.n_trackers,
-                                            n_dots = gm_params.n_trackers + gm_params.distractor_rate,
-                                            gt_cg_end = gt_causal_graphs[end])
+                                            n_trackers = gm.n_trackers,
+                                            n_dots = gm.n_trackers + gm.distractor_rate,
+                                            gt_cg_end = gt_cgs[end])
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)
+
+    if (args["viz"])
+        visualize_inference(results, gt_cgs, gm,
+                            graphics, att, path)
+    end
 
     return nothing
 end
