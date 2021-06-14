@@ -17,18 +17,19 @@ export MapSensitivity
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
     uniform_sweeps::Int = 0
-    weights::Union{Vector{Float64}, Nothing} = nothing
-    weights_tau::Float64 = 0.5
+    weights::Union{Vector{Float64}, Nothing} = nothing # used for averaging
+    weights_tau::Float64 = 0.5 # proportion of old weights to keep
 end
 
 function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
+# simulates an metropolis-hastings move using the prior
+# over some number of ancestral_steps
 function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
     args = Gen.get_args(tr)
     t = first(args)
-    # diffs = Tuple(fill(NoChange(), length(args)))
     addrs = []
     for i = max(1, t-att.ancestral_steps):t
         addr = :kernel => i => :dynamics => :brownian => tracker
@@ -43,8 +44,8 @@ function retrieve_latents(tr::Gen.Trace)
     collect(1:ntrackers)
 end
 
-
-function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
+# returns the sensitivity of each latent variable
+function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)::Vector{Float64}
 
     seeds = Gen.sample_unweighted_traces(state, att.samples)
     seed_obj = map(att.objective, seeds)
@@ -97,18 +98,18 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)
     return att.weights
 end
 
+# makes sensitivity weights smoother and softmaxes for categorical sampling
 function get_weights(att::MapSensitivity, stats)
-    # mean_weights = fill(mean(att.weights), length(att.weights))
-    # weights = att.smoothness*mean_weights + (1.0 - att.smoothness)*att.weights
     weights = att.smoothness * stats
     weights = softmax(weights)
     println("sampling weights: $(weights)")
     weights
 end
 
+# returns number of sweeps (MH moves) to make determined
+# by the sensitivity weights using an exponential function
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    #amp = att.sweeps*exp(att.k*min(x, 0.0))
     amp = att.sweeps*exp(att.k*(x - att.x0))
 
     println("k: $(att.k)")
@@ -118,13 +119,15 @@ function get_sweeps(att::MapSensitivity, stats)
     return sweeps
 end
 
+# no early stopping for sensitivity-based attention
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
-    # norm(new_stats) <= att.eps
     false
 end
 
 # Objectives
 
+# target designation 2:
+# for each observation gets score for being a target
 function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
@@ -143,6 +146,8 @@ function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     td
 end
 
+# target designation 1:
+# scores and normalizes each partition SET
 function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
@@ -160,6 +165,8 @@ function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     td
 end
 
+# returns a vector of target designation distributions
+# for each receptive_field 
 function target_designation_receptive_fields(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
 
@@ -182,6 +189,7 @@ function target_designation_receptive_fields(tr::Gen.Trace)
     end
 end
 
+# returns target designation distribution
 function target_designation(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
     xs = get_choices(tr)[:kernel => t => :masks]
@@ -190,6 +198,8 @@ function target_designation(tr::Gen.Trace)
     current_td = _td(xs, pmbrfs, t)
 end
 
+# data correspondence distribution:
+# gets score of each partition VECTOR
 function _dc(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     record = AssociationRecord(200)
     Gen.logpdf(rfs, xs, pmbrfs, record)
@@ -198,7 +208,7 @@ function _dc(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
                                              record.logscores))
 end
 
-
+# same as target_designation_receptive_fields but for data correspondence
 function data_correspondence_receptive_fields(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
 
@@ -221,6 +231,7 @@ function data_correspondence_receptive_fields(tr::Gen.Trace)
     end
 end
 
+# return the data correspondence distribution
 function data_correspondence(tr::Gen.Trace; scale::Float64 = 1.0)
     k = first(Gen.get_args(tr))
     d = _dc(tr, k, scale)
@@ -276,6 +287,8 @@ function relative_entropy(ps::T, qs::T) where T<:Array
     println("relative_entropy")
 end
 
+# returns relative entropy (in particular, Jensen-Shannon divergence)
+# between p and q distributions
 function relative_entropy(p::T, q::T;
                           error_on_empty=true) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
@@ -309,6 +322,7 @@ function get_entropy(ps::Vector{Float64})
     @>> ps map(p -> (-p * log(p))) sum
 end
 
+# average jeffs divergence between ps and qs
 function jeffs_d(ps::T, qs::T) where T<:Array
     @>> zip(ps, qs) begin
         map(x -> jeffs_d(x[1], x[2]; error_on_empty=false))
@@ -316,6 +330,7 @@ function jeffs_d(ps::T, qs::T) where T<:Array
     end
 end
 
+# jeffs divergence between p and q distributions
 function jeffs_d(p::T, q::T;
                  error_on_empty=true) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
@@ -343,6 +358,7 @@ function jeffs_d(p::T, q::T;
     return jd
 end
 
+# average l2 distance between ps and qs distributions
 function l2_d(ps::T, qs::T) where T<:Array
     @>> zip(ps, qs) begin
         map(x -> l2_d(x[1], x[2]; error_on_empty=false))
@@ -350,7 +366,7 @@ function l2_d(ps::T, qs::T) where T<:Array
     end
 end
 
-
+# l2 distance between p and q distributions
 function l2_d(p::T, q::T;
                  error_on_empty=true) where T<:Dict
     labels, probs = resolve_correspondence(p, q)
@@ -366,15 +382,3 @@ function l2_d(p::T, q::T;
 end
 
 
-function index_pairs(n::Int)
-    if !iseven(n)
-        n -= 1
-    end
-    indices = shuffle(collect(1:n))
-    reshape(indices, Int(n/2), 2)
-end
-
-function get_dims(latents::Function, trace::Gen.Trace)
-    results = latents(trace)
-    size(results, 2)
-end

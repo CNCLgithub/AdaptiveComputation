@@ -1,5 +1,9 @@
 export UniformAttention
 
+"""
+    uniform attention model, just returns zero for every latent/tracker
+"""
+
 @with_kw struct UniformAttention <: AbstractAttentionModel
     sweeps::Int = 0
     ancestral_steps::Int = 3
