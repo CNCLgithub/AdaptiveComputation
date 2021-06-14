@@ -70,9 +70,9 @@ function query_from_params(gt_causal_graphs,
     init_constraints = get_init_constraints(init_gt_cg)
 
 
-    masks = generate_masks(gt_causal_graphs,
-                           graphics_params,
-                           gm_params)
+    masks = get_bit_masks_rf(gt_causal_graphs,
+                             graphics_params,
+                             gm_params)
     observations = get_observations(graphics_params, masks)
 
 

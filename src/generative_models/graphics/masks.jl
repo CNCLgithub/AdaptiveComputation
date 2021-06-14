@@ -2,11 +2,12 @@ export get_masks,
         draw_dot_mask,
         draw_gaussian_dot_mask,
         translate_area_to_img,
-        generate_masks
+        get_bit_masks_rf
 
 # translates coordinate from euclidean to image space
-function translate_area_to_img(x, y, img_width, img_height,
-                               area_width, area_height)
+function translate_area_to_img(x::Float64, y::Float64,
+                               img_width::Int64, img_height::Int64,
+                               area_width::Float64, area_height::Float64)
 
     x *= img_width/area_width
     x += img_width/2
@@ -19,19 +20,18 @@ function translate_area_to_img(x, y, img_width, img_height,
 end
 
 
-# draws a dot
-function draw_dot_mask(pos, r, w, h, aw, ah)
-    x, y = translate_area_to_img(pos[1], pos[2], w, h, aw, ah)
-    
-    mask = BitMatrix(zeros(h, w))
-    
-    radius = ceil(r * w / aw)
+# Draws a dot mask, i.e. a BitMatrix
+function draw_dot_mask(pos::Vector{T},
+                       r::T,
+                       w::I, h::I,
+                       aw::T, ah::T) where {I<:Int64,T<:Float64}
 
+    x, y = translate_area_to_img(pos[1], pos[2], w, h, aw, ah)
+    mask = BitMatrix(zeros(h, w))
+    radius = ceil(r * w / aw)
     draw_circle!(mask, [x,y], radius, true)
-    
     return mask
 end
-
 
 # 2d gaussian function
 function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
@@ -47,13 +47,12 @@ drawing a gaussian dot with two components:
 2) spread out gaussian modelling where the dot is likely to be in some sense
     and giving some gradient if the tracker is completely off
 """
-function draw_gaussian_dot_mask(center::Vector{Float64},
-                                r::Real, w::Int, h::Int,
-                                gauss_r_multiple::Float64,
-                                gauss_amp::Float64, gauss_std::Float64)
+function draw_gaussian_dot_mask(center::Vector{T},
+                                r::T, w::Int, h::Int,
+                                gauss_r_multiple::T,
+                                gauss_amp::T, gauss_std::T) where {T<:Float64}
     scaled_sd = r * gauss_std
     threshold = r * gauss_r_multiple
-    # mask = zeros(h, w)
     mask = fill(1e-10, h, w)
     for i=1:w
         for j=1:h
@@ -66,6 +65,7 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
 end
 
 
+# Returns a Vector{BitMatrix} with dots drawn according to the causal graph
 function get_bit_masks(cg::CausalGraph,
                        graphics::Graphics,
                        gm::GMParams)
@@ -86,9 +86,7 @@ function get_bit_masks(cg::CausalGraph,
         mask = draw_dot_mask(positions[i], gm.dot_radius,
                              graphics.img_dims...,
                              gm.area_width, gm.area_height)
-        # mask[img_so_far] .= false
         masks[i] = mask
-        # img_so_far .|= mask
     end
 
     masks = masks[invperm(depth_perm)]
@@ -97,17 +95,21 @@ end
 
 
 """
-    get_masks(cgs::Vector{CausalGraph})
+    get_bit_masks(cgs::Vector{CausalGraph},
+                       graphics::AbstractGraphics,
+                       gm::AbstractGMParams;
+                       background=false)
 
-    returns an array of masks
+    Returns a Vector{Vector{BitMatrix}} with masks according to
+    the Vector{CausalGraph} descrbing the scene
 
-    args:
-    cgs::Vector{CausalGraph} - causal graphs describing the scene
-    gm - generative model parameters
-    gm has to include:
-    area_width, area_height, img_width, img_height
-    ;
-    background - true if you want background masks
+...
+# Arguments:
+- cgs::Vector{CausalGraph} : causal graphs describing the scene
+- graphics : graphical parameters
+- gm : generative model parameters
+- background : true if you want background masks (i.e.
+               1s where there are no objects)
 """
 function get_bit_masks(cgs::Vector{CausalGraph},
                        graphics::AbstractGraphics,
@@ -125,10 +127,22 @@ function get_bit_masks(cgs::Vector{CausalGraph},
     return masks
 end
 
-
-function generate_masks(cgs::Vector{CausalGraph},
+"""
+    generate_masks(cgs::Vector{CausalGraph},
                         graphics::Graphics,
                         gm::AbstractGMParams)
+
+    Generates masks, adds flow and crops them according to receptive fields.
+...
+# Arguments:
+- cgs::Vector{CausalGraph} : causal graphs describing the scene
+- graphics : graphical parameters
+- gm : generative model parameters
+"""
+
+function get_bit_masks_rf(cgs::Vector{CausalGraph},
+                          graphics::Graphics,
+                          gm::AbstractGMParams)
     k = length(cgs)
     bit_masks = get_bit_masks(cgs, graphics, gm)
     # time x receptive_field x object

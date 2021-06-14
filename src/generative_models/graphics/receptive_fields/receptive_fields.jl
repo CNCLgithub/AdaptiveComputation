@@ -1,7 +1,9 @@
 abstract type AbstractReceptiveField end
 abstract type NullReceptiveFields end # used to indicate absence of RF
 
-include("receptive_fields_gen.jl")
+export RectangleReceptiveField, get_rectangle_receptive_fields
+
+include("gen.jl")
 
 function crop(rf::AbstractReceptiveField,
               space::Space)
@@ -23,7 +25,6 @@ struct RectangleReceptiveField <: AbstractReceptiveField
     threshold::Float64
 end
 
-
 RectangleReceptiveFields = Vector{RectangleReceptiveField}
 
 function crop(rf::RectangleReceptiveField,
@@ -34,38 +35,36 @@ function crop(rf::RectangleReceptiveField,
 end
 
 """
-    height, width
+    returns height, width
 """
 function get_dimensions(rf::RectangleReceptiveField)
     (w, h) = rf.p2 .- rf.p1 .+ (1, 1)
     return (h, w)
 end
 
+# crops masks to receptive fields and filtering only with mass
 function get_mds_rf(rf::RectangleReceptiveField,
                     mds::Vector{Space})
-    # cropping masks to receptive fields and filtering only with mass
-    cropped_masks = @>> mds map(md -> crop(rf, md))
-    #@>> cropped_masks map(maximum) foreach(display)
-    filtered_masks = @>> cropped_masks filter(md -> any(md .>= rf.threshold))
-    
-    #@show length(filtered_masks)
-
-    filtered_masks
-end
-
-"""
-    simple, nonhierarchical case
-"""
-function get_mask_distributions(objects, gm::GMParams; flow_masks=nothing)
-    pos = map(o->o.pos, objects)
-    mask_args, trackers_img = get_masks_rvs_args(pos, gm)
-    mask_distributions = @>> mask_args map(first)
-    if !isnothing(flow_masks)
-        flow_masks = update_flow_masks(flow_masks, mask_distributions)
-        mask_distributions = predict(flow_masks)
+    @>> mds begin
+        map(md -> crop(rf, md))
+        filter(md -> any(md .>= rf.threshold))
     end
-    return (mask_distributions, flow_masks)
 end
+
+# """
+    # simple, nonhierarchical case
+# """
+# function get_mask_distributions(objects, gm::GMParams;
+                                # flow_masks=nothing)
+    # pos = map(o->o.pos, objects)
+    # mask_args, trackers_img = get_masks_rvs_args(pos, gm)
+    # mask_distributions = @>> mask_args map(first)
+    # if !isnothing(flow_masks)
+        # flow_masks = update_flow_masks(flow_masks, mask_distributions)
+        # mask_distributions = predict(flow_masks)
+    # end
+    # return (mask_distributions, flow_masks)
+# end
 
 
 
@@ -84,18 +83,9 @@ function get_rectangle_receptive_field(cidx::CartesianIndex{2},
                                        rf_threshold::Float64,
                                        overlap::Float64)
 
-    # p1 = (w*(cidx[2]-1)+1, h*(cidx[1]-1)+1) # top left
     p1 = (1+(cidx[2]-1)*(1-overlap)*w, 1+(cidx[1]-1)*(1-overlap)*h) # top left
     p2 = p1 .+ (w-1, h-1) # bottom right
     
-    # # add overlap
-    # p1 = p1 .- (overlap, overlap)
-    # p2 = p2 .+ (overlap, overlap)
-    
-    # # make sure points are within bounds of the image
-    # p1 = bound_point(p1, img_dims...)
-    # p2 = bound_point(p2, img_dims...)
-
     return RectangleReceptiveField(p1, p2, rf_threshold)
 end
 
@@ -118,8 +108,6 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
     w = ceil.(Int64, img_dims[1]/(rf_dims[1] - (rf_dims[1] - 1)*overlap))
     h = ceil.(Int64, img_dims[2]/(rf_dims[2] - (rf_dims[2] - 1)*overlap))
 
-    # w, h = ceil.(Int64, img_dims ./ rf_dims)
-
     # first index is the row (height) and second index is the col (width)
     rf_cidx = CartesianIndices(reverse(rf_dims))
     @>> rf_cidx begin
@@ -134,9 +122,7 @@ function Graphics(::Type{RectangleReceptiveField},
                   rf_dims::Tuple{Int64, Int64},
                   rf_threshold::Float64,
                   overlap::Int64)
-
     receptive_fields = get_rectangle_receptive_fields(rf_dims, img_dims, rf_threshold, overlap)
-    
     Graphics(img_dims, receptive_fields, flow_decay_rate)
 end
 
@@ -145,16 +131,7 @@ end
  crop masks to receptive fields and then
  filter so each mask is non zero
 """
-function cropfilter(rf, masks::Vector{BitMatrix})
-    @>> masks begin
-        map(mask -> crop(rf, mask))
-        filter(mask -> sum(mask) > 0)
-    end
-end
-
-
-# TODO: consolidate?
-function cropfilter(rf, masks::Vector{Matrix{Float64}})
+function cropfilter(rf, masks::Vector)
     @>> masks begin
         map(mask -> crop(rf, mask))
         filter(mask -> sum(mask) > 0)
@@ -163,4 +140,3 @@ end
 
 init_rfs_vec(rf_dims) = Vector{RFSElements{Array}}(undef, prod(rf_dims))
 
-export RectangleReceptiveField, get_rectangle_receptive_fields

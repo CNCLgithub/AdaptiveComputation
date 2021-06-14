@@ -1,3 +1,8 @@
+
+"""
+Returns a choicemap with dots in positions according to the
+causal graph
+"""
 function init_constraint_from_cg(cg::MOT.CausalGraph)
     dots = get_objects(cg, Dot)
     cm = choicemap()
@@ -10,6 +15,10 @@ function init_constraint_from_cg(cg::MOT.CausalGraph)
     return cm
 end
 
+"""
+    Returns true iff the dots are inside the area boundaries
+    for every timestep
+"""
 function are_dots_inside(cgs, gm)
     d = gm.dot_radius
     xmin, xmax = -gm.area_width/2 + d, gm.area_width/2 - d
@@ -29,16 +38,16 @@ function are_dots_inside(cgs, gm)
     return true 
 end
 
-function is_min_distance_satisfied(first_cg, min_distance)
-
+# Returns true iff minimum distance between the dots is satisfied.
+function is_min_distance_satisfied(first_cg::CausalGraph, min_distance::Float64)
     positions = @>> get_objects(first_cg, Dot) map(get_pos)
     n_objects = length(positions)
 
     distances_idxs = Iterators.product(1:n_objects, 1:n_objects)
-    distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
-    distances = @>> distances map(x -> x == 0.0 ? Inf : x)
-    println("minimum distance: $(minimum(distances))")
-
-    satisfied = @>> distances map(d -> d > min_distance)
-    return all(satisfied)
+    satisfied = @>> distances_idxs begin
+        map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
+        map(x -> x == 0.0 ? Inf : x) # if the same object, satisfied
+        map(x -> x > min_distance)
+        all
+    end
 end

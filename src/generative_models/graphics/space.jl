@@ -1,11 +1,13 @@
-#abstract type Space end
+"""
+    Describes how objets get transformed to observation Space
+"""
+
 Space{T,N} = AbstractArray{T,N}
 
 function render!(cg::CausalGraph)
     graphics = get_graphics(cg)
     spaces = render!(cg, graphics)
 end
-
 
 function render!(cg::CausalGraph, graphics::Graphics)
     vs = get_prop(cg, :graphics_vs)
@@ -53,7 +55,7 @@ function render!(cg::CausalGraph, v::Int64, e::UniformEnsemble)
     space = fill(e.pixel_prob, reverse(img_dims))
 end
 
-
+# composes the spaces by subtracting occluded parts
 function compose!(spaces::Vector{Space}, cg::CausalGraph, depth_perm::Vector{Int64})
     @unpack img_dims = (get_prop(cg, :graphics))
     canvas = zeros(reverse(img_dims)) # reverse to (height, width)
@@ -67,6 +69,7 @@ function compose!(spaces::Vector{Space}, cg::CausalGraph, depth_perm::Vector{Int
     return nothing
 end
 
+# returns the permutation according to depth (smallest z values first)
 function get_depth_perm(cg::CausalGraph, vs::Vector{Int64})
     @>> vs begin
         map(v -> get_pos(get_prop(cg, v, :object))[3])

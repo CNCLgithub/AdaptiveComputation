@@ -138,7 +138,7 @@ function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
     td = Dict{Int64, Float64}()
     for x = 1:k
         idxs = findall(map(es -> in(x, es), tracker_assocs))
-        td[x] = logsumexp(record.logscores[idxs])
+        td[x] = isempty(idxs) ? -1e10 : logsumexp(record.logscores[idxs])
     end
     td
 end
@@ -178,7 +178,7 @@ function target_designation_receptive_fields(tr::Gen.Trace)
 
     # @debug "receptive fields $(typeof(receptive_fields[1]))"
     tds = @>> receptive_fields begin
-        map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+        map(rf -> _td2(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
     end
 end
 
@@ -247,7 +247,16 @@ function entropy(pd::Dict)
     log(entropy(lls))
 end
 
+"""
+    check whether p and q have the same keys
+    if there's a change, see how small the val is for the missing
+    component and see how big the divergence is
+"""
 function resolve_correspondence(p::T, q::T) where T<:Dict
+    @show keys(p) keys(q)
+    if keys(p) != keys(q)
+        error()
+    end
     s = collect(intersect(keys(p), keys(q)))
     vals = Matrix{Float64}(undef, length(s), 2)
     for (i,k) in enumerate(s)
@@ -259,10 +268,12 @@ end
 
 # this is for receptive fields
 function relative_entropy(ps::T, qs::T) where T<:Array
+    println("\nrelative_entropy")
     @>> zip(ps, qs) begin
         map(x -> relative_entropy(x[1], x[2]; error_on_empty=false))
         mean
     end
+    println("relative_entropy")
 end
 
 function relative_entropy(p::T, q::T;

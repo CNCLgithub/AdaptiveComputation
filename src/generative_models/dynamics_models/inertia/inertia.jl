@@ -12,7 +12,7 @@ function load(::Type{InertiaModel}, path::String)
     InertiaModel(;read_json(path)...)
 end
 
+include("dynamics.jl")
 include("gen.jl")
-include("helpers.jl")
 
 export InertiaModel

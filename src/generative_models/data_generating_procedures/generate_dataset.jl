@@ -2,7 +2,6 @@ export generate_dataset
 
 include("generate_dataset_helpers.jl")
 
-
 """
     generate_dataset(dataset_path::String, n_scenes::Int64,
                                                k::Int64, gms::Vector{AbstractGMParams},
@@ -12,7 +11,7 @@ include("generate_dataset_helpers.jl")
                                                aux_data::Union{Nothing, Vector{Any}} = nothing,
                                                ff_ks::Union{Nothing, Vector{Int64}} = nothing)
 
-    generates a JLD2 dataset
+    Generates a JLD2 MOT dataset.
 
 ...
 # Arguments:
@@ -63,8 +62,6 @@ function generate_dataset(dataset_path::String, n_scenes::Int64,
                     init_gt_cgs = init_gt_cgs[ff_ks[i]:end]
                 end
                 
-                #break # TESTING
-
                 # checking whether dots are inside the area
                 di=are_dots_inside(init_gt_cgs, gms[i])
                 println("dots inside: $di")

@@ -1,3 +1,6 @@
+# NEED TO REWRITE THIS INTO THE NEW FRAMEWORK (dynamics_init,
+# dynamics_update, etc.)
+
 using LinearAlgebra: cross
 
 function poly_step_args(dm::SquishyDynamicsModel,
@@ -190,4 +193,83 @@ function process_temp_state(current_state, hgm::HGMParams, dm::SquishyDynamicsMo
     end
     set_prop!(cg, :walls, walls_idx(dm))
     process_temp_state(current_state, cg, dm)
+end
+
+
+"""
+Current repulsion rules:
+
+wall -> *
+vert -> vert
+poly -> poly
+"""
+
+function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
+                              v::Int64, obj::Object)
+    return nothing
+end
+
+function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
+                              v::Int64, obj::Polygon)
+    # wall -> poly
+    @>> cg begin
+        walls
+        foreach(w -> calculate_repulsion!(cg, dm, w, v))
+    end
+
+    # poly -> poly
+    @>> LightGraphs.vertices(cg) begin
+        Base.filter(i -> get_prop(cg, i, :object) isa Polygon)
+        foreach(i -> calculate_repulsion!(cg, dm, i, v))
+    end
+
+    return nothing
+end
+
+function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
+                              v::Int64, obj::Dot)
+    @>> cg begin
+        walls
+        foreach(w -> calculate_repulsion!(cg, dm, w, v))
+    end
+
+    c = parent(cg, v)
+    calculate_attraction!(cg, dm, c, v)
+
+    @>> LightGraphs.vertices(cg) begin
+        Base.filter(i -> get_prop(cg, i, :object) isa Dot)
+        foreach(i -> calculate_repulsion!(cg, dm, i, v))
+    end
+    return nothing
+end
+
+function calculate_attraction!(cg::CausalGraph, dm::SquishyDynamicsModel,
+                              p::Int64, d::Int64)
+    pol = get_prop(cg, p, :object)
+    dot = get_prop(cg, d, :object)
+    order = get_prop(cg, d, :order)
+    add_edge!(cg, p, d)
+    set_prop!(cg, Edge(p, d),
+              :force, attraction(dm, pol, dot, order))
+    return nothing
+end
+
+function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel,
+                              w::Int64, v::Int64)
+    # dont assign edges to self
+    w == v && return nothing
+    a = get_prop(cg, w, :object)
+    b = get_prop(cg, v, :object)
+    add_edge!(cg, w, v)
+    set_prop!(cg, Edge(w, v),
+              :force, repulsion(dm, a, b))
+    return nothing
+end
+
+function calculate_repulsion!(cg::CausalGraph, dm::SquishyDynamicsModel)
+    for v in LightGraphs.vertices(cg)
+        obj = get_prop(cg, v, :object)
+        calculate_repulsion!(cg, dm, v, obj)
+    end
+    return nothing
 end

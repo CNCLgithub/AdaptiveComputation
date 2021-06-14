@@ -6,16 +6,8 @@ using GenRFS
 using Parameters: @with_kw, @unpack
 using Lazy: @>, @>>
 
-# using PyCall
-
-# mask_rcnn = PyNULL()
 
 function __init__()
-# 	#copy!(npp_lib, pyimport("npp.permutation_sample"))
-# 	copy!(mask_rcnn, pyimport("mask_rcnn.get_masks"))
-
-#     # setup gen static functions
-#     #Gen.load_generated_functions()
     @load_generated_functions
 end
 

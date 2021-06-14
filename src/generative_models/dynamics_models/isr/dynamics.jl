@@ -33,6 +33,7 @@ function get_repulsion_object_to_object(dm::ISRDynamics, pos::T,
     return force
 end
 
+# gets repulsion forces on dots (from other dots and walls)
 function get_repulsion_force_dots(cg::CausalGraph)::Vector{Vector{Float64}}
     dm = get_dm(cg)
     dots = get_objects(cg, Dot)
@@ -100,9 +101,7 @@ function dynamics_update(dm::ISRDynamics,
                           cg::CausalGraph,
                           things)
     cg = deepcopy(cg)
-
     vs = get_object_verts(cg, Dot)
-
     for (i, thing) in enumerate(things)
         set_prop!(cg, vs[i], :object, thing)
     end

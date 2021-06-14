@@ -26,7 +26,7 @@ end
     n::Vector{Float64} # wall normal pointing inwards
 end
 
-function init_walls(area_width::Int64, area_height::Int64)
+function init_walls(area_width::Float64, area_height::Float64)
     ws = Vector{Wall}(undef, 4)
     ps = Iterators.product([-area_width/2, +area_width/2], [-area_height/2, +area_height/2])
     ps = @>> ps map(x -> [x[1], x[2]]) vec
@@ -95,11 +95,8 @@ end
 function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
-    #pixel_prob = (gm.dot_radius*pi^2)/(gm.area_width * gm.area_height)
-
-    # just add a tiny bit to the receptive field threshold
+    # just the threshold from receptive_fields
     pixel_prob = @>> graphics.receptive_fields first (x -> x.threshold)
-
     UniformEnsemble(gm.distractor_rate, pixel_prob)
 end
 

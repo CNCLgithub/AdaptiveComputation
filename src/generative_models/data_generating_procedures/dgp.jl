@@ -2,6 +2,9 @@ export dgp
 
 using Setfield
 
+"""
+    Helper functions for individual dynamics models.
+"""
 function _dgp(dm::ISRDynamics, k::Int, gm::GMParams, cm::ChoiceMap)
     Gen.generate(gm_isr_pos, (k, gm, dm), cm)
 end
@@ -12,6 +15,22 @@ function _dgp(dm::InertiaModel, k::Int, gm::GMParams, cm::ChoiceMap)
     Gen.generate(gm_inertia_pos, (k, gm, dm), cm)
 end
 
+
+"""
+    dgp(k::Int, dm::AbstractDynamicsModel, gm::GMParams;
+        cm::ChoiceMap=choicemap())::Vector{CausalGraph}
+
+    Data generating procedure. Returns a Vector{CausalGraph} describing
+    the scene for each time step.
+...
+# Arguments:
+- k: number of time steps
+- dm: dynamics model parameters
+- gm: generative model parameters
+...
+# Optional arguments
+- cm: choicemap with constraints
+"""
 function dgp(k::Int, dm::AbstractDynamicsModel, gm::GMParams;
              cm::ChoiceMap=choicemap())::Vector{CausalGraph}
     
