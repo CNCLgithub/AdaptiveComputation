@@ -1,4 +1,5 @@
 using ColorSchemes
+using ColorTypes
 const TRACKER_COLORSCHEME = colorschemes[:Set1_9]
 
 include("render/renderv2.jl")

@@ -95,7 +95,6 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
     return cg
 end
 
-include("utils.jl")
 include("shapes.jl")
 include("masks.jl")
 include("receptive_fields/receptive_fields.jl")
