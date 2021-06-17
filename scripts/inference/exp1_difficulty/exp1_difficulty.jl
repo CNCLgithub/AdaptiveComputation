@@ -103,9 +103,9 @@ function main()
                  "proc" => "$(@__DIR__)/proc.json",
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 30,
+                 "scene" => 10,
                  "chain" => 1,
-                 "time" => 50,
+                 "time" => 100,
                  "restart" => true,
                  "viz" => true])
 

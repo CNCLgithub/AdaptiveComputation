@@ -52,6 +52,9 @@ end
 
 # function to optimize
 function get_score(params, scene)
+    global ITERATIONS += 1
+    @show ITERATIONS
+
     bern = params[1]
     k_min = params[2]
     k_max = params[3]
@@ -85,8 +88,10 @@ function get_score(params, scene)
         score = isinf(score) ? -100000.0 : score
         push!(scores, score)
     end
-
-    return mean(scores)
+    
+    score = -mean(scores)
+    @show score
+    return score
 end
 
 scene = 1
@@ -111,7 +116,7 @@ opt = BOpt(func,
            model,
            UpperConfidenceBound(),                   # type of acquisition
            modeloptimizer,                        
-           [0.0, 0.1, 0.1, 0.001, 0.001], [1.0, 200, 200, 5.0, 5.0], # lowerbounds, upperbounds       
+           [0.01, 0.1, 10.0, 0.01, 0.01], [0.99, 20, 200, 0.5, 2.0], # lowerbounds, upperbounds       
            repetitions = 5,                          # evaluate the function for each input 5 times
            maxiterations = 100,                      # evaluate at 100 input positions
            sense = Min,                              # minimize the function
@@ -121,5 +126,6 @@ opt = BOpt(func,
                                  maxeval = 1000),    # run the NLopt methods for at most 1000 iterations (for other options see https://github.com/JuliaOpt/NLopt.jl)
             verbosity = Progress)
 
+ITERATIONS = 0
 result = boptimize!(opt)
 

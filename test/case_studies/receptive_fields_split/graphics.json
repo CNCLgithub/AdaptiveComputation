@@ -11,7 +11,7 @@
     "rf_width": 2,
     "rf_height": 1,
     "rf_threshold" : 0.00001,
-    "rf_overlap": 0,
+    "rf_overlap": 0.0,
 
     "bern_existence_prob": 0.999
 }

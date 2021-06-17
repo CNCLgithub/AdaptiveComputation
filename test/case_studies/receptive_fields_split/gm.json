@@ -1,5 +1,5 @@
 {
-    "n_trackers": 1,
+    "n_trackers": 2,
     "distractor_rate": 1.0,
     "init_pos_spread": 500,
     "dot_radius": 20,

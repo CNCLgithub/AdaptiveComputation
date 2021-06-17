@@ -79,7 +79,7 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
 
     spaces = render!(cg) # project to graphical space
     spaces_rf = @>> graphics.receptive_fields begin
-        map(rf -> get_mds_rf(rf, spaces))
+        map(rf -> cropfilter(rf, spaces))
     end
     
     rfs_vec = init_rfs_vec(graphics.rf_dims)

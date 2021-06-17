@@ -85,7 +85,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)::Vector{
     println("compute weights: $gs")
     # normalizing accross trackers for unstable version
     # gs = gs .+ (lse .- logsumexp(lse))
-    if isnothing(att.weights)
+    if isnothing(att.weights) || any(isinf.(att.weights))
         att.weights = gs
     else
         # att.weights = log.(
@@ -185,7 +185,7 @@ function target_designation_receptive_fields(tr::Gen.Trace)
 
     # @debug "receptive fields $(typeof(receptive_fields[1]))"
     tds = @>> receptive_fields begin
-        map(rf -> _td2(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
+        map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
     end
 end
 
@@ -265,9 +265,9 @@ end
 """
 function resolve_correspondence(p::T, q::T) where T<:Dict
     #@show keys(p) keys(q)
-    if keys(p) != keys(q)
-        error()
-    end
+    # if keys(p) != keys(q)
+        # error()
+    # end
     s = collect(intersect(keys(p), keys(q)))
     vals = Matrix{Float64}(undef, length(s), 2)
     for (i,k) in enumerate(s)

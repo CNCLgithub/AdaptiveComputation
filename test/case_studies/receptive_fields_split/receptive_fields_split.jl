@@ -5,21 +5,27 @@ using MetaGraphs: set_prop!, get_prop
 using Lazy: @>, @>>
 
 using Random
-#Random.seed!(1)
+Random.seed!(1)
 
 experiment_name = "receptive_fields_split"
 
 function get_split_cgs()
-    xs = zeros(100)
-    ys = collect(-50:50)
+    ys = collect(-50:50) # target 1
+    xs = collect(-50:50) # target 2
 
     cgs = Vector{CausalGraph}(undef, 100)
     for i=1:100
         cgs[i] = CausalGraph(SimpleDiGraph())
+
+        # targets
         add_vertex!(cgs[i])
-        set_prop!(cgs[i], 1, :object, Dot(pos = [xs[i], ys[i], 0.0]))
+        set_prop!(cgs[i], 1, :object, Dot(pos = [0.0, ys[i], 0.0]))
         add_vertex!(cgs[i])
-        set_prop!(cgs[i], 2, :object, Dot(pos = [xs[i]+200, ys[i], 0.0]))
+        set_prop!(cgs[i], 2, :object, Dot(pos = [xs[i], -20.0, 0.0]))
+        
+        # distractor
+        add_vertex!(cgs[i])
+        set_prop!(cgs[i], 3, :object, Dot(pos = [200, ys[i], 0.0]))
     end
     return cgs
 end
@@ -31,7 +37,7 @@ function main()
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
-                 "k" => 30,
+                 "k" => 100,
                  "viz" => true])
    
     # generating some data using the isr dynamics (using minimum distance)
@@ -49,13 +55,11 @@ function main()
                               length(gt_cgs))
     
     att_mode = "target_designation"
-    # att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   # objective = MOT.target_designation_receptive_fields,
-                   # )
-                   # weights = fill(-50.0, sum(scene_data[:targets])))
+    att = MOT.load(MapSensitivity, args[att_mode]["params"],
+                   objective = MOT.target_designation_receptive_fields)
                    
-    att = MOT.UniformAttention(sweeps = 2,
-                               ancestral_steps = 3)
+    # att = MOT.UniformAttention(sweeps = 2,
+                               # ancestral_steps = 3)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
@@ -68,6 +72,7 @@ function main()
         println("could not make dir $(path)")
     end
     
+    results = run_inference(query, proc)
 
     df = MOT.analyze_chain_receptive_fields(results,
                                             n_trackers = gm.n_trackers,
@@ -79,7 +84,7 @@ function main()
                             graphics, att, path)
     end
 
-    return results, scores
+    return results
 end
 
-scores = main();
+results = main();

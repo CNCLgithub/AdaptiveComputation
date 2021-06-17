@@ -42,14 +42,6 @@ function get_dimensions(rf::RectangleReceptiveField)
     return (h, w)
 end
 
-# crops masks to receptive fields and filtering only with mass
-function get_mds_rf(rf::RectangleReceptiveField,
-                    mds::Vector{Space})
-    @>> mds begin
-        map(md -> crop(rf, md))
-        filter(md -> any(md .>= rf.threshold))
-    end
-end
 
 # """
     # simple, nonhierarchical case
@@ -86,7 +78,7 @@ function get_rectangle_receptive_field(cidx::CartesianIndex{2},
     p1 = (1+(cidx[2]-1)*(1-overlap)*w, 1+(cidx[1]-1)*(1-overlap)*h) # top left
     p2 = p1 .+ (w-1, h-1) # bottom right
     
-    return RectangleReceptiveField(p1, p2, rf_threshold)
+    return RectangleReceptiveField(floor.(Int64, p1), floor.(Int64, p2), rf_threshold)
 end
 
 """
@@ -105,8 +97,8 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
                                         overlap::Float64)
     
     # calculating the width and height of each receptive field
-    w = ceil.(Int64, img_dims[1]/(rf_dims[1] - (rf_dims[1] - 1)*overlap))
-    h = ceil.(Int64, img_dims[2]/(rf_dims[2] - (rf_dims[2] - 1)*overlap))
+    w = floor.(Int64, img_dims[1]/(rf_dims[1] - (rf_dims[1] - 1)*overlap))
+    h = floor.(Int64, img_dims[2]/(rf_dims[2] - (rf_dims[2] - 1)*overlap))
 
     # first index is the row (height) and second index is the col (width)
     rf_cidx = CartesianIndices(reverse(rf_dims))
@@ -134,7 +126,7 @@ end
 function cropfilter(rf, masks::Vector)
     @>> masks begin
         map(mask -> crop(rf, mask))
-        filter(mask -> sum(mask) > 0)
+        filter(mask -> mean(mask) > rf.threshold)
     end
 end
 
