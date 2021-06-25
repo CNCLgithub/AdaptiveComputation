@@ -59,7 +59,6 @@ end
 # end
 
 
-
 ###############
 # A FEW UTILS for automatic generation of receptive
 # fields given generative model params

@@ -95,9 +95,17 @@ end
 function UniformEnsemble(cg)
     gm = get_gm(cg)
     graphics = get_graphics(cg)
+    
+    n_receptive_fields = length(graphics.receptive_fields)
+    r = ceil(gm.dot_radius * graphics.img_dims[1] / gm.area_width)
+    n_pixels_rf = @>> graphics.receptive_fields first get_dimensions prod
+    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * (gm.distractor_rate / n_receptive_fields)
     # just the threshold from receptive_fields
-    pixel_prob = @>> graphics.receptive_fields first (x -> x.threshold)
-    UniformEnsemble(gm.distractor_rate, pixel_prob)
+    # pixel_prob = @>> graphics.receptive_fields begin
+        # first
+        # (x -> x.threshold)
+    # end
+    UniformEnsemble(gm.distractor_rate/n_receptive_fields, pixel_prob)
 end
 
 get_pos(e::UniformEnsemble) = [0,0,-Inf]
