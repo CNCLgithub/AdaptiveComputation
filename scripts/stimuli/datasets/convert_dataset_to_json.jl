@@ -7,23 +7,16 @@ function convert_dataset_to_json(dataset_path, json_path; hgm=false)
     data = []
 
     for i=1:n_scenes
-        scene_data = load_scene(i, dataset_path, default_gm;
-                                generate_masks=false)
+        scene_data = load_scene(i, dataset_path)
+
         cgs = scene_data[:gt_causal_graphs]
-        positions = nothing
-        if hgm
-        # if hierarchical, extract invidual dot positions
-            n_dots = length(scene_data[:aux_data][:targets])
-            positions = map(cg -> MOT.get_hgm_positions(cg, fill(true, n_dots)), cgs)
-        else
-        # else just extract positions of all the dots
-            positions = map(cg-> map(dot->dot.pos, filter(x->isa(x, Dot), cg.elements)), cgs)
+        positions = MOT.@>> cgs begin
+            map(cg -> MOT.get_objects(cg, Dot))
+            map(os -> map(o -> MOT.get_pos(o), os))
         end
         scene = Dict()
         scene[:positions] = positions
-        if hgm
-            scene[:aux_data] = scene_data[:aux_data]
-        end
+        scene[:aux_data] = scene_data[:aux_data]
         push!(data, scene)
     end
 

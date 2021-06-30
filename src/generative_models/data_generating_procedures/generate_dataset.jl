@@ -1,88 +1,93 @@
-export generate_dataset, is_min_distance_satisfied, are_dots_inside
+export generate_dataset
 
+include("generate_dataset_helpers.jl")
 
-_n_dots(x::MOT.Dot) = 1
-_n_dots(x::MOT.Polygon) = length(x.dots)
+"""
+    generate_dataset(dataset_path::String, n_scenes::Int64,
+                                               k::Int64, gms::Vector{AbstractGMParams},
+                                               dms::Vector{AbstractDynamicsModel};
+                                               min_distance = 50.0,
+                                               cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
+                                               aux_data::Union{Nothing, Vector{Any}} = nothing,
+                                               ff_ks::Union{Nothing, Vector{Int64}} = nothing)
 
-function are_dots_inside(scene_data, gm)
-    xmin, xmax = -gm.area_width/2 + gm.dot_radius, gm.area_width/2 - gm.dot_radius
-    ymin, ymax = -gm.area_height/2 + gm.dot_radius, gm.area_width/2 - gm.dot_radius
-    
-    cg = first(scene_data[:gt_causal_graphs])
-    n_dots = sum(map(x -> _n_dots(x), cg.elements))
-    positions = get_hgm_positions(cg, fill(true, n_dots))
+    Generates a JLD2 MOT dataset.
 
-    satisfied = map(i ->
-                    positions[i][1] > xmin &&
-                    positions[i][1] < xmax &&
-                    positions[i][2] > ymin &&
-                    positions[i][2] < ymax,
-                    1:n_dots)
+...
+# Arguments:
+- dataset_path: String
+- n_scenes: number of scenes to be generated
+- k: number of timesteps per scene
+- gms: vector of generative model parameters for each scene
+- dm: dynamics model parameters
+...
+# Optional arguments:
+- min_distance: minimum distance between dots at t0
+- cms: vector of choicemaps for each scene constraining the generative model
+- aux_data: vector of auxiliary data for each scene needed to be saved
+- ff_ks: vector of integers describing for each scene how many frames to generate
+         for the initial constraint satisfaction (dots being inside + min distance)
 
-    all(satisfied)    
-end
-
-function is_min_distance_satisfied(scene_data, min_distance;
-                                   polygon_min_distance = 2.5 * min_distance)
-    cg = first(scene_data[:gt_causal_graphs])
-    n_dots = @>> cg.elements map(x -> _n_dots(x)) sum
-    positions = get_hgm_positions(cg, fill(true, n_dots))
-    
-    # checking whether polygons are at the right distance if there are any
-    if @>> cg.elements map(x -> x isa Polygon) any
-        pos_pols = @>> cg.elements filter(x -> x isa Polygon) map(x->x.pos)
-        n_pols = length(pos_pols)
-        distances_idxs = Iterators.product(1:n_pols, 1:n_pols)
-        distances = @>> distances_idxs map(xy -> MOT.dist(pos_pols[xy[1]][1:2], pos_pols[xy[2]][1:2]))
-        satisfied = @>> distances map(distance -> distance == 0.0 || distance > polygon_min_distance)
-        if !all(satisfied)
-            return false
-        end
-    end
-    
-    distances_idxs = Iterators.product(1:n_dots, 1:n_dots)
-    distances = @>> distances_idxs map(xy -> MOT.dist(positions[xy[1]][1:2], positions[xy[2]][1:2]))
-    satisfied = @>> distances map(distance -> distance == 0.0 || distance > min_distance)
-    all(satisfied)
-end
-
-function generate_dataset(dataset_path, n_scenes, k, gms, motion;
+"""
+function generate_dataset(dataset_path::String, n_scenes::Int64,
+                          k::Int64, gms, dms;
                           min_distance = 50.0,
-                          cms::Union{Nothing, Vector{ChoiceMap}} = nothing,
-                          aux_data::Union{Nothing, Vector{Any}} = nothing)
+                          cms::Union{Nothing, Vector} = nothing,
+                          aux_data::Union{Nothing, Vector{Any}} = nothing,
+                          ff_ks::Union{Nothing, Vector{Int64}} = nothing)
     
     jldopen(dataset_path, "w") do file 
         file["n_scenes"] = n_scenes
         for i=1:n_scenes
             println("generating scene $i/$n_scenes")
-            scene_data = nothing
+            init_gt_cgs = nothing
 
             # if no choicemaps, then create an empty one
             cm = isnothing(cms) ? choicemap() : cms[i]
             
+            # this loop tries to satisfy min distance between dots and
+            # dots being generated inside of the area
             tries = 0
             while true
                 tries += 1
                 println("$tries \r")
-                scene_data = dgp(k, gms[i], motion;
-                                 generate_masks=false,
-                                 cm=cm)
-                if are_dots_inside(scene_data, gms[i]) && is_min_distance_satisfied(scene_data, min_distance)
-                    break
-                end
-            end
 
+                # if ff_ks is not empty, then only generating those frames
+                init_k = !isnothing(ff_ks) ? ff_ks[i]+1 : k
+                init_gt_cgs = dgp(init_k, dms[i], gms[i];
+                                  cm=cm)
+
+                # shifting scene data to the end if ff_ks are present
+                if !isnothing(ff_ks)
+                    init_gt_cgs = init_gt_cgs[ff_ks[i]:end]
+                end
+                
+                # checking whether dots are inside the area
+                di=are_dots_inside(init_gt_cgs, gms[i])
+                println("dots inside: $di")
+                di || continue
+
+                # checking whether the minimum distance between dots is satisfied
+                md=is_min_distance_satisfied(first(init_gt_cgs), min_distance)
+                println("minimum distance ($min_distance): $md")
+                md || continue
+                
+                # if both satisfied, then breaking from the loop
+                di && md && break
+            end
+            
+            # generating the whole scene using the initial constraints from the loop above
+            gt_cgs = dgp(k, dms[i], gms[i];
+                         cm=init_constraint_from_cg(first(init_gt_cgs)))
+            
+            # checking whether any dots escaped
+            !are_dots_inside(gt_cgs, gms[i]) && error("dots escaped the area")
+
+            # saving the scene to a JLD2 structure
             scene = JLD2.Group(file, "$i")
             scene["gm"] = gms[i]
-            scene["motion"] = motion
+            scene["dm"] = dms[i]
             scene["aux_data"] = isnothing(aux_data) ? nothing : aux_data[i]
-
-            gt_cgs = scene_data[:gt_causal_graphs]
-            # fixing z according to the time 0
-            z = map(x->x.pos[3], gt_cgs[1].elements)
-            map(cg -> map(i -> cg.elements[i].pos[3] = z[i],
-                          collect(1:length(cg.elements))),
-                          gt_cgs)
             scene["gt_causal_graphs"] = gt_cgs
         end
     end

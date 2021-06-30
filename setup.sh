@@ -16,7 +16,7 @@ supported targets:
 # container setup
 [[ "${@}" =~ "cont_build" ]] || [[ "${@}" =~ "cont_pull" ]] || echo "Not touching container"
 [[ "${@}" =~ "cont_pull" ]] && echo "pulling container" && \
-    wget "https://yale.box.com/shared/static/i5vxp5xghtfb2931fhd4b0ih4ya62o2s.sif" \
+    wget "https://yale.box.com/shared/static/2mu4c07x9ddtj38endxm6r81dm326mqg.sif" \
     -O "${ENV[cont]}"
 [[ "${@}" =~ "cont_build" ]] && echo "building container" && \
     SINGULARITY_TMPDIR=/var/tmp sudo -E singularity build "${ENV[cont]}" Singularity
@@ -50,11 +50,13 @@ supported targets:
     wget "https://yale.box.com/shared/static/75accvgspil2sr34tg2g3e37uvhjkxz6.jld2" \
         -O "output/datasets/exp1_isr.jld2" && \
     wget "https://yale.box.com/shared/static/wwpwkh7ara5wqmr8bde3jvvdael8x783.jld2" \
-        -O "output/datasets/exp1_brownian.jld2" && \
+        -O "output/datasets/exp1_brownian.jld2"  && \
     wget "https://yale.box.com/shared/static/v2gs72afv6d9lmv6qd9ybnf1b87u2ubw.jld2" \
         -O "output/datasets/exp1_isr_extended.jld2" && \
     wget "https://yale.box.com/shared/static/f7w0a43ubp8akiknemp77da1xg3gr64h.jld2" \
-        -O "output/datasets/exp1_isr_480.jld2"
+        -O "output/datasets/exp1_isr_480.jld2" \
+    wget "https://yale.box.com/shared/static/jxqjjkhd5piezrdrc5v2bjwk2pbxv9pw.jld2" \
+        -O "output/datasets/exp3_polygons_v3.jld2"
 
 # checkpoints
 [[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || echo "Not touching checkpoints"

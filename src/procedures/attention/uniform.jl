@@ -1,12 +1,16 @@
 export UniformAttention
 
+"""
+    uniform attention model, just returns zero for every latent/tracker
+"""
+
 @with_kw struct UniformAttention <: AbstractAttentionModel
     sweeps::Int = 0
     ancestral_steps::Int = 3
 end
 
 function get_stats(::UniformAttention, state::Gen.ParticleFilterState)
-    t, motion, gm = Gen.get_args(first(state.traces))
+    t, gm, dm, graphics = Gen.get_args(first(state.traces))
     return zeros(gm.n_trackers)
 end
 

@@ -10,22 +10,21 @@ def main():
         description = 'Submits batch jobs to render stimuli.',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('--conds', type = int, default = 8,
+    parser.add_argument('--n_conds', type = int, default = 8,
                         help = 'Number of conditions')
-    parser.add_argument('--scenes', type = int, default = 128,
+    parser.add_argument('--n_scenes', type = int, default = 128,
                         help = 'Number of scenes')
     args = parser.parse_args()
 
     # create
     condlist = []
-    for c in range(1, args.conds+1):
+    for c in range(1, args.n_conds+1):
         cond_trials = []
 
-        for s in range(1, args.scenes+1):
-            #idx = ((s + c) % args.conds) + 1
-            #trial = '{0:d}_{1:d}.mp4'.format(s, idx)
-            trial = '{0:d}.mp4'.format(s)
-            cond_trials.append(trial)
+        scene_probes = []
+
+        for scene in range(1, args.n_scenes+1):
+            cond_trials.append([scene, scene_probes])
 
         condlist.append(cond_trials)
 

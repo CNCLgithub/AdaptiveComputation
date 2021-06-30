@@ -1,21 +1,17 @@
+export AbstractGMParams
+
 abstract type AbstractGMParams end
 
-include("causal_graph.jl")
+include("gm_params.jl")
+include("utils/utils.jl")
 include("dynamics_models/dynamics_models.jl")
 include("graphics/graphics.jl")
+include("state/state.jl")
 
-include("flow_masks.jl")
-include("get_masks_params.jl")
-include("gm_brownian.jl")
-include("gm_inertia.jl")
-include("gm_isr.jl")
-include("gm_isr_pylons.jl")
-include("probe_brownian.jl")
-# include("gm_positions_cbm_static.jl")
-include("hgm.jl")
-
-include("receptive_fields.jl")
-include("gm_receptive_fields.jl")
+include("inertia/gm_inertia_pos.jl")
+include("inertia/gm_inertia_mask.jl")
+include("isr/gm_isr_pos.jl")
+#include("squishy/gm_squishy.jl")
 
 include("data_generating_procedures/data_generating_procedures.jl")
 

@@ -1,5 +1,5 @@
 bootstrap: docker
-from: julia:1.5.3
+from: julia:1.6
 
 %environment
  export PATH=$PATH:/miniconda/bin

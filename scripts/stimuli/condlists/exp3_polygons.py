@@ -33,7 +33,7 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
     
-    with open(os.path.join('/datasets', 'exp3_polygons.json')) as f:
+    with open(os.path.join('/datasets', 'exp3_polygons_v3.json')) as f:
         data = json.load(f)
         n_scenes = len(data)
 
