@@ -45,11 +45,11 @@ include("space.jl")
 
 function predict(cg::CausalGraph, e::Dot, space::Space)
     ep = get_graphics(cg).bern_existence_prob
-    BernoulliElement{Array}(ep, mask, (space,))
+    BernoulliElement{BitMatrix}(ep, mask, (space,))
 end
 
 function predict(cg::CausalGraph, e::UniformEnsemble, space::Space)
-    PoissonElement{Array}(e.rate, mask, (space,))
+    PoissonElement{BitMatrix}(e.rate, mask, (space,))
 end
 
 function graphics_init(cg::CausalGraph)
@@ -84,7 +84,7 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
     
     rfs_vec = init_rfs_vec(graphics.rf_dims)
     for i in LinearIndices(graphics.rf_dims)
-        rfes = RFSElements{Array}(undef, length(spaces_rf[i]))
+        rfes = RFSElements{BitMatrix}(undef, length(spaces_rf[i]))
         for (j, space_rf) in enumerate(spaces_rf[i])
             rfes[j] = predict(cg, get_prop(cg, vs[j], :object), space_rf)
         end

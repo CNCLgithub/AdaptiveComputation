@@ -129,5 +129,4 @@ function cropfilter(rf, masks::Vector)
     end
 end
 
-init_rfs_vec(rf_dims) = Vector{RFSElements{Array}}(undef, prod(rf_dims))
-
+init_rfs_vec(rf_dims) = Vector{RFSElements{BitMatrix}}(undef, prod(rf_dims))

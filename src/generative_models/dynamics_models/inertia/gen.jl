@@ -1,5 +1,5 @@
 
-@gen function inertial_step(cg::CausalGraph, v::Int64)
+@gen (static) function inertial_step(cg::CausalGraph, v::Int64)
 
     dot = get_prop(cg, v, :object)
     dm = get_dm(cg)
@@ -38,7 +38,7 @@
     return d
 end
 
-@gen function inertial_update(prev_cg::CausalGraph)
+@gen (static) function inertial_update(prev_cg::CausalGraph)
     (cgs, vs) = inertia_step_args(prev_cg)
     things = @trace(Map(inertial_step)(cgs, vs), :brownian)
     new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)

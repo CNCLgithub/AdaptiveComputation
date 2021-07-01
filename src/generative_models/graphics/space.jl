@@ -4,17 +4,18 @@
 
 Space{T,N} = AbstractArray{T,N}
 
-function render!(cg::CausalGraph)
+function render!(cg::CausalGraph)::Vector{Space}
     graphics = get_graphics(cg)
     spaces = render!(cg, graphics)
 end
 
-function render!(cg::CausalGraph, graphics::Graphics)
+function render!(cg::CausalGraph, graphics::Graphics)::Vector{Space}
     vs = get_prop(cg, :graphics_vs)
     depth_perm = get_depth_perm(cg, vs)
     spaces =  @>> vs begin
-        map(v -> render!(cg, v, get_prop(cg, v, :object)))
-        collect(Space)
+        # updates internal graphical state of elements if needed
+        map(v -> render_elem!(cg, v, get_prop(cg, v, :object)))
+        # collect(Space)
     end
     # compose!(spaces, cg, depth_perm)
     for (i, space) in enumerate(spaces)
@@ -24,7 +25,7 @@ function render!(cg::CausalGraph, graphics::Graphics)
     return spaces
 end
 
-function render!(cg::CausalGraph, v::Int64, d::Dot)
+function render_elem!(cg::CausalGraph, v::Int64, d::Dot)::Space
 
     @unpack img_dims = (get_prop(cg, :graphics))
     @unpack area_width, area_height = (get_prop(cg, :gm))
@@ -50,7 +51,7 @@ function render!(cg::CausalGraph, v::Int64, d::Dot)
     return flow.memory
 end
 
-function render!(cg::CausalGraph, v::Int64, e::UniformEnsemble)
+function render_elem!(cg::CausalGraph, v::Int64, e::UniformEnsemble)::Space
     @unpack img_dims = (get_prop(cg, :graphics))
     space = fill(e.pixel_prob, reverse(img_dims))
 end

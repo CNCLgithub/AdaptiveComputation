@@ -13,8 +13,8 @@ end
 
 
 include("utils/utils.jl")
-include("generative_models/generative_models.jl")
 include("distributions/distributions.jl")
+include("generative_models/generative_models.jl")
 include("procedures/procedures.jl")
 include("visuals/visuals.jl")
 include("experiments.jl")

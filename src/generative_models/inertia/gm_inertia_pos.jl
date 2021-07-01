@@ -17,4 +17,4 @@ end
     return result
 end
 
-export gm_inertia_mask
+export gm_inertia_pos
