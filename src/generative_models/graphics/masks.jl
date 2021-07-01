@@ -61,6 +61,7 @@ function draw_gaussian_dot_mask(center::Vector{T},
             # (sqrt((i - center[1])^2 + (j - center[2])^2) > threshold) && continue
             # mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
             #                                       gauss_amp, scaled_sd, scaled_sd)
+        # 0.037453 seconds (50.44 k allocations: 149.153 MiB)
         mask[j,i] = (sqrt((i - x)^2 + (j - y)^2) > threshold) ? 1e-10 :
             two_dimensional_gaussian(i, j, x, y, gauss_amp, scaled_sd, scaled_sd)
         # mask[j,i] = norm(center - [i, j]) < threshold ? 1e-10 :
