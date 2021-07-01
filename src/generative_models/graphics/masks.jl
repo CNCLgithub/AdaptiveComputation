@@ -48,24 +48,23 @@ drawing a gaussian dot with two components:
     and giving some gradient if the tracker is completely off
 """
 function draw_gaussian_dot_mask(center::Vector{T},
-                                r::T, w::Int, h::Int,
+                                r::T, w::Int64, h::Int64,
                                 gauss_r_multiple::T,
                                 gauss_amp::T, gauss_std::T) where {T<:Float64}
     scaled_sd = r * gauss_std
     threshold = r * gauss_r_multiple
-    # mask = fill(1e-10, h, w)
-    mask = Matrix{Float64}(undef, h, w)
-    x,y = center
-    for i = 1:w, j = 1:h
-            # 0.041424 seconds (51.23 k allocations: 152.036 MiB)
-            # (sqrt((i - center[1])^2 + (j - center[2])^2) > threshold) && continue
-            # mask[j,i] += two_dimensional_gaussian(i, j, center[1], center[2],
-            #                                       gauss_amp, scaled_sd, scaled_sd)
-        # 0.037453 seconds (50.44 k allocations: 149.153 MiB)
-        mask[j,i] = (sqrt((i - x)^2 + (j - y)^2) > threshold) ? 1e-10 :
-            two_dimensional_gaussian(i, j, x, y, gauss_amp, scaled_sd, scaled_sd)
-        # mask[j,i] = norm(center - [i, j]) < threshold ? 1e-10 :
-        #     two_dimensional_gaussian(i, j, x, y, gauss_amp, scaled_sd, scaled_sd)
+    mask = fill(1e-10, h, w)
+    # mask = Matrix{Float64}(undef, h, w)
+    x0, y0 = center
+    xlim = round.(Int64, [x0 - threshold, x0 + threshold])
+    ylim = round.(Int64, [y0 - threshold, y0 + threshold])
+    xbounds = clamp.(xlim, 1, w)
+    ybounds = clamp.(ylim, 1, h)
+    for idx in CartesianIndices((xbounds[1]:xbounds[2],
+                                    ybounds[1]:ybounds[2]))
+        i,j = Tuple(idx)
+        (sqrt((i - x0)^2 + (j - y0)^2) > threshold) && continue
+        mask[j,i] = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)
     end
     mask
 end
