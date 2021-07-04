@@ -68,10 +68,10 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)::Vector{
         kls[i, :] = collect(ẟs)
     end
     
-    println("log.(kls)")
+    println("log kl")
     display(log.(kls))
-    println("kls weights (exp)")
-    display(exp.(lls))
+    println("log weights (exp)")
+    display(lls)
     
     gs = Vector{Float64}(undef, n_latents)
     lse = Vector{Float64}(undef, n_latents)
@@ -264,10 +264,6 @@ end
     component and see how big the divergence is
 """
 function resolve_correspondence(p::T, q::T) where T<:Dict
-    #@show keys(p) keys(q)
-    # if keys(p) != keys(q)
-        # error()
-    # end
     s = collect(intersect(keys(p), keys(q)))
     vals = Matrix{Float64}(undef, length(s), 2)
     for (i,k) in enumerate(s)
@@ -350,7 +346,7 @@ function jeffs_d(p::T, q::T;
     jd = 0.0
     for i in order
         _jd = exp(probs[i, 1]) - exp(probs[i, 2])
-        _jd *= (probs[i, 1] - probs[i, 2])
+        _jd = _jd == 0. ? 0. : _jd * (probs[i, 1] - probs[i, 2])
         jd += _jd
         # println("$(labels[i]) => $(probs[i, :]) => jd = $(log(_jd))")
     end

@@ -103,9 +103,9 @@ function main()
                  "proc" => "$(@__DIR__)/proc.json",
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 10,
+                 "scene" => 1,
                  "chain" => 1,
-                 "time" => 100,
+                 "time" => 10,
                  "restart" => true,
                  "viz" => true])
 
@@ -118,6 +118,12 @@ function main()
     gm = @set gm.n_trackers = sum(aux_data.targets) # always 4 targets but whatever
     gm = @set gm.distractor_rate = sum(aux_data.n_distractors)
 
+    dgp = deepcopy(gm)
+    dgp = @set dgp.n_trackers = length(aux_data.targets)
+    dgp = @set dgp.distractor_rate = 0.
+    @show dgp
+
+
     dm = MOT.load(InertiaModel, args["dm"])
     dm = @set dm.vel = aux_data[:vel]
 
@@ -128,6 +134,7 @@ function main()
     graphics = MOT.load(Graphics, args["graphics"])
 
     query = query_from_params(gt_cgs,
+                              dgp,
                               gm_inertia_mask,
                               gm,
                               dm,

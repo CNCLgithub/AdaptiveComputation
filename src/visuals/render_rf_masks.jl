@@ -36,32 +36,26 @@ end
 
 function get_rf_masks(cgs::Vector{CausalGraph}, t::Int64, rf::Int64,
                       receptive_fields::Vector{RectangleReceptiveField})::Vector{Matrix{Float64}}
-    # init with zero mask
-    #@unpack p1, p2 = receptive_fields[rf]
-    #init_rf_mask = zeros((p2 .- p1 .+ (1,1))...)
-    init_rf_mask = zeros(get_dimensions(receptive_fields[rf])...)
-
     vs = get_prop(cgs[t], :graphics_vs)
     rf_masks = @>> vs begin
         map(v -> get_prop(cgs[t], v, :space))
         cropfilter(receptive_fields[rf])
     end
-    push!(rf_masks, init_rf_mask)
+    # println("predicted masks")
+    # for v in vs
+    #     display(get_prop(cgs[t], v, :space))
+    # end
     return rf_masks
 end
 
 function get_rf_masks(choices::ChoiceMap, t::Int64, rf::Int64,
                       receptive_fields::Vector{RectangleReceptiveField})::Vector{BitArray}
-    # init with zero mask
-    # @unpack p1, p2 = receptive_fields[rf]
-    # dims = p2.-p1 .+ (1,1)
-    # init_rf_mask = zeros(dims...)
-    init_rf_mask = zeros(get_dimensions(receptive_fields[rf])...)
-    init_rf_mask = convert(BitArray, init_rf_mask)
-
-    rf_masks = choices[:kernel => t => :receptive_fields => rf => :masks]
-    push!(rf_masks, init_rf_mask)
-    return rf_masks
+    masks = choices[:kernel => t => :receptive_fields => rf => :masks]
+    # println("gt masks")
+    # for m in masks
+    #     display(sparse(m))
+    # end
+    masks
 end
 
 function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,

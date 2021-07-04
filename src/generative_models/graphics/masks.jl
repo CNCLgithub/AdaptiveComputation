@@ -28,7 +28,7 @@ function draw_dot_mask(pos::Vector{T},
 
     x, y = translate_area_to_img(pos[1], pos[2], w, h, aw, ah)
     mask = BitMatrix(zeros(h, w))
-    radius = ceil(r * w / aw)
+    radius = round(r * w / aw; digits = 3)
     draw_circle!(mask, [x,y], radius, true)
     return mask
 end
@@ -39,7 +39,6 @@ function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
     {I<:Int64,T<:Float64}
     A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
-
 
 """
 drawing a gaussian dot with two components:
@@ -53,20 +52,26 @@ function draw_gaussian_dot_mask(center::Vector{T},
                                 gauss_amp::T, gauss_std::T) where {T<:Float64}
     scaled_sd = r * gauss_std
     threshold = r * gauss_r_multiple
-    mask = fill(1e-10, h, w)
-    # mask = Matrix{Float64}(undef, h, w)
+    # mask = zeros(h, w) # mask is initially zero to take advantage of sparsity
     x0, y0 = center
     xlim = round.(Int64, [x0 - threshold, x0 + threshold])
     ylim = round.(Int64, [y0 - threshold, y0 + threshold])
     xbounds = clamp.(xlim, 1, w)
     ybounds = clamp.(ylim, 1, h)
+    Is = Int64[]
+    Js = Int64[]
+    Vs = Float64[]
     for idx in CartesianIndices((xbounds[1]:xbounds[2],
                                     ybounds[1]:ybounds[2]))
         i,j = Tuple(idx)
         (sqrt((i - x0)^2 + (j - y0)^2) > threshold) && continue
-        mask[j,i] = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)
+        v = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)
+        # flip i and j in mask
+        push!(Is, j)
+        push!(Js, i)
+        push!(Vs, v)
     end
-    mask
+    sparse(Is, Js, Vs, h, w)
 end
 
 
@@ -74,6 +79,10 @@ end
 function get_bit_masks(cg::CausalGraph,
                        graphics::Graphics,
                        gm::GMParams)
+
+
+    @unpack img_dims, gauss_amp, gauss_std, gauss_r_multiple = graphics
+    @unpack dot_radius, area_width, area_height = (get_prop(cg, :gm))
 
     positions = @>> get_objects(cg, Dot) map(x -> x.pos)
 
@@ -85,13 +94,21 @@ function get_bit_masks(cg::CausalGraph,
     img_so_far = BitArray{2}(zeros(reverse(graphics.img_dims)))
 
     n_objects = size(positions,1)
-    masks = Vector{BitMatrix}(undef, n_objects)
+    masks = Vector{SparseMatrixCSC}(undef, n_objects)
+
+    scaled_r = (dot_radius / area_width) * img_dims[1]
 
     for i=1:n_objects
-        mask = draw_dot_mask(positions[i], gm.dot_radius,
-                             graphics.img_dims...,
-                             gm.area_width, gm.area_height)
-        masks[i] = mask
+        # masks[i] = draw_dot_mask(positions[i], gm.dot_radius,
+        #                          graphics.img_dims...,
+        #                          gm.area_width, gm.area_height)
+
+        x, y = translate_area_to_img(positions[i][1:2]...,
+                                     img_dims..., area_width, area_height)
+        masks[i] = draw_gaussian_dot_mask([x,y], scaled_r, img_dims...,
+                                          gauss_r_multiple,
+                                          gauss_amp, gauss_std)
+        display(sparse(masks[i]))
     end
 
     masks = masks[invperm(depth_perm)]
@@ -149,32 +166,33 @@ function get_bit_masks_rf(cgs::Vector{CausalGraph},
                           graphics::Graphics,
                           gm::AbstractGMParams)
     k = length(cgs)
-    bit_masks = get_bit_masks(cgs, graphics, gm)
     # time x receptive_field x object
     bit_masks_rf = Vector{Vector{Vector{BitMatrix}}}(undef, k)
 
     vs = @> first(cgs) begin
-        filter_vertices((g, v) -> get_prop(g, v, :object) isa Dot)
+        get_objects(Dot)
     end
+    n_objects = length(vs)
 
     @unpack img_dims, flow_decay_rate, gauss_amp = graphics
     flows = @>> vs begin
         map(v -> ExponentialFlow(flow_decay_rate,
-                                 zeros(reverse(img_dims)),
+                                 spzeros(Float64, reverse(img_dims)...),
                                  # TODO make this a param in graphics
-                                 1.0))
+                                 gauss_amp))
         collect(ExponentialFlow)
     end
 
     for t=1:k
         # first create the amodal mask for each object
-        for (i, m) in enumerate(bit_masks[t])
-            flows[i] = evolve(flows[i], convert(Matrix{Float64}, m)) # evolve the flow
-            bit_masks[t][i] = mask(flows[i].memory) # mask is the composed flow thing
+        bit_masks = Vector{BitMatrix}(undef, n_objects)
+        for (i, m) in enumerate(get_bit_masks(cgs[t], graphics, gm))
+            flows[i] = evolve(flows[i], m) # evolve the flow
+            bit_masks[i] = mask(flows[i].memory) # mask is the composed flow thing
         end
         # then parse each mask across receptive fields
         bit_masks_rf[t] = @>> graphics.receptive_fields begin
-            map(rf -> cropfilter(rf, bit_masks[t]))
+            map(rf -> cropfilter(rf, bit_masks))
         end
         @debug "# of masks per rf : $(map(length, bit_masks_rf[t]))"
     end

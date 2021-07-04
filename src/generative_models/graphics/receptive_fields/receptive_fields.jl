@@ -31,7 +31,10 @@ function crop(rf::RectangleReceptiveField,
               space::Space)
     cs = CartesianIndices(size(space))
     idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    space[idxs]
+    ls = LinearIndices(cs)
+    cropped = space[ls[idxs]]
+    # display(cropped)
+    # cropped
 end
 
 """
@@ -42,21 +45,17 @@ function get_dimensions(rf::RectangleReceptiveField)
     return (h, w)
 end
 
-
-# """
-    # simple, nonhierarchical case
-# """
-# function get_mask_distributions(objects, gm::GMParams;
-                                # flow_masks=nothing)
-    # pos = map(o->o.pos, objects)
-    # mask_args, trackers_img = get_masks_rvs_args(pos, gm)
-    # mask_distributions = @>> mask_args map(first)
-    # if !isnothing(flow_masks)
-        # flow_masks = update_flow_masks(flow_masks, mask_distributions)
-        # mask_distributions = predict(flow_masks)
-    # end
-    # return (mask_distributions, flow_masks)
-# end
+"""
+ crop masks to receptive fields and then
+ filter so each mask is non zero
+"""
+function cropfilter(rf::RectangleReceptiveField, masks::Vector{<:Space})
+    @>> masks begin
+        map(mask -> crop(rf, mask))
+        # filter(mask -> mean(mask) > rf.threshold)
+        filter(mask -> any(!iszero, mask))
+    end
+end
 
 
 ###############
@@ -118,15 +117,5 @@ function Graphics(::Type{RectangleReceptiveField},
 end
 
 
-"""
- crop masks to receptive fields and then
- filter so each mask is non zero
-"""
-function cropfilter(rf, masks::Vector)
-    @>> masks begin
-        map(mask -> crop(rf, mask))
-        filter(mask -> mean(mask) > rf.threshold)
-    end
-end
 
 init_rfs_vec(rf_dims) = Vector{RFSElements{BitMatrix}}(undef, prod(rf_dims))

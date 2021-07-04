@@ -3,6 +3,7 @@ module MOT
 using Gen
 using Gen_Compose
 using GenRFS
+using SparseArrays
 using Parameters: @with_kw, @unpack
 using Lazy: @>, @>>
 

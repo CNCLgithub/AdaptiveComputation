@@ -23,7 +23,7 @@ function visualize_inference(results, gt_causal_graphs, gm,
     attention_weights = [aux_state[t].stats for t = 1:k]
     attention_weights = collect(hcat(attention_weights...)')
 
-    plot_compute_weights(attention_weights, path)
+    # plot_compute_weights(attention_weights, path)
 
     attempts = Vector{Int}(undef, k)
     attended = Vector{Vector{Float64}}(undef, k)

@@ -29,22 +29,61 @@ function get_observations(graphics::Graphics, masks)
     return observations
 end
 
+function constraints_from_cgs(cgs::Vector{CausalGraph},
+                              gm::Gen.GenerativeFunction,
+                              args::Tuple)
+    t = length(cgs)
+    # first simulate trace using gm
+    cm = get_init_constraints(cgs[1])
+    prev_objects = get_objects(cgs[1], Dot)
+    for i = 2:t
+        objects = MOT.get_objects(cgs[i], Dot)
+        for j = 1:length(objects)
+            pos = objects[j].pos[1:2]
+            delta = pos - prev_objects[j].pos[1:2]
+            nd = norm(delta)
+            ang = delta ./ nd
+            ang = nd == 0. ? 0. : atan(ang[2], ang[1])
+            cm[:kernel => i-1 => :dynamics => :brownian => j => :mag] = nd
+            cm[:kernel => i-1 => :dynamics => :brownian => j => :ang] = ang
+        end
+        prev_objects = objects
+    end
+
+    display(cm)
+
+    trace, _ = generate(gm, args, cm)
+    choices = get_choices(trace)
+
+    constraints = Vector{Gen.ChoiceMap}(undef, t)
+    for i = 1:t
+        observations = choicemap()
+        addr = :kernel => i => :receptive_fields
+        set_submap!(observations, addr, get_submap(choices, addr))
+        constraints[i] = observations
+    end
+    return constraints
+end
 
 function get_init_constraints(cg::CausalGraph)
+    init_dots = get_objects(cg, Dot)
+    get_init_constraints(cg, length(init_dots))
+end
+function get_init_constraints(cg::CausalGraph, n::Int64)
     cm = Gen.choicemap()
     init_dots = get_objects(cg, Dot)
-    for i=1:length(init_dots)
+    for i=1:n
         addr = :init_state => :trackers => i => :x
         cm[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
         cm[addr] = init_dots[i].pos[2]
     end
-
     return cm
 end
 
 
 function query_from_params(gt_causal_graphs,
+                           dgp_params,
                            generative_model,
                            gm_params::AbstractGMParams,
                            dm_params::AbstractDynamicsModel,
@@ -67,14 +106,19 @@ function query_from_params(gt_causal_graphs,
     init_gt_cg = gt_causal_graphs[1]
     gt_cgs = gt_causal_graphs[2:end]
 
-    init_constraints = get_init_constraints(init_gt_cg)
+    init_constraints = get_init_constraints(init_gt_cg,
+                                            gm_params.n_trackers)
 
+    display(init_constraints)
 
     masks = get_bit_masks_rf(gt_causal_graphs,
                              graphics_params,
                              gm_params)
     observations = get_observations(graphics_params, masks)
 
+    # observations = constraints_from_cgs(gt_causal_graphs,
+    #                                     generative_model,
+    #                                     (k, dgp_params, dm_params, graphics_params))
 
     init_args = (0, gm_params, dm_params, graphics_params)
     args = [(t, gm_params, dm_params, graphics_params) for t in 1:k]

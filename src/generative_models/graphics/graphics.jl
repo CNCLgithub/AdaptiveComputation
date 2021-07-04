@@ -77,11 +77,15 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
     cg = deepcopy(cg)
     vs = get_prop(cg, :graphics_vs)
 
-    spaces = render!(cg) # project to graphical space
+    # first create the sparse mass matrices for each element
+    spaces = render!(cg)
+
+    # cut each mass matrix into each receptive field
     spaces_rf = @>> graphics.receptive_fields begin
         map(rf -> cropfilter(rf, spaces))
     end
-    
+
+    # construct the
     rfs_vec = init_rfs_vec(graphics.rf_dims)
     for i in LinearIndices(graphics.rf_dims)
         rfes = RFSElements{BitMatrix}(undef, length(spaces_rf[i]))
