@@ -1,10 +1,23 @@
-export Graphics
+export NullGraphics, Graphics
 
-abstract type AbstractGraphics end
+################################################################################
+# Null Graphics
+################################################################################
 
-load(::Type{AbstractGraphics}) = error("not implemented")
+struct NullGraphics <: AbstractGraphics end
 
-get_observations(::AbstractGraphics) = error("not implemented")
+function graphics_init(graphics::NullGraphics, cg::CausalGraph)
+    return cg
+end
+
+function graphics_update(graphics::NullGraphics, cg::CausalGraph)
+    return cg
+end
+
+
+################################################################################
+# Graphics
+################################################################################
 
 @with_kw struct Graphics <: AbstractGraphics
     img_dims::Tuple{Int64, Int64}
@@ -41,23 +54,7 @@ function load(::Type{Graphics}, path::String)
              gauss_r_multiple, gauss_amp, gauss_std, bern_existence_prob)
 end
 
-include("space.jl")
-
-function predict(cg::CausalGraph, e::Dot, space::Space)
-    ep = get_graphics(cg).bern_existence_prob
-    BernoulliElement{BitMatrix}(ep, mask, (space,))
-end
-
-function predict(cg::CausalGraph, e::UniformEnsemble, space::Space)
-    PoissonElement{BitMatrix}(e.rate, mask, (space,))
-end
-
-function graphics_init(cg::CausalGraph)
-    g = get_graphics(cg)
-    graphics_init(cg, g)
-end
-
-function graphics_init(cg::CausalGraph, graphics::Graphics)
+function graphics_init(graphics::Graphics, cg::CausalGraph)
     cg = deepcopy(cg)
     vs = @> cg begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa
@@ -68,17 +65,18 @@ function graphics_init(cg::CausalGraph, graphics::Graphics)
     return cg
 end
 
-function graphics_update(cg::CausalGraph)
-    graphics = get_graphics(cg)
-    graphics_update(cg, graphics)
-end
+function graphics_update(graphics::Graphics, cg::CausalGraph,
+                         prev_cg::CausalGraph)
 
-function graphics_update(cg::CausalGraph, graphics::Graphics)
-    cg = deepcopy(cg)
-    vs = get_prop(cg, :graphics_vs)
+    vs = @> cg begin
+        filter_vertices((g, v) -> get_prop(g, v, :object) isa
+                        Union{Dot, UniformEnsemble})
+        (@>> collect(Int64))
+    end
+    set_prop!(cg, :graphics_vs, vs)
 
     # first create the sparse mass matrices for each element
-    spaces = render!(cg)
+    spaces = render!(cg, prev_cg)
 
     # cut each mass matrix into each receptive field
     spaces_rf = @>> graphics.receptive_fields begin
@@ -99,8 +97,23 @@ function graphics_update(cg::CausalGraph, graphics::Graphics)
     return cg
 end
 
-include("shapes.jl")
+################################################################################
+# Prediction
+################################################################################
+
+include("space.jl")
+
+function predict(cg::CausalGraph, e::Dot, space::Space)
+    ep = get_graphics(cg).bern_existence_prob
+    BernoulliElement{BitMatrix}(ep, mask, (space,))
+end
+
+function predict(cg::CausalGraph, e::UniformEnsemble, space::Space)
+    PoissonElement{BitMatrix}(e.rate, mask, (space,))
+end
+
+
+# include("shapes.jl")
+include("flow.jl")
 include("masks.jl")
 include("receptive_fields/receptive_fields.jl")
-include("flow.jl")
-

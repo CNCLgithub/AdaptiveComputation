@@ -105,7 +105,7 @@ function main()
                  "dataset" => "/datasets/exp1_difficulty.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 10,
+                 "time" => 45,
                  "restart" => true,
                  "viz" => true])
 

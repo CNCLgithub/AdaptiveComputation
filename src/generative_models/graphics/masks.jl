@@ -99,16 +99,11 @@ function get_bit_masks(cg::CausalGraph,
     scaled_r = (dot_radius / area_width) * img_dims[1]
 
     for i=1:n_objects
-        # masks[i] = draw_dot_mask(positions[i], gm.dot_radius,
-        #                          graphics.img_dims...,
-        #                          gm.area_width, gm.area_height)
-
         x, y = translate_area_to_img(positions[i][1:2]...,
                                      img_dims..., area_width, area_height)
         masks[i] = draw_gaussian_dot_mask([x,y], scaled_r, img_dims...,
                                           gauss_r_multiple,
                                           gauss_amp, gauss_std)
-        display(sparse(masks[i]))
     end
 
     masks = masks[invperm(depth_perm)]

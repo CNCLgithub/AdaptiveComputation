@@ -1,8 +1,8 @@
 {
     "smoothness": 0.01,
-    "k": 3350.0,
-    "x0": 168000000000.0,
-    "scale": 495.0,
-    "samples": 0,
-    "sweeps": 0
+    "k": 0.016,
+    "x0": 200.0,
+    "scale": 1.0,
+    "samples": 5,
+    "sweeps": 10
 }

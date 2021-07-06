@@ -4,16 +4,17 @@
 
 Space{T,N} = AbstractArray{T,N}
 
-function render!(cg::CausalGraph)::Vector{Space}
+function render!(cg::CausalGraph, prev_cg::CausalGraph)::Vector{Space}
     graphics = get_graphics(cg)
-    spaces = render!(cg, graphics)
+    spaces = render!(cg, prev_cg, graphics)
 end
 
-function render!(cg::CausalGraph, graphics::Graphics)::Vector{Space}
+function render!(cg::CausalGraph, prev_cg::CausalGraph,
+                 graphics::Graphics)::Vector{Space}
     vs = get_prop(cg, :graphics_vs)
     spaces =  @>> vs begin
         # updates internal graphical state of elements if needed
-        map(v -> render_elem!(cg, v, get_prop(cg, v, :object)))
+        map(v -> render_elem!(cg, prev_cg, v, get_prop(cg, v, :object)))
         # collect(Space)
     end
     for (i, space) in enumerate(spaces)
@@ -23,7 +24,8 @@ function render!(cg::CausalGraph, graphics::Graphics)::Vector{Space}
     return spaces
 end
 
-function render_elem!(cg::CausalGraph, v::Int64, d::Dot)::Space
+function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
+                      v::Int64, d::Dot)::Space
 
     @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = (get_prop(cg, :graphics))
     @unpack area_width, area_height = (get_prop(cg, :gm))
@@ -36,11 +38,9 @@ function render_elem!(cg::CausalGraph, v::Int64, d::Dot)::Space
     space = draw_gaussian_dot_mask([x,y], scaled_r, img_dims...,
                                    gauss_r_multiple,
                                    gauss_amp, gauss_std)
-    # convert to sparse matrix
-    space = sparse(space)
 
-    if has_prop(cg, v, :flow)
-        flow = evolve(get_prop(cg, v, :flow), space)
+    if has_prop(prev_cg, v, :flow)
+        flow = evolve(get_prop(prev_cg, v, :flow), space)
     else
         @unpack flow_decay_rate = (get_prop(cg, :graphics))
         flow = ExponentialFlow(flow_decay_rate, space, gauss_amp)
@@ -50,24 +50,25 @@ function render_elem!(cg::CausalGraph, v::Int64, d::Dot)::Space
     return flow.memory
 end
 
-function render_elem!(cg::CausalGraph, v::Int64, e::UniformEnsemble)::Space
+function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
+                      v::Int64, e::UniformEnsemble)::Space
     @unpack img_dims = (get_prop(cg, :graphics))
     space = fill(e.pixel_prob, reverse(img_dims))
 end
 
-# composes the spaces by subtracting occluded parts
-function compose!(spaces::Vector{Space}, cg::CausalGraph, depth_perm::Vector{Int64})
-    @unpack img_dims = (get_prop(cg, :graphics))
-    canvas = zeros(reverse(img_dims)) # reverse to (height, width)
-    
-    for i in depth_perm
-        spaces[i] -= canvas
-        canvas += spaces[i]
-        clamp!(spaces[i], 1e-10, 1.0 - 1e-10)
-    end
+# # composes the spaces by subtracting occluded parts
+# function compose!(spaces::Vector{Space}, cg::CausalGraph, depth_perm::Vector{Int64})
+#     @unpack img_dims = (get_prop(cg, :graphics))
+#     canvas = zeros(reverse(img_dims)) # reverse to (height, width)
 
-    return nothing
-end
+#     for i in depth_perm
+#         spaces[i] -= canvas
+#         canvas += spaces[i]
+#         clamp!(spaces[i], 1e-10, 1.0 - 1e-10)
+#     end
+
+#     return nothing
+# end
 
 # returns the permutation according to depth (smallest z values first)
 function get_depth_perm(cg::CausalGraph, vs::Vector{Int64})

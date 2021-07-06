@@ -59,7 +59,6 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
         get_args
         first
     end
-    println()
     @show timestep
 
     @debug "smc_step!"

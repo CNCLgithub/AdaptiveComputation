@@ -117,9 +117,6 @@ function get_simplified_target_designation(cg, gt_cg)
 
     inds = Iterators.product(1:n_trackers, 1:n_dots)
     distances = @>> inds map(i -> norm(pos[i[1]] - gt_pos[i[2]]))
-
-    display(distances)
-
     td = []
     for i=1:n_trackers
         perm = sortperm(distances[i,:])
@@ -167,11 +164,8 @@ function analyze_chain_receptive_fields(chain;
     display(top_td)
     td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
     """
-    display(td)
     td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
     
-    println(td_acc)
-
     for frame = 1:size(causal_graphs)[1], tracker = 1:n_trackers
         att = aux_state[frame].attended_trackers[tracker]
         #probs = td[frame, particle][tracker]

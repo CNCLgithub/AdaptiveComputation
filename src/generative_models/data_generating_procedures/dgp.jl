@@ -8,9 +8,9 @@ using Setfield
 function _dgp(dm::ISRDynamics, k::Int, gm::GMParams, cm::ChoiceMap)
     Gen.generate(gm_isr_pos, (k, gm, dm), cm)
 end
-function _dgp(dm::SquishyDynamicsModel, k::Int, gm::GMParams, cm::ChoiceMap)
-    Gen.generate(squishy_gm_pos, (k, gm, dm), cm)
-end
+# function _dgp(dm::SquishyDynamicsModel, k::Int, gm::GMParams, cm::ChoiceMap)
+#     Gen.generate(squishy_gm_pos, (k, gm, dm), cm)
+# end
 function _dgp(dm::InertiaModel, k::Int, gm::GMParams, cm::ChoiceMap)
     Gen.generate(gm_inertia_pos, (k, gm, dm), cm)
 end

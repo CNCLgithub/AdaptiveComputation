@@ -1,4 +1,4 @@
-abstract type AbstractGMParams end
+export GMParams
 
 # The most basic generative model parameters
 @with_kw struct GMParams <: AbstractGMParams
@@ -15,22 +15,9 @@ function load(::Type{GMParams}, path; kwargs...)
     GMParams(;read_json(path)..., kwargs...)
 end
 
-
-# Polygon/hierarchical version of GMParams
-@with_kw struct HGMParams <: AbstractGMParams
-    n_trackers::Int64 = 4
-    distractor_rate::Float64 = 4.0
-    init_pos_spread::Float64 = 320.0
-    dist_pol_verts::Float64 = 100.0
-    max_vertices::Int64 = 7
-    dot_radius::Real = 20.0
-    area_height::Int64 = 800
-    area_width::Int64 = 800
-    targets::Vector{Bool} = zeros(8)
+function tracker_bounds(gm::GMParams, cg::CausalGraph)
+    @unpack area_width, area_height, dot_radius = (get_gm(cg))
+    xs = (-0.5*area_width + dot_radius, 0.5*area_width - dot_radius)
+    ys = (-0.5*area_height + dot_radius, 0.5*area_height - dot_radius)
+    (xs, ys, dot_radius)
 end
-
-function load(::Type{HGMParams}, path; kwargs...)
-    HGMParams(;read_json(path)..., kwargs...)
-end
-
-export GMParams, HGMParams

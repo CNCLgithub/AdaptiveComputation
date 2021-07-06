@@ -1,12 +1,12 @@
 
-"""
-Random variable describing a mask. Essentially just a
-bunch of independent bernoullis parametrized by ps::Matrix{Float64}.
-Samples a BitMatrix.
-"""
 
 export mask
 
+"""
+Random variable describing a mask prediction.
+A matrix of bernoullis parametrized by ps::Matrix{Float64}.
+Samples a BitMatrix.
+"""
 struct Mask <: Gen.Distribution{BitMatrix} end
 
 const mask = Mask()

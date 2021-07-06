@@ -1,4 +1,18 @@
 abstract type AbstractReceptiveField end
+
+
+"""
+ crop masks to receptive fields and then
+ filter so each mask is non zero
+"""
+function cropfilter(rf::AbstractReceptiveField, masks::Vector{<:Space})
+    @>> masks begin
+        map(mask -> crop(rf, mask))
+        # filter(mask -> mean(mask) > rf.threshold)
+        filter(mask -> any(!iszero, mask))
+    end
+end
+
 abstract type NullReceptiveFields end # used to indicate absence of RF
 
 export RectangleReceptiveField, get_rectangle_receptive_fields
@@ -22,6 +36,7 @@ end
 struct RectangleReceptiveField <: AbstractReceptiveField
     p1::Tuple{Int64, Int64}
     p2::Tuple{Int64, Int64}
+    coords::Matrix{CartesianIndex{2}}
     threshold::Float64
 end
 
@@ -31,10 +46,8 @@ function crop(rf::RectangleReceptiveField,
               space::Space)
     cs = CartesianIndices(size(space))
     idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    ls = LinearIndices(cs)
+    ls = LinearIndices(rf.coords)
     cropped = space[ls[idxs]]
-    # display(cropped)
-    # cropped
 end
 
 """
@@ -45,17 +58,6 @@ function get_dimensions(rf::RectangleReceptiveField)
     return (h, w)
 end
 
-"""
- crop masks to receptive fields and then
- filter so each mask is non zero
-"""
-function cropfilter(rf::RectangleReceptiveField, masks::Vector{<:Space})
-    @>> masks begin
-        map(mask -> crop(rf, mask))
-        # filter(mask -> mean(mask) > rf.threshold)
-        filter(mask -> any(!iszero, mask))
-    end
-end
 
 
 ###############
@@ -74,9 +76,14 @@ function get_rectangle_receptive_field(cidx::CartesianIndex{2},
                                        overlap::Float64)
 
     p1 = (1+(cidx[2]-1)*(1-overlap)*w, 1+(cidx[1]-1)*(1-overlap)*h) # top left
+    p1 = floor.(Int64, p1)
     p2 = p1 .+ (w-1, h-1) # bottom right
+    p2 = floor.(Int64, p2)
+
+    cs = CartesianIndices((h, w))
+    coords = cs[p1[2]:p2[2], p1[1]:p2[1]]
     
-    return RectangleReceptiveField(floor.(Int64, p1), floor.(Int64, p2), rf_threshold)
+    RectangleReceptiveField(p1, p2, coords, rf_threshold)
 end
 
 """
@@ -102,7 +109,8 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
     rf_cidx = CartesianIndices(reverse(rf_dims))
     @>> rf_cidx begin
         vec
-        map(cidx -> get_rectangle_receptive_field(cidx, w, h, img_dims, rf_threshold, overlap))
+        map(cidx -> get_rectangle_receptive_field(cidx, w, h,
+                                                  img_dims, rf_threshold, overlap))
     end
 end
 

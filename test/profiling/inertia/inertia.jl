@@ -17,13 +17,13 @@ function constraints_from_cgs(cgs, gm, args)
             nd = norm(delta)
             ang = delta ./ nd
             ang = nd == 0. ? 0. : atan(ang[2], ang[1])
-            cm[:kernel => i => :dynamics => :brownian => j => :mag] = nd
-            cm[:kernel => i => :dynamics => :brownian => j => :ang] = ang
+            cm[:kernel => i => :dynamics => :trackers => j => :mag] = nd
+            cm[:kernel => i => :dynamics => :trackers => j => :ang] = ang
         end
         prev_objects = objects
     end
 
-    display(cm)
+    # display(cm)
     trace, _ = generate(gm, args, cm)
     choices = get_choices(trace)
 
@@ -53,25 +53,25 @@ function main()
                         rf_dims = rf_dims,
                         img_dims = img_dims,
                         receptive_fields = receptive_fields)
-    args = (3, gm, dm, graphics)
+    args = (45, gm, dm, graphics)
 
     Profile.init(delay = 1E-4,
                  n = 10^8)
-    # @profilehtml trace, _ = generate(gm_inertia_mask, args)
-    # @profilehtml trace, _ = generate(gm_inertia_mask, args)
+    generate(gm_inertia_mask, args);
     @time trace, _ = generate(gm_inertia_mask, args)
+    @profilehtml trace, _ = generate(gm_inertia_mask, args)
 
-    _, cgs = get_retval(trace)
+    # _, cgs = get_retval(trace)
 
-    constraints = constraints_from_cgs(cgs, gm_inertia_mask, args)
+    # constraints = constraints_from_cgs(cgs, gm_inertia_mask, args)
 
-    choices = get_choices(trace)
-    masks = choices[:kernel => 3 => :receptive_fields => 1 => :masks]
-    display(sparse(masks[end]))
+    # choices = get_choices(trace)
+    # masks = choices[:kernel => 3 => :receptive_fields => 1 => :masks]
+    # # display(sparse(masks[end]))
 
-    masks = constraints[:kernel => 3 => :receptive_fields => 1 => :masks]
-    display(sparse(masks[end]))
-    # display(constraints)
+    # masks = constraints[:kernel => 3 => :receptive_fields => 1 => :masks]
+    # # display(sparse(masks[end]))
+    # # display(constraints)
 end
 
 main();

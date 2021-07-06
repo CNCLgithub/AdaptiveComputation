@@ -13,14 +13,10 @@ end
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
     # decay memory
     decayed = flow.memory * exp(flow.decay_rate)
+    decayed = round.(decayed, digits = 5)
+    dropzeros!(decayed)
 
-    # clear region in decayed memory that will be updated by `space`
-    to_clear = findall(!iszero, space)
-    decayed[to_clear] .= 0.
-
-    # update and remove resulting zeros
-    memory = round.(decayed + space, digits = 3)
-    dropzeros!(memory)
+    memory = max.(space, decayed)
 
     ExponentialFlow{T}(flow.decay_rate, memory, flow.upper)
 end

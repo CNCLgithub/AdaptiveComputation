@@ -12,9 +12,9 @@ function __init__()
     @load_generated_functions
 end
 
-
-include("utils/utils.jl")
+include("world/world.jl")
 include("distributions/distributions.jl")
+include("utils/utils.jl")
 include("generative_models/generative_models.jl")
 include("procedures/procedures.jl")
 include("visuals/visuals.jl")

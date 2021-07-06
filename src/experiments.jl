@@ -50,8 +50,6 @@ function constraints_from_cgs(cgs::Vector{CausalGraph},
         prev_objects = objects
     end
 
-    display(cm)
-
     trace, _ = generate(gm, args, cm)
     choices = get_choices(trace)
 
@@ -99,7 +97,8 @@ function query_from_params(gt_causal_graphs,
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => assignments_func,
                :causal_graph => extract_causal_graph,
-               :trace => extract_trace)
+               # :trace => extract_trace
+               )
                #:tracker_masks => extract_tracker_masks)
     latent_map = LatentMap(_lm)
 
@@ -115,10 +114,6 @@ function query_from_params(gt_causal_graphs,
                              graphics_params,
                              gm_params)
     observations = get_observations(graphics_params, masks)
-
-    # observations = constraints_from_cgs(gt_causal_graphs,
-    #                                     generative_model,
-    #                                     (k, dgp_params, dm_params, graphics_params))
 
     init_args = (0, gm_params, dm_params, graphics_params)
     args = [(t, gm_params, dm_params, graphics_params) for t in 1:k]

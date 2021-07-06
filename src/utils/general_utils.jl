@@ -1,26 +1,3 @@
-export softmax,
-    normalize_weights,
-    findnearest_vec,
-    retrieve_assignment,
-    retrieve_preds,
-    retrieve_obs,
-    dist,
-    find_distance_to_nd,
-    findnearest
-
-
-# stable softmax
-function softmax(x)
-    x = x .- maximum(x)
-    return exp.(x) / sum(exp.(x))
-end
-
-function normalize_weights(log_weights::Vector{Float64})
-    log_total_weight = logsumexp(log_weights)
-    log_normalized_weights = log_weights .- log_total_weight
-    return (log_total_weight, log_normalized_weights)
-end
-
 """
 Retrieves assignment from trace for the given group
 
@@ -68,11 +45,6 @@ function retrieve_obs(cm::Gen.ChoiceMap, t::Int)
                          Float64)
     pos = reshape(pos_t, 2, :)'
     return pos
-end
-
-# computes distance between two points
-function dist(x,y)
-    return sqrt((x[1] - y[1])^2 + (x[2] - y[2])^2)
 end
 
 

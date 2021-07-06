@@ -32,7 +32,7 @@ function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
     t = first(args)
     addrs = []
     for i = max(1, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :brownian => tracker
+        addr = :kernel => i => :dynamics => :trackers => tracker
         push!(addrs, addr)
     end
     (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
@@ -112,7 +112,6 @@ function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
     amp = att.sweeps*exp(att.k*(x - att.x0))
 
-    println("k: $(att.k)")
     println("x: $(x), amp: $(amp)")
     sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
     println("sweeps: $sweeps")
