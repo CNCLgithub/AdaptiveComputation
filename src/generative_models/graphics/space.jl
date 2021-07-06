@@ -53,7 +53,7 @@ end
 function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
                       v::Int64, e::UniformEnsemble)::Space
     @unpack img_dims = (get_prop(cg, :graphics))
-    space = fill(e.pixel_prob, reverse(img_dims))
+    space = Fill(e.pixel_prob, reverse(img_dims))
 end
 
 # # composes the spaces by subtracting occluded parts

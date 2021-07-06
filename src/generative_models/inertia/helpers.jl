@@ -7,8 +7,7 @@ function get_walls(cg::CausalGraph, dm::InertiaModel)
     end
 end
 
-function inertia_step_args(prev_cg::CausalGraph)
-    cg = deepcopy(prev_cg)
+function inertia_step_args(cg::CausalGraph)
     vs = get_object_verts(cg, Dot)
     cgs = fill(cg, length(vs))
     (cgs, vs)

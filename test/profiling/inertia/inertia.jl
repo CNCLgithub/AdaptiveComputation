@@ -1,5 +1,6 @@
 using Gen
 using MOT
+using MetaGraphs
 using SparseArrays
 using LinearAlgebra
 using Profile
@@ -61,13 +62,14 @@ function main()
     @time trace, _ = generate(gm_inertia_mask, args)
     @profilehtml trace, _ = generate(gm_inertia_mask, args)
 
-    # _, cgs = get_retval(trace)
+    _, cgs = get_retval(trace)
+    constraints = constraints_from_cgs(cgs, gm_inertia_mask, args)
+    choices = get_choices(trace)
+    masks = choices[:kernel => 1 => :receptive_fields => 1 => :masks]
+    display(sparse(masks[end]))
 
-    # constraints = constraints_from_cgs(cgs, gm_inertia_mask, args)
-
-    # choices = get_choices(trace)
-    # masks = choices[:kernel => 3 => :receptive_fields => 1 => :masks]
-    # # display(sparse(masks[end]))
+    _, states = get_retval(trace)
+    display(get_prop(states[1], 6, :object))
 
     # masks = constraints[:kernel => 3 => :receptive_fields => 1 => :masks]
     # # display(sparse(masks[end]))

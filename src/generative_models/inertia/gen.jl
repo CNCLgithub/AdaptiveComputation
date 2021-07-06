@@ -89,7 +89,6 @@ end
                                     prev_cg::CausalGraph)
 
     # advancing causal graph according to dynamics
-    # (there is a deepcopy here)
     things = @trace(inertial_update(prev_cg), :dynamics)
     new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)
     rfs_vec = get_prop(new_cg, :rfs_vec)
@@ -101,7 +100,6 @@ end
 @gen static function inertia_pos_kernel(t::Int, prev_cg::CausalGraph)
 
     # advancing causal graph according to dynamics
-    # (there is a deepcopy here)
     cg = @trace(inertial_update(prev_cg), :dynamics)
 
     return cg

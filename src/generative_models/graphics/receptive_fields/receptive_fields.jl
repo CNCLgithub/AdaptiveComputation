@@ -36,7 +36,8 @@ end
 struct RectangleReceptiveField <: AbstractReceptiveField
     p1::Tuple{Int64, Int64}
     p2::Tuple{Int64, Int64}
-    coords::Matrix{CartesianIndex{2}}
+    # coords::Matrix{CartesianIndex{2}}
+    coords::Matrix{Int64}
     threshold::Float64
 end
 
@@ -44,10 +45,13 @@ RectangleReceptiveFields = Vector{RectangleReceptiveField}
 
 function crop(rf::RectangleReceptiveField,
               space::Space)
-    cs = CartesianIndices(size(space))
-    idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    ls = LinearIndices(rf.coords)
-    cropped = space[ls[idxs]]
+    @unpack p1, p2, coords = rf
+    # cs = CartesianIndices(size(space))
+    # idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
+    # ls = @view LinearIndices((p2[1] - p1[1], p2[2] - p2[1]))[coords]
+    # cropped = @view space[coords]
+    # @inbounds space[coords]
+    @inbounds space[p1[2]:p2[2], p1[1]:p2[1]]
 end
 
 """
@@ -71,7 +75,6 @@ end
 
 function get_rectangle_receptive_field(cidx::CartesianIndex{2},
                                        w::Int64, h::Int64,
-                                       img_dims::Tuple{Int64, Int64},
                                        rf_threshold::Float64,
                                        overlap::Float64)
 
@@ -80,8 +83,10 @@ function get_rectangle_receptive_field(cidx::CartesianIndex{2},
     p2 = p1 .+ (w-1, h-1) # bottom right
     p2 = floor.(Int64, p2)
 
-    cs = CartesianIndices((h, w))
-    coords = cs[p1[2]:p2[2], p1[1]:p2[1]]
+    # cs = CartesianIndices((h, w))
+    # ls = LinearIndices(cs)
+    # coords = ls[cs[p1[2]:p2[2], p1[1]:p2[1]]]
+    coords = Matrix{Int64}(undef, 1,1)
     
     RectangleReceptiveField(p1, p2, coords, rf_threshold)
 end
@@ -110,7 +115,7 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
     @>> rf_cidx begin
         vec
         map(cidx -> get_rectangle_receptive_field(cidx, w, h,
-                                                  img_dims, rf_threshold, overlap))
+                                                  rf_threshold, overlap))
     end
 end
 

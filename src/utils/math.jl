@@ -1,3 +1,4 @@
+export softmax, normalize_weights
 
 # stable softmax
 function softmax(x)

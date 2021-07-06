@@ -12,7 +12,10 @@ struct Mask <: Gen.Distribution{BitMatrix} end
 const mask = Mask()
 
 
-function Gen.random(::Mask, ps::Union{SubArray, AbstractSparseMatrix{Float64}})
+function Gen.random(::Mask, ps::SubArray)
+    Gen.random(mask, sparse(ps))
+end
+function Gen.random(::Mask, ps::AbstractSparseMatrix{Float64})
     result = falses(size(ps))
     xs, ys, vs = findnz(ps)
     for i = 1:nnz(ps)
@@ -20,8 +23,8 @@ function Gen.random(::Mask, ps::Union{SubArray, AbstractSparseMatrix{Float64}})
     end
     return result
 end
-
-function Gen.random(::Mask, ps::Matrix{Float64})
+function Gen.random(::Mask, ps::Union{Matrix{Float64},
+                                      Fill{Float64}})
     result = falses(size(ps))
     for i in eachindex(ps)
         if bernoulli(ps[i])
@@ -31,8 +34,10 @@ function Gen.random(::Mask, ps::Matrix{Float64})
     return result
 end
 
-function Gen.logpdf(::Mask, image::BitMatrix, ps::Union{SubArray,
-                                                        AbstractSparseMatrix{Float64}})::Float64
+function Gen.logpdf(::Mask, image::BitMatrix, ps::SubArray)
+    Gen.logpdf(mask, image, sparse(ps))
+end
+function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
     mag = sum(image)
     # number of heads is impossible given number of non-zero weights
     nnz(ps) < mag && return -Inf
@@ -48,14 +53,20 @@ function Gen.logpdf(::Mask, image::BitMatrix, ps::Union{SubArray,
     count != mag && return -Inf
     lpdf
 end
-
-function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})::Float64
+function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})
     lpdf = 0.
     for i in eachindex(ps)
         lpdf += Gen.logpdf(bernoulli, image[i], ps[i])
     end
     return lpdf
 end
+function Gen.logpdf(::Mask, image::BitMatrix, ps::Fill{Float64})
+    p = first(ps)
+    s = sum(image)
+    lpnot = log(1.0 - p)
+    log(exp(s * log(p)) + exp((length(image) - s) * lpnot))
+end
+
 
 (::Mask)(ps) = Gen.random(Mask(), ps)
 
