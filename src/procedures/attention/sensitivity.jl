@@ -8,7 +8,7 @@ export MapSensitivity
 @with_kw mutable struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
     latents::Function = t -> retrieve_latents(t)
-    jitter::Function = jitter
+    jitter::Function = tracker_kernel
     samples::Int = 1
     sweeps::Int = 5
     smoothness::Float64 = 1.003
@@ -27,16 +27,16 @@ end
 
 # simulates an metropolis-hastings move using the prior
 # over some number of ancestral_steps
-function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
-    args = Gen.get_args(tr)
-    t = first(args)
-    addrs = []
-    for i = max(1, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :trackers => tracker
-        push!(addrs, addr)
-    end
-    (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
-end
+# function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
+#     args = Gen.get_args(tr)
+#     t = first(args)
+#     addrs = []
+#     for i = max(1, t-att.ancestral_steps):t
+#         addr = :kernel => i => :dynamics => :trackers => tracker
+#         push!(addrs, addr)
+#     end
+#     (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
+# end
 
 function retrieve_latents(tr::Gen.Trace)
     args = Gen.get_args(tr)

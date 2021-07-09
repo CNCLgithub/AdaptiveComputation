@@ -1,7 +1,10 @@
 using CSV
+using GenRFS
 using MOT
 using ArgParse
 using Setfield
+using Profile
+using StatProfilerHTML
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -105,9 +108,13 @@ function main()
                  "dataset" => "/datasets/exp1_difficulty.jld2",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 45,
+                 "time" => 120,
                  "restart" => true,
                  "viz" => true])
+
+
+    # increase the size of GenRFS memoization table
+    modify_partition_ctx!(100)
 
     # loading scene data
     scene_data = MOT.load_scene(args["scene"], args["dataset"])
@@ -165,6 +172,9 @@ function main()
     end
 
     println("running chain $c")
+    # Profile.init(delay = 1E-4,
+    #              n = 10^8)
+    # @profilehtml results = run_inference(query, proc)
     results = run_inference(query, proc)
 
     df = MOT.analyze_chain_receptive_fields(results,

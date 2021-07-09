@@ -75,6 +75,13 @@ function get_init_constraints(cg::CausalGraph, n::Int64)
         cm[addr] = init_dots[i].pos[1]
         addr = :init_state => :trackers => i => :y
         cm[addr] = init_dots[i].pos[2]
+
+        vel = init_dots[i].vel
+        normv = norm(vel)
+        ang = vel ./ normv
+        ang = normv == 0. ? 0. : atan(ang[2], ang[1])
+        addr = :init_state => :trackers => i => :ang
+        cm[addr] = ang
     end
     return cm
 end
@@ -97,7 +104,7 @@ function query_from_params(gt_causal_graphs,
     _lm = Dict(:tracker_positions => extract_tracker_positions,
                :assignments => assignments_func,
                :causal_graph => extract_causal_graph,
-               # :trace => extract_trace
+               :trace => extract_trace
                )
                #:tracker_masks => extract_tracker_masks)
     latent_map = LatentMap(_lm)

@@ -4,7 +4,7 @@
     "x0": 15.0,
     "scale": 1.0,
     "samples": 5,
-    "sweeps": 1,
+    "sweeps": 15,
     "ancestral_steps": 3,
-    "weights_tau": 0.0
+    "weights_tau": 0.1
 }

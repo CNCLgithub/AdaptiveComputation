@@ -12,15 +12,13 @@ end
 function render!(cg::CausalGraph, prev_cg::CausalGraph,
                  graphics::Graphics)::Vector{Space}
     vs = get_prop(cg, :graphics_vs)
-    spaces =  @>> vs begin
-        # updates internal graphical state of elements if needed
-        map(v -> render_elem!(cg, prev_cg, v, get_prop(cg, v, :object)))
-        # collect(Space)
+    spaces = Vector{Space{Float64}}(undef, length(vs))
+    @inbounds for i = 1:length(vs)
+        sp = render_elem!(cg, prev_cg, vs[i],
+                          get_prop(cg, vs[i], :object))
+        set_prop!(cg, vs[i], :space, sp)
+        @inbounds spaces[i] = sp
     end
-    for (i, space) in enumerate(spaces)
-        set_prop!(cg, vs[i], :space, space)
-    end
-
     return spaces
 end
 

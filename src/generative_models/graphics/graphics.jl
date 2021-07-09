@@ -26,7 +26,7 @@ end
     flow_decay_rate::Float64
 
     # parameters for the drawing the mask random variable arguments
-    gauss_r_multiple::Float64 = 2.5 # multiple where to thershold the mask
+    gauss_r_multiple::Float64 = 4.0 # multiple where to thershold the mask
     gauss_amp::Float64 = 0.8 # gaussian amplitude for the gaussian component of the mask
     gauss_std::Float64 = 1.0 # standard deviation --||--
 

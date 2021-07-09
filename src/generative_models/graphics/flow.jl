@@ -13,7 +13,7 @@ end
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
     # decay memory
     decayed = flow.memory * exp(flow.decay_rate)
-    decayed = round.(decayed, digits = 5)
+    decayed = round.(decayed, digits = 7)
     dropzeros!(decayed)
 
     memory = max.(space, decayed)

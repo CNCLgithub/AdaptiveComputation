@@ -1,5 +1,18 @@
 abstract type AbstractReceptiveField end
 
+function crop(rf::AbstractReceptiveField,
+              space::Space)
+    error("not implemented")
+end
+
+function select_mask(rf::AbstractReceptiveField, mask::Space)
+    error("not implemented")
+end
+
+function get_dimensions(::T) where T <: AbstractReceptiveField
+    println("not implemented")
+end
+
 
 """
  crop masks to receptive fields and then
@@ -8,8 +21,7 @@ abstract type AbstractReceptiveField end
 function cropfilter(rf::AbstractReceptiveField, masks::Vector{<:Space})
     @>> masks begin
         map(mask -> crop(rf, mask))
-        # filter(mask -> mean(mask) > rf.threshold)
-        filter(mask -> any(!iszero, mask))
+        filter(mask -> select_mask(rf, mask))
     end
 end
 
@@ -18,15 +30,6 @@ abstract type NullReceptiveFields end # used to indicate absence of RF
 export RectangleReceptiveField, get_rectangle_receptive_fields
 
 include("gen.jl")
-
-function crop(rf::AbstractReceptiveField,
-              space::Space)
-    println("not implemented")
-end
-
-function get_dimensions(::T) where T <: AbstractReceptiveField
-    println("not implemented")
-end
 
 """
     parametrized by two points:
@@ -46,12 +49,17 @@ RectangleReceptiveFields = Vector{RectangleReceptiveField}
 function crop(rf::RectangleReceptiveField,
               space::Space)
     @unpack p1, p2, coords = rf
-    # cs = CartesianIndices(size(space))
-    # idxs = cs[rf.p1[2]:rf.p2[2], rf.p1[1]:rf.p2[1]]
-    # ls = @view LinearIndices((p2[1] - p1[1], p2[2] - p2[1]))[coords]
-    # cropped = @view space[coords]
-    # @inbounds space[coords]
     @inbounds space[p1[2]:p2[2], p1[1]:p2[1]]
+end
+
+function select_mask(rf::RectangleReceptiveField, mask::SparseMatrixCSC{Float64})
+    nnz(mask) > 0
+end
+function select_mask(rf::RectangleReceptiveField, mask::Space)
+    any(!iszero, mask)
+end
+function select_mask(rf::RectangleReceptiveField, mask::Fill{Float64})
+    true
 end
 
 """

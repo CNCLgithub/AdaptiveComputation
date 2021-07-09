@@ -5,6 +5,9 @@ using Statistics
 using Gen_Compose
 using Gen_Compose: initial_args, initial_constraints
 
+using Profile
+using StatProfilerHTML
+
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
     ess::Real = particles/2.0
@@ -69,10 +72,9 @@ function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
     # update the state of the particles
     if isnothing(proc.proposal)
         @debug "step without proposal"
-
-        Gen.particle_filter_step!(state, query.args,
-                                  (UnknownChange(),),
-                                  query.observations)
+        @time Gen.particle_filter_step!(state, query.args,
+                                        (UnknownChange(),),
+                                        query.observations)
         @debug "step pf state log weights $(state.log_weights)"
     else
         @debug "step with proposal"

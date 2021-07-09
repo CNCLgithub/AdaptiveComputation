@@ -51,7 +51,12 @@ end
 function get_rf_masks(choices::ChoiceMap, t::Int64, rf::Int64,
                       receptive_fields::Vector{RectangleReceptiveField})::Vector{BitArray}
     masks = choices[:kernel => t => :receptive_fields => rf => :masks]
+    if isempty(masks)
+        @unpack p1, p2 = receptive_fields[rf]
+        masks = [falses((p2[1] - p1[1] + 1, p2[2] - p1[2] + 1))]
+    end
     # println("gt masks")
+    # @show length(masks)
     # for m in masks
     #     display(sparse(m))
     # end
@@ -60,9 +65,7 @@ end
 
 function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
                          gm::AbstractGMParams,
-                         graphics::AbstractGraphics,
-                         out_dir::String)
-    
+                         graphics::AbstractGraphics)
     masks = @>> 1:length(graphics.receptive_fields) begin
         map(rf -> get_rf_masks(data, t, rf, graphics.receptive_fields))
     end
@@ -72,8 +75,13 @@ function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
         collect(Matrix{Float64})
     end
     img = get_img(aggregated_masks, graphics.receptive_fields)
-
-    img = imresize(img, ratio=gm.area_width/size(img, 1))
+    imresize(img, ratio=gm.area_width/size(img, 1))
+end
+function render_rf_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
+                         gm::AbstractGMParams,
+                         graphics::AbstractGraphics,
+                         out_dir::String)
+    img = render_rf_masks(data, t, gm, graphics)
     path = joinpath(out_dir, "$t.png")
     save(path, img)
 end

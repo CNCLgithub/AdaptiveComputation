@@ -51,18 +51,17 @@ end
     mag = sqrt(_vx^2 + _vy^2)
 
     # sample inertia
-    # inertia = @trace(beta(dm.a, dm.b), :inertia)
     inertia = @trace(bernoulli(dm.bern), :inertia)
 
     # sample new angle & magnitude
 
     #- if high inertia, then flat von_mises
-    k = max(dm.k_min, inertia * dm.k_max) # fixing bug in vonmises with small k
+    k = inertia ? dm.k_max : dm.k_min
     ang = @trace(von_mises(ang, k), :ang)
 
     #- mixture of previous velocity & base
-    mu = inertia * mag + (1.0 - inertia) * dm.vel
-    std = max(dm.w_min, (1.0 - inertia) * dm.w_max)
+    mu = inertia ? mag : dm.vel
+    std = inertia ? dm.w_min : dm.w_max
     mag = @trace(normal(mu, std), :mag)
 
     # converting back to vector form
