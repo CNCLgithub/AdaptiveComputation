@@ -104,6 +104,6 @@ function perturb_state!(state::Gen.ParticleFilterState, att::AbstractAttentionMo
         end
     end
     acceptance_rate = (accepted) / (num_particles * sweeps)
-    attended_rate = attended_trackers / (num_particles * sweeps)
+    attended_rate = attended_trackers / num_particles
     return (acceptance_rate, attended_rate)
 end

@@ -40,6 +40,7 @@ function rejuvenate_attention!(pf_state::Gen.ParticleFilterState, attention::Abs
     #              n = 10^6)
     @time (acceptance, attended_trackers) = perturb_state!(pf_state, attention,
                                                      weights, sweeps)
+    @show attended_trackers
     rtrace.acceptance += acceptance
     rtrace.attended_trackers += attended_trackers
     rtrace.attempts += sweeps
