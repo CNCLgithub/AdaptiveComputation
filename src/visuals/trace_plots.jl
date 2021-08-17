@@ -42,6 +42,7 @@ end
 
 function plot_compute_weights(weights::Matrix{Float64}, path::String;
                               tracker_colors = TRACKER_COLORSCHEME)
+    # weights = clamp.(weights, -1E6, 0)
     k,n = size(weights)
     ts = repeat(1:k, 1, size(weights, 2))
     data = []

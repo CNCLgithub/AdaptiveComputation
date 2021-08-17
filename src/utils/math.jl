@@ -1,9 +1,15 @@
 export softmax, normalize_weights
 
 # stable softmax
-function softmax(x)
+function softmax(x::Array{Float64})
+    max_x = maximum(x)
+    if max_x === -Inf
+        nx = length(x)
+        unit = 1.0 / nx
+        return fill(unit, nx)
+    end
     x = x .- maximum(x)
-    return exp.(x) / sum(exp.(x))
+    exp.(x) / sum(exp.(x))
 end
 
 function normalize_weights(log_weights::Vector{Float64})

@@ -101,12 +101,9 @@ function query_from_params(gt_causal_graphs,
         assignments_func = extract_assignments_receptive_fields
     end
 
-    _lm = Dict(:tracker_positions => extract_tracker_positions,
-               :assignments => assignments_func,
-               :causal_graph => extract_causal_graph,
-               :trace => extract_trace
+    _lm = Dict(:causal_graph => extract_causal_graph,
+               :trace => extract_trace,
                )
-               #:tracker_masks => extract_tracker_masks)
     latent_map = LatentMap(_lm)
 
     init_gt_cg = gt_causal_graphs[1]

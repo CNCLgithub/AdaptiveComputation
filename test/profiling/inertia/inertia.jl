@@ -30,8 +30,6 @@ function main()
                         receptive_fields = receptive_fields)
     args = (7, gm, dm, graphics)
 
-    Profile.init(delay = 1E-7,
-                 n = 10^8)
     generate(gm_inertia_mask, args);
     @time trace, _ = generate(gm_inertia_mask, args)
     # @profilehtml trace, _ = generate(gm_inertia_mask, args)
@@ -53,6 +51,10 @@ function main()
 
     tr, w = generate(gm_inertia_mask, (0, gm, dm, graphics1),
                      constraints)
+
+    Profile.init(delay = 1E-6,
+                 n = 10^7)
+    Profile.clear()
     @profilehtml for (t, o) in enumerate(observations)
         tr, w, _, _ = update(tr, (t, gm, dm, graphics1),
                              (UnknownChange(), NoChange(),

@@ -93,11 +93,6 @@ function perturb_state!(state::Gen.ParticleFilterState, att::AbstractAttentionMo
         for j = 1:sweeps
             new_tr, ls = att.jitter(state.traces[i], tracker, att)
             if log(rand()) < ls
-                # println("tracker $tracker, ll $ls")
-                # _, current = get_retval(state.traces[i])
-                # @show get_prop(current[end], tracker + 5, :object)
-                # _, states = get_retval(new_tr)
-                # @show get_prop(states[end], tracker + 5, :object)
                 state.traces[i] = new_tr
                 accepted += 1
             end

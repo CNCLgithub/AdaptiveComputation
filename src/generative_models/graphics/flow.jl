@@ -14,6 +14,7 @@ function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
     # decay memory
     decayed = flow.memory * exp(flow.decay_rate)
     decayed = round.(decayed, digits = 7)
+    # map!(_round, decayed, decayed)
     dropzeros!(decayed)
 
     memory = max.(space, decayed)
@@ -23,4 +24,8 @@ end
 
 evolve(flow::ExponentialFlow{T}, space::T) where {T <: Space} = ExponentialFlow(flow, space)
 
+
+function _round(cell::Float64; digits::Int64 = 7)
+    round(cell, digits = digits)
+end
 # render(flow::ExponentialFlow) = clamp.(flow.memory, 0.0, 1.0)

@@ -558,7 +558,7 @@ uuid = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 version = "0.4.3"
 
 [[GenRFS]]
-deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "Gen", "IterTools", "LRUCache", "Lazy", "Revise", "StatProfilerHTML", "Test"]
+deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "FunctionalCollections", "Gen", "IterTools", "LRUCache", "Lazy", "LightGraphs", "Revise", "SpecialFunctions", "StatProfilerHTML", "Test"]
 path = "deps/GenRFS"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"
