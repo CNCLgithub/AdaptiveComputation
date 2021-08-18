@@ -50,7 +50,6 @@ function visualize_inference(results, gt_causal_graphs, gm,
     end
 
     # visualizing inference on stimuli
-    #pf_cgs = @>> 1:size(causal_graphs, 1) map(i -> causal_graphs[i,1])
     # T x n_steps_back of cgs
     pf_cgs = @>> traces[:,1] map(trace -> get_n_back_cgs(trace, n_back_cgs))
     render_scene(gm, gt_causal_graphs, pf_cgs,

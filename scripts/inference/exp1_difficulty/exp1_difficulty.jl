@@ -1,7 +1,10 @@
 using CSV
+using GenRFS
 using MOT
 using ArgParse
 using Setfield
+using Profile
+using StatProfilerHTML
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -103,11 +106,16 @@ function main()
                  "proc" => "$(@__DIR__)/proc.json",
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 10,
+                 "scene" => 2,
+                 # "scene" => 52,
                  "chain" => 1,
-                 "time" => 100,
+                 "time" => 60,
                  "restart" => true,
                  "viz" => true])
+
+
+    # increase the size of GenRFS memoization table
+    modify_partition_ctx!(100)
 
     # loading scene data
     scene_data = MOT.load_scene(args["scene"], args["dataset"])
@@ -117,6 +125,12 @@ function main()
     gm = MOT.load(GMParams, args["gm"])
     gm = @set gm.n_trackers = sum(aux_data.targets) # always 4 targets but whatever
     gm = @set gm.distractor_rate = sum(aux_data.n_distractors)
+
+    dgp = deepcopy(gm)
+    dgp = @set dgp.n_trackers = length(aux_data.targets)
+    dgp = @set dgp.distractor_rate = 0.
+    @show dgp
+
 
     dm = MOT.load(InertiaModel, args["dm"])
     dm = @set dm.vel = aux_data[:vel]
@@ -128,6 +142,7 @@ function main()
     graphics = MOT.load(Graphics, args["graphics"])
 
     query = query_from_params(gt_cgs,
+                              dgp,
                               gm_inertia_mask,
                               gm,
                               dm,
@@ -158,6 +173,9 @@ function main()
     end
 
     println("running chain $c")
+    # Profile.init(delay = 1E-4,
+    #              n = 10^8)
+    # @profilehtml results = run_inference(query, proc)
     results = run_inference(query, proc)
 
     df = MOT.analyze_chain_receptive_fields(results,

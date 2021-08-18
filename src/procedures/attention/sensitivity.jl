@@ -8,7 +8,7 @@ export MapSensitivity
 @with_kw mutable struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
     latents::Function = t -> retrieve_latents(t)
-    jitter::Function = jitter
+    jitter::Function = tracker_kernel
     samples::Int = 1
     sweeps::Int = 5
     smoothness::Float64 = 1.003
@@ -25,19 +25,6 @@ function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
-# simulates an metropolis-hastings move using the prior
-# over some number of ancestral_steps
-function jitter(tr::Gen.Trace, tracker::Int, att::MapSensitivity)
-    args = Gen.get_args(tr)
-    t = first(args)
-    addrs = []
-    for i = max(1, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :brownian => tracker
-        push!(addrs, addr)
-    end
-    (new_tr, ll) = take(regenerate(tr, Gen.select(addrs...)), 2)
-end
-
 function retrieve_latents(tr::Gen.Trace)
     args = Gen.get_args(tr)
     ntrackers = args[2].n_trackers
@@ -45,52 +32,48 @@ function retrieve_latents(tr::Gen.Trace)
 end
 
 # returns the sensitivity of each latent variable
-function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)::Vector{Float64}
+function hypothesize!(state::Gen.ParticleFilterState, att::MapSensitivity)
 
-    seeds = Gen.sample_unweighted_traces(state, att.samples)
-    seed_obj = map(att.objective, seeds)
+    @unpack objective, samples, latents, jitter = att
+    seeds = Gen.sample_unweighted_traces(state, samples)
+    seed_obj = map(objective, seeds)
 
     latents = att.latents(first(seeds))
     n_latents = length(latents)
 
-    kls = zeros(att.samples, n_latents)
-    lls = zeros(att.samples, n_latents)
-    for i = 1:att.samples
-        jittered, ẟh = @>> latents begin
-            map(idx -> att.jitter(seeds[i], idx, att))
-            x -> zip(x...)
+    kls = zeros(samples, n_latents)
+    lls = zeros(samples, n_latents)
+    @inbounds for i = 1:samples, j = 1:n_latents
+        # println("Working on sample $(i), latent $(j)")
+        jittered, lls[i, j] = jitter(seeds[i], j, att)
+        kls[i, j] = @>> jittered begin
+            objective
+            js_div(seed_obj[i])
+            # jeffs_d(seed_obj[i])
+            log
         end
-        lls[i, :] = collect(ẟh)
-        jittered_obj = map(att.objective, jittered)
-        # ẟs = @>> jittered_obj map(j -> relative_entropy(seed_obj[i], j))
-        ẟs = @>> jittered_obj map(j -> jeffs_d(seed_obj[i], j))
-        # ẟs = @>> jittered_obj map(j -> l2_d(seed_obj[i], j))
-        kls[i, :] = collect(ẟs)
     end
-    
-    println("log.(kls)")
-    display(log.(kls))
-    println("kls weights (exp)")
-    display(exp.(lls))
+
+    println("log kl")
+    display(kls)
+    println("log weights")
+    display(lls)
     
     gs = Vector{Float64}(undef, n_latents)
-    lse = Vector{Float64}(undef, n_latents)
+    # lse = Vector{Float64}(undef, n_latents)
     # normalizing accross samples
     clamp!(lls, -Inf, 0.)
     for i = 1:n_latents
-        lse[i] = logsumexp(lls[:, i])
-        gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i]) - log(att.samples)
-        # gs[i] = logsumexp(log.(kls[:, i]) .+ lls[:, i] .- lse[i])
+        # gs[i] = logsumexp(kls[:, i]) - log(samples)
+        gs[i] = logsumexp(kls[:, i] + lls[:, i]) - log(samples)
+        # gs[i] = sum(exp.(log.(kls[:, i]) .+ lls[:, i])) / att.samples
     end
     println("compute weights: $gs")
-    # normalizing accross trackers for unstable version
-    # gs = gs .+ (lse .- logsumexp(lse))
+
     if isnothing(att.weights) || any(isinf.(att.weights))
         att.weights = gs
     else
-        # att.weights = log.(
-            # exp.(att.weights .+ log(att.weights_tau)) .+
-            # exp.(gs .+ log(1.0 - att.weights_tau)))
+        # applying a smoothing kernel across time
         att.weights = (att.weights * att.weights_tau +
                        gs * (1.0 - att.weights_tau))
     end
@@ -99,7 +82,7 @@ function get_stats(att::MapSensitivity, state::Gen.ParticleFilterState)::Vector{
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
-function get_weights(att::MapSensitivity, stats)
+function get_weights(att::MapSensitivity, stats::Vector{Float64})
     weights = att.smoothness * stats
     weights = softmax(weights)
     println("sampling weights: $(weights)")
@@ -110,9 +93,9 @@ end
 # by the sensitivity weights using an exponential function
 function get_sweeps(att::MapSensitivity, stats)
     x = logsumexp(stats)
-    amp = att.sweeps*exp(att.k*(x - att.x0))
+    # amp = att.sweeps*exp(att.k*(x - att.x0))
+    amp = att.sweeps / (1 + exp(-att.k*(x - att.x0)))
 
-    println("k: $(att.k)")
     println("x: $(x), amp: $(amp)")
     sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
     println("sweeps: $sweeps")
@@ -123,262 +106,4 @@ end
 function early_stopping(att::MapSensitivity, new_stats, prev_stats)
     false
 end
-
-# Objectives
-
-# target designation 2:
-# for each observation gets score for being a target
-function _td2(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
-    record = AssociationRecord(200)
-    Gen.logpdf(rfs, xs, pmbrfs, record)
-    @assert first(pmbrfs) isa PoissonElement
-
-    tracker_assocs = @>> (record.table) begin
-        map(c -> Set(vcat(c[2:end]...)))
-    end
-    k = length(xs)
-    denom = logsumexp(record.logscores)
-    td = Dict{Int64, Float64}()
-    for x = 1:k
-        idxs = findall(map(es -> in(x, es), tracker_assocs))
-        td[x] = isempty(idxs) ? -1e10 : logsumexp(record.logscores[idxs])
-    end
-    td
-end
-
-# target designation 1:
-# scores and normalizes each partition SET
-function _td(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
-    record = AssociationRecord(200)
-    Gen.logpdf(rfs, xs, pmbrfs, record)
-    @assert first(pmbrfs) isa PoissonElement
-
-    tracker_assocs = @>> (record.table) begin
-        map(c -> Set(vcat(c[2:end]...)))
-    end
-    unique_tracker_assocs = unique(tracker_assocs)
-    td = Dict{Set{Int64}, Float64}()
-    for tracker_assoc in unique_tracker_assocs
-        idxs = findall(map(x -> x == tracker_assoc, tracker_assocs))
-        td[tracker_assoc] = logsumexp(record.logscores[idxs])
-    end
-    td
-end
-
-# returns a vector of target designation distributions
-# for each receptive_field 
-function target_designation_receptive_fields(tr::Gen.Trace)
-    t = first(Gen.get_args(tr))
-
-    rfs_vec = @>> Gen.get_retval(tr) begin
-        last # get the states
-        last # get the last state
-        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
-    end # rfes for each rf
-
-    receptive_fields = @> tr begin
-        get_choices
-        get_submap(:kernel => t => :receptive_fields)
-        get_submaps_shallow
-        # vec of tuples (rf id, rf mask choicemap)
-    end # masks for each rf
-
-    # @debug "receptive fields $(typeof(receptive_fields[1]))"
-    tds = @>> receptive_fields begin
-        map(rf -> _td(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
-    end
-end
-
-# returns target designation distribution
-function target_designation(tr::Gen.Trace)
-    t = first(Gen.get_args(tr))
-    xs = get_choices(tr)[:kernel => t => :masks]
-    pmbrfs = Gen.get_retval(tr)[2][t].rfs
-
-    current_td = _td(xs, pmbrfs, t)
-end
-
-# data correspondence distribution:
-# gets score of each partition VECTOR
-function _dc(xs::Vector{BitArray}, pmbrfs::RFSElements, t::Int)
-    record = AssociationRecord(200)
-    Gen.logpdf(rfs, xs, pmbrfs, record)
-    @assert first(pmbrfs) isa PoissonElement
-    Dict{Vector{Vector{Int64}}, Float64}(zip(record.table,
-                                             record.logscores))
-end
-
-# same as target_designation_receptive_fields but for data correspondence
-function data_correspondence_receptive_fields(tr::Gen.Trace)
-    t = first(Gen.get_args(tr))
-
-    rfs_vec = @>> Gen.get_retval(tr) begin
-        last # get the states
-        last # get the last state
-        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
-    end # rfes for each rf
-
-    receptive_fields = @> tr begin
-        get_choices
-        get_submap(:kernel => t => :receptive_fields)
-        get_submaps_shallow
-        # vec of tuples (rf id, rf mask choicemap)
-    end # masks for each rf
-
-    # @debug "receptive fields $(typeof(receptive_fields[1]))"
-    tds = @>> receptive_fields begin
-        map(rf -> _dc(convert(Vector{BitArray}, rf[2][:masks]), rfs_vec[rf[1]], t))
-    end
-end
-
-# return the data correspondence distribution
-function data_correspondence(tr::Gen.Trace; scale::Float64 = 1.0)
-    k = first(Gen.get_args(tr))
-    d = _dc(tr, k, scale)
-end
-
-
-# Helpers
-
-"""
-Computes the entropy of a discrete distribution
-"""
-function entropy(ps::AbstractArray{Float64})
-    # -k_B * sum(map(p -> p * log(p), ps))
-    normed = ps .- logsumexp(ps)
-    s = 0
-    for (p,n) in zip(ps, normed)
-        s += p * exp(n)
-    end
-    -1 * s
-end
-
-function entropy(pd::Dict)
-    lls = collect(Float64, values(pd))
-    log(entropy(lls))
-end
-
-"""
-    check whether p and q have the same keys
-    if there's a change, see how small the val is for the missing
-    component and see how big the divergence is
-"""
-function resolve_correspondence(p::T, q::T) where T<:Dict
-    #@show keys(p) keys(q)
-    # if keys(p) != keys(q)
-        # error()
-    # end
-    s = collect(intersect(keys(p), keys(q)))
-    vals = Matrix{Float64}(undef, length(s), 2)
-    for (i,k) in enumerate(s)
-        vals[i, 1] = p[k]
-        vals[i, 2] = q[k]
-    end
-    (s, vals)
-end
-
-# this is for receptive fields
-function relative_entropy(ps::T, qs::T) where T<:Array
-    println("\nrelative_entropy")
-    @>> zip(ps, qs) begin
-        map(x -> relative_entropy(x[1], x[2]; error_on_empty=false))
-        mean
-    end
-    println("relative_entropy")
-end
-
-# returns relative entropy (in particular, Jensen-Shannon divergence)
-# between p and q distributions
-function relative_entropy(p::T, q::T;
-                          error_on_empty=true) where T<:Dict
-    labels, probs = resolve_correspondence(p, q)
-    if isempty(labels)
-        display(p); display(q)
-        error_on_empty && error("empty intersect")
-        return 1.0
-    end
-    # println("probs = ")
-    # display(Dict(zip(labels, eachrow(probs))))
-    probs[:, 1] .-= logsumexp(probs[:, 1])
-    probs[:, 2] .-= logsumexp(probs[:, 2])
-    ms = collect(map(logsumexp, eachrow(probs))) .- log(2)
-    #display(p); display(q)
-    order = sortperm(probs[:, 1], rev= true)
-    # display(ms)
-    # display(Dict(zip(labels[order], eachrow(probs[order, :]))))
-    kl = 0.0
-    for i in order
-        # println("$(labels[i]) => $(probs[i, :]) | $(ms[i])")
-        _kl = 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
-        _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
-        kl += isnan(_kl) ? 0.0 : _kl
-        # println("$(labels[i]) => $(probs[i, :]) | $(ms[i]) => kl = $(_kl)")
-    end
-    isnan(kl) ? 0.0 : clamp(kl, 0.0, 1.0)
-end
-
-
-function get_entropy(ps::Vector{Float64})
-    @>> ps map(p -> (-p * log(p))) sum
-end
-
-# average jeffs divergence between ps and qs
-function jeffs_d(ps::T, qs::T) where T<:Array
-    @>> zip(ps, qs) begin
-        map(x -> jeffs_d(x[1], x[2]; error_on_empty=false))
-        mean
-    end
-end
-
-# jeffs divergence between p and q distributions
-function jeffs_d(p::T, q::T;
-                 error_on_empty=true) where T<:Dict
-    labels, probs = resolve_correspondence(p, q)
-    if isempty(labels)
-        display(p); display(q)
-        error_on_empty && error("empty intersect")
-        return 1.0
-    end
-    # println("probs = ")
-    # display(Dict(zip(labels, eachrow(probs))))
-    # display(logsumexp(probs[:, 1]))
-    # display(logsumexp(probs[:, 2]))
-    probs[:, 1] .-= logsumexp(probs[:, 1])
-    probs[:, 2] .-= logsumexp(probs[:, 2])
-    
-    order = sortperm(probs[:, 1], rev= true)
-    jd = 0.0
-    for i in order
-        _jd = exp(probs[i, 1]) - exp(probs[i, 2])
-        _jd *= (probs[i, 1] - probs[i, 2])
-        jd += _jd
-        # println("$(labels[i]) => $(probs[i, :]) => jd = $(log(_jd))")
-    end
-
-    return jd
-end
-
-# average l2 distance between ps and qs distributions
-function l2_d(ps::T, qs::T) where T<:Array
-    @>> zip(ps, qs) begin
-        map(x -> l2_d(x[1], x[2]; error_on_empty=false))
-        mean
-    end
-end
-
-# l2 distance between p and q distributions
-function l2_d(p::T, q::T;
-                 error_on_empty=true) where T<:Dict
-    labels, probs = resolve_correspondence(p, q)
-    if isempty(labels)
-        display(p); display(q)
-        error_on_empty && error("empty intersect")
-        return 1.0
-    end
-    println("probs = ")
-    display(Dict(zip(labels, eachrow(probs))))
-    # norm(probs[:, 1] - probs[:, 2])
-    norm(exp.(probs[:, 1]) - exp.(probs[:, 2]))
-end
-
 

@@ -9,7 +9,6 @@ export AttentionRingsPainter
 end
 
 function paint(p::AttentionRingsPainter, cg::CausalGraph, attention_weights::Vector{Float64})
-    @show attention_weights
     points = @>> get_objects(cg, Dot) map(x -> x.pos[1:2])
     norm_weights = attention_weights/p.max_attention
     

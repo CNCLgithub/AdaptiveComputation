@@ -11,13 +11,21 @@ evolve(::Flow, ::Space) = error("not implemented")
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
-    memory = (flow.memory - space) * exp(flow.decay_rate) # decaying
-    clamp!(memory, 0.0, flow.upper)
-    memory += space # adding new observed space
-    clamp!(memory, 0.0, flow.upper)
+    # decay memory
+    decayed = flow.memory * exp(flow.decay_rate)
+    decayed = round.(decayed, digits = 7)
+    # map!(_round, decayed, decayed)
+    dropzeros!(decayed)
+
+    memory = max.(space, decayed)
+
     ExponentialFlow{T}(flow.decay_rate, memory, flow.upper)
 end
 
 evolve(flow::ExponentialFlow{T}, space::T) where {T <: Space} = ExponentialFlow(flow, space)
 
-render(flow::ExponentialFlow) = clamp.(flow.memory, 0.0, 1.0)
+
+function _round(cell::Float64; digits::Int64 = 7)
+    round(cell, digits = digits)
+end
+# render(flow::ExponentialFlow) = clamp.(flow.memory, 0.0, 1.0)

@@ -7,8 +7,7 @@ function plot_compute()
 	compute .+= 10
 	#compute = vcat(zeros(50), compute, zeros(50))
 
-	println(compute)
-	
+
 	nt = length(compute)
 	for t=1:nt
 		print(t, "\r")

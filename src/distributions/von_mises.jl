@@ -7,12 +7,12 @@ struct VonMises <: Gen.Distribution{Float64} end
 
 const von_mises = VonMises()
 
-function Gen.random(::VonMises, mu, k)
+function Gen.random(::VonMises, mu::Float64, k::Float64)
     d = Distributions.VonMises(mu, k)
     rand(d)
 end
 
-function Gen.logpdf(::VonMises, x, mu, k)
+function Gen.logpdf(::VonMises, x::Float64, mu::Float64, k::Float64)
     d = Distributions.VonMises(mu, k)
     Distributions.logpdf(d, x)
 end
