@@ -3,8 +3,8 @@ using GenRFS
 using MOT
 using ArgParse
 using Setfield
-using Profile
-using StatProfilerHTML
+
+experiment_name = "exp1_difficulty"
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -33,7 +33,7 @@ function parse_commandline()
         "--dataset"
         help = "jld2 dataset path"
         arg_type = String
-        default = joinpath("/datasets", "exp1_difficulty.jld2")
+        default = joinpath("/datasets", "$(experiment_name).jld2")
 
         "--time", "-t"
         help = "How many frames"
@@ -96,22 +96,21 @@ function parse_commandline()
     return parse_args(s)
 end
 
-experiment_name = "exp1_difficulty"
 
 function main()
-    #args = parse_commandline()
-    args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-                 "dm" => "$(@__DIR__)/dm.json",
-                 "gm" => "$(@__DIR__)/gm.json",
-                 "proc" => "$(@__DIR__)/proc.json",
-                 "graphics" => "$(@__DIR__)/graphics.json",
-                 "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 2,
-                 # "scene" => 52,
-                 "chain" => 1,
-                 "time" => 60,
-                 "restart" => true,
-                 "viz" => true])
+    args = parse_commandline()
+    # args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
+    #             "dm" => "$(@__DIR__)/dm.json",
+    #             "gm" => "$(@__DIR__)/gm.json",
+    #             "proc" => "$(@__DIR__)/proc.json",
+    #             "graphics" => "$(@__DIR__)/graphics.json",
+    #             "dataset" => "/datasets/exp1_difficulty.jld2",
+    #             "scene" => 2,
+    #             # "scene" => 52,
+    #             "chain" => 1,
+    #             "time" => 60,
+    #             "restart" => true,
+    #             "viz" => true])
 
 
     # increase the size of GenRFS memoization table

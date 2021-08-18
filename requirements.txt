@@ -1,8 +1,2 @@
-torch
-torchvision
-cython
-scipy
-opencv-python
-fvcore
-Pillow==6.2.2
+numpy
 -e deps/slurm
