@@ -93,7 +93,8 @@ function query_from_params(gt_causal_graphs,
                            gm_params::AbstractGMParams,
                            dm_params::AbstractDynamicsModel,
                            graphics_params::Graphics,
-                           k::Int64)
+                           k::Int64;
+                           viz::Bool = false)
     
     if graphics_params.receptive_fields isa NullReceptiveFields
         assignments_func = extract_assignments
@@ -101,9 +102,10 @@ function query_from_params(gt_causal_graphs,
         assignments_func = extract_assignments_receptive_fields
     end
 
-    _lm = Dict(:causal_graph => extract_causal_graph,
-               :trace => extract_trace,
-               )
+    _lm = Dict(:causal_graph => extract_causal_graph)
+    if viz
+        _lm[:trace] = extract_trace
+    end
     latent_map = LatentMap(_lm)
 
     init_gt_cg = gt_causal_graphs[1]

@@ -106,12 +106,12 @@ function main()
                  "proc" => "$(@__DIR__)/proc.json",
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "dataset" => "/datasets/exp1_difficulty.jld2",
-                 "scene" => 2,
-                 # "scene" => 52,
+                 # "scene" => 2,
+                 "scene" => 52,
                  "chain" => 1,
-                 "time" => 60,
+                 "time" => 240,
                  "restart" => true,
-                 "viz" => true])
+                 "viz" => false])
 
 
     # increase the size of GenRFS memoization table
@@ -147,7 +147,8 @@ function main()
                               gm,
                               dm,
                               graphics,
-                              length(gt_cgs))
+                              length(gt_cgs);
+                              viz = args["viz"])
     
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
