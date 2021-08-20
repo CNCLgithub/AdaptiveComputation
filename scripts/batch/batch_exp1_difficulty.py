@@ -19,7 +19,7 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--scenes', type = int, default = 52,
+    parser.add_argument('--scenes', type = int, default = 65,
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 10,
                         help = 'number of chains')
