@@ -1,6 +1,6 @@
 export render_scene
 
-function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float64}};
+function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Matrix{Float64};
                      base = "/renders/render_scene")
     @unpack area_width, area_height = gm
 
@@ -9,7 +9,9 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
     
     isdir(base) && rm(base, recursive=true)
     mkpath(base)
-    nt = length(pf_cgs)
+    np, nt = size(pf_cgs)
+
+    att_rings = AttentionRingsPainter(max_attention = maximum(attended))
 
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
@@ -24,25 +26,26 @@ function render_scene(gm, gt_cgs, pf_cgs, rf_dims, attended::Vector{Vector{Float
 
         p = PsiturkPainter(dot_color = "black")
         MOT.paint(p, gt_cgs[i])
-        
-        for (j, pf_cg) in enumerate(pf_cgs[i])
+
+        nj = length(pf_cgs[i])
+        alpha = 3.0 * 1.0 / nj
+        for j = 1:np
             p = SubsetPainter(cg -> only_targets(cg, pf_targets),
-                              KinPainter(alpha = j/length(pf_cgs[i])))
-            MOT.paint(p, pf_cg)
+                              KinPainter(alpha = alpha))
+            MOT.paint(p, pf_cgs[j, i])
 
             p = SubsetPainter(cg -> only_targets(cg, pf_targets),
                               IDPainter(colors = TRACKER_COLORSCHEME[:],
                                         label = false,
-                                        alpha = j/length(pf_cgs[i])))
-            MOT.paint(p, pf_cg)
+                                        alpha = alpha))
+            MOT.paint(p, pf_cgs[j, i])
         end
 
         p = SubsetPainter(cg -> only_targets(cg, pf_targets),
                           KinPainter())
-        MOT.paint(p, pf_cgs[i][end])
+        MOT.paint(p, pf_cgs[end, i])
 
-        p = AttentionRingsPainter()
-        MOT.paint(p, pf_cgs[i][end], attended[i])
+        MOT.paint(att_rings, pf_cgs[end, i], attended[:, i])
         
 
         """

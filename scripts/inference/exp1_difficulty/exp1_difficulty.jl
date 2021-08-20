@@ -1,6 +1,7 @@
 using CSV
 using GenRFS
 using MOT
+using Gen_Compose
 using ArgParse
 using Setfield
 
@@ -39,6 +40,11 @@ function parse_commandline()
         help = "How many frames"
         arg_type = Int64
         default = 240
+
+        "--step_size", "-s"
+        help = "How many steps before saving"
+        arg_type = Int64
+        default = 30
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -98,19 +104,20 @@ end
 
 
 function main()
-    args = parse_commandline()
-    # args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-    #             "dm" => "$(@__DIR__)/dm.json",
-    #             "gm" => "$(@__DIR__)/gm.json",
-    #             "proc" => "$(@__DIR__)/proc.json",
-    #             "graphics" => "$(@__DIR__)/graphics.json",
-    #             "dataset" => "/datasets/exp1_difficulty.jld2",
-    #             # "scene" => 2,
-    #             "scene" => 20,
-    #             "chain" => 1,
-    #             "time" => 120,
-    #             "restart" => true,
-    #             "viz" => true])
+    # args = parse_commandline()
+    args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
+                "dm" => "$(@__DIR__)/dm.json",
+                "gm" => "$(@__DIR__)/gm.json",
+                "proc" => "$(@__DIR__)/proc.json",
+                "graphics" => "$(@__DIR__)/graphics.json",
+                "dataset" => "/datasets/exp1_difficulty.jld2",
+                # "scene" => 2,
+                "scene" => 34,
+                "chain" => 1,
+                "time" => 60,
+                "step_size" => 10,
+                "restart" => true,
+                "viz" => true])
 
 
     # increase the size of GenRFS memoization table
@@ -120,9 +127,10 @@ function main()
     scene_data = MOT.load_scene(args["scene"], args["dataset"])
     gt_cgs = scene_data[:gt_causal_graphs][1:args["time"]]
     aux_data = scene_data[:aux_data]
-    
+
+    n_trackers = sum(aux_data.targets)
     gm = MOT.load(GMParams, args["gm"])
-    gm = @set gm.n_trackers = sum(aux_data.targets) # always 4 targets but whatever
+    gm = @set gm.n_trackers = n_trackers # always 4 targets but whatever
     gm = @set gm.distractor_rate = sum(aux_data.n_distractors)
 
     dgp = deepcopy(gm)
@@ -147,7 +155,7 @@ function main()
                               dm,
                               graphics,
                               length(gt_cgs))
-    
+
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.target_designation_receptive_fields,
@@ -155,7 +163,8 @@ function main()
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
-                    rejuv_args = (att,))
+                    rejuv_args = (att,),
+                    latents = collect(1:n_trackers))
 
     path = "/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
     try
@@ -165,19 +174,20 @@ function main()
     end
 
     c = args["chain"]
-    out = joinpath(path, "$(c).jld2")
-    if isfile(out) && !args["restart"]
-        println("chain $c complete")
-        return
-    end
+    chain_path = joinpath(path, "$(c).jld2")
 
     println("running chain $c")
+    if isfile(chain_path)
+        chain  = resume_chain(chain_path, args["step_size"])
+    else
+        chain = sequential_monte_carlo(proc, query, chain_path,
+                                       args["step_size"])
+    end
+
     # Profile.init(delay = 1E-4,
     #              n = 10^8)
-    # @profilehtml results = run_inference(query, proc)
-    results = run_inference(query, proc)
 
-    df = MOT.analyze_chain_receptive_fields(results,
+    df = MOT.analyze_chain_receptive_fields(chain, chain_path,
                                             n_trackers = gm.n_trackers,
                                             n_dots = gm.n_trackers + gm.distractor_rate,
                                             gt_cg_end = gt_cgs[end])
@@ -186,7 +196,7 @@ function main()
     CSV.write(joinpath(path, "$(c).csv"), df)
 
     if (args["viz"])
-        visualize_inference(results, gt_cgs, gm,
+        visualize_inference(chain, chain_path, gt_cgs, gm,
                             graphics, att, path)
     end
 
