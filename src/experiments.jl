@@ -1,18 +1,3 @@
-function run_inference(query::SequentialQuery,
-                       proc::Gen_Compose.AbstractParticleFilter)
-    results = sequential_monte_carlo(proc, query,
-                                     buffer_size = length(query))
-end
-
-function run_inference(query::SequentialQuery,
-                       proc::Gen_Compose.AbstractParticleFilter,
-                       path::String)
-    results = sequential_monte_carlo(proc, query,
-                                     buffer_size = length(query),
-                                     path = path)
-end
-
-
 function get_observations(graphics::Graphics, masks)
     k = size(masks, 1)
     observations = Vector{Gen.ChoiceMap}(undef, k)
@@ -93,7 +78,8 @@ function query_from_params(gt_causal_graphs,
                            gm_params::AbstractGMParams,
                            dm_params::AbstractDynamicsModel,
                            graphics_params::Graphics,
-                           k::Int64)
+                           k::Int64;
+                           vis::Bool = false)
     
     if graphics_params.receptive_fields isa NullReceptiveFields
         assignments_func = extract_assignments
@@ -101,10 +87,12 @@ function query_from_params(gt_causal_graphs,
         assignments_func = extract_assignments_receptive_fields
     end
 
-    _lm = Dict(:causal_graph => extract_causal_graph,
-               :trace => extract_trace,
-               )
-    latent_map = LatentMap(_lm)
+    # _lm = Dict(:causal_graph => extract_causal_graph,
+    #            :trace => extract_trace,
+    #            )
+    latent_map = LatentMap(
+        :auxillary => digest_auxillary
+    )
 
     init_gt_cg = gt_causal_graphs[1]
     gt_cgs = gt_causal_graphs[2:end]
@@ -139,4 +127,4 @@ function query_from_params(gt_causal_graphs,
     return query
 end
 
-export run_inference, query_from_params
+export query_from_params

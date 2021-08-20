@@ -12,17 +12,6 @@ Perturbs velocity based on probs of assignments to observations.
     t, gm, dm, gr = Gen.get_args(trace)
     choices = Gen.get_choices(trace)
 
-    # rng = collect(Int64, max(1, t - steps):t)
-    # n = length(rng)
-
-    # ia = choices[ia_addr]
-
-    # ia_addr = :kernel => first(rng) => :dynamics =>
-    #     :trackers => tracker => :ang
-    # ia = choices[ia_addr]
-
-    # {ia_addr} ~ von_mises(ia, 100.)
-    # {:kernel} ~ Gen.Unfold(angle_proposal)(rng, tracker, ia, k)
     i = max(1, t-att.ancestral_steps)
     addr = :kernel => i => :dynamics => :trackers => tracker => :ang
     ang = choices[addr]
@@ -66,7 +55,7 @@ function ancestral_tracker_move(trace::Gen.Trace, tracker::Int64, att::MapSensit
     args = Gen.get_args(trace)
     t = first(args)
     addrs = []
-    t == 1 && return (trace, 0.)
+    t === 1 && return (trace, 0.)
 
     for i = max(2, t-att.ancestral_steps):t
         addr = :kernel => i => :dynamics => :trackers => tracker
@@ -81,16 +70,17 @@ end
     Does one state rejuvenation step based on the probabilities of which object to perturb.
     probs are softmaxed in the process so no need to normalize.
 """
-function perturb_state!(state::Gen.ParticleFilterState, att::AbstractAttentionModel,
-                        probs::Vector{Float64},
-                        sweeps::Int64)
+function perturb_state!(chain::SeqPFChain,
+                        att::AbstractAttentionModel)
+    @unpack state, auxillary = chain
+    @unpack weights, cycles, allocated = auxillary
+    allocated = zeros(size(allocated))
     num_particles = length(state.traces)
     accepted = 0
-    attended_trackers = zeros(length(probs))
     for i=1:num_particles
-        tracker = Gen.categorical(probs)
-        attended_trackers[tracker] += sweeps
-        for j = 1:sweeps
+        tracker = Gen.categorical(weights)
+        allocated[tracker] += cycles
+        for j = 1:cycles
             new_tr, ls = att.jitter(state.traces[i], tracker, att)
             if log(rand()) < ls
                 state.traces[i] = new_tr
@@ -98,7 +88,7 @@ function perturb_state!(state::Gen.ParticleFilterState, att::AbstractAttentionMo
             end
         end
     end
-    acceptance_rate = (accepted) / (num_particles * sweeps)
-    attended_rate = attended_trackers / num_particles
-    return (acceptance_rate, attended_rate)
+    @pack! auxillary = allocated
+    @pack! chain = state
+    return nothing
 end

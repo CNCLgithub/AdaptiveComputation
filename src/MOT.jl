@@ -5,7 +5,7 @@ using Gen_Compose
 using GenRFS
 using FillArrays
 using SparseArrays
-using Parameters: @with_kw, @unpack
+using Parameters: @with_kw, @unpack, @pack!
 using Lazy: @>, @>>
 
 

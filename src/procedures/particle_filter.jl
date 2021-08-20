@@ -3,43 +3,45 @@ export PopParticleFilter,
 
 using Statistics
 using Gen_Compose
-using Gen_Compose: initial_args, initial_constraints
-
-using Profile
-using StatProfilerHTML
+using Gen_Compose: initial_args, initial_constraints,
+    AuxillaryState, SeqPFChain
 
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
-    ess::Real = particles/2.0
+    ess::Real = particles * 0.5
     proposal::Union{Gen.GenerativeFunction, Nothing} = nothing
     prop_args::Tuple = ()
     rejuvenation::Union{Function, Nothing} = nothing
     rejuv_args::Tuple = ()
+
+    # address schema for IOT sensitivity
+    latents::Vector{Int64}
 end
 
 function load(::Type{PopParticleFilter}, path; kwargs...)
     PopParticleFilter(;read_json(path)..., kwargs...)
 end
 
-mutable struct RejuvTrace
-    attempts::Int
-    acceptance::Float64
-    stats::Any
-    attended_trackers::Vector{Float64}
+@with_kw mutable struct AdaptiveComputation <: AuxillaryState
+    attempts::Int64 = 0
+    acceptance::Float64 = 0.
+    cycles::Int64 = 0
+    weights::Vector{Float64}
+    sensitivities::Vector{Float64} = fill(-Inf, length(weights))
+    allocated::Vector{Float64} = zeros(length(weights))
 end
 
-function Gen_Compose.rejuvenate!(proc::PopParticleFilter,
-                                 state::Gen.ParticleFilterState)
-    # TODO: `rtrace` type changes in runtime
-    rtrace = nothing
-    if !isnothing(proc.rejuvenation)
-        rtrace = proc.rejuvenation(state, proc.rejuv_args...)
+function Gen_Compose.rejuvenate!(chain::SeqPFChain,
+                                 proc::PopParticleFilter)
+    @unpack rejuvenation, rejuv_args = proc
+    if !isnothing(rejuvenation)
+        rejuvenation(chain, rejuv_args...)
     end
-    return rtrace
+    return nothing
 end
 
-function Gen_Compose.initialize_procedure(proc::PopParticleFilter,
-                                          query::SequentialQuery)
+function Gen_Compose.initialize_chain(proc::PopParticleFilter,
+                                      query::SequentialQuery)
     @debug "initializing pf state"
     args = initial_args(query)
     constraints = initial_constraints(query)
@@ -47,50 +49,48 @@ function Gen_Compose.initialize_procedure(proc::PopParticleFilter,
                                            args,
                                            constraints,
                                            proc.particles)
-    @debug "initial pf state log weights $(state.log_weights)"
-    # @debug "applying initial rejuvination"
-    # Gen_Compose.rejuvenate!(proc, state)
-    return state
+
+    nl = length(proc.latents)
+    aux = AdaptiveComputation(; weights = zeros(nl))
+    return SeqPFChain(query, proc, state, aux)
 end
 
-function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
-                               proc::PopParticleFilter,
-                               query::StaticQuery)
-   
-    timestep = @>> state begin
-        get_traces
-        first
-        get_args
-        first
-    end
-    @show timestep
+# function Gen_Compose.smc_step!(state::Gen.ParticleFilterState,
+#                                proc::PopParticleFilter,
+#                                query::StaticQuery)
 
-    @debug "smc_step!"
-    # Resample before moving on...
-    # TODO: Potentially bad for initial step
-    Gen_Compose.resample!(proc, state, true)
+#     timestep = @>> state begin
+#         get_traces
+#         first
+#         get_args
+#         first
+#     end
+#     @show timestep
 
-    # update the state of the particles
-    if isnothing(proc.proposal)
-        @debug "step without proposal"
-        @time Gen.particle_filter_step!(state, query.args,
-                                        (UnknownChange(),),
-                                        query.observations)
-        @debug "step pf state log weights $(state.log_weights)"
-    else
-        @debug "step with proposal"
-        Gen.particle_filter_step!(state, query.args,
-                                  (UnknownChange(),),
-                                  query.observations,
-                                  proc.proposal,
-                                  (query.observations, proc.prop_args...))
+#     # Resample before moving on...
+#     # TODO: Potentially bad for initial step
+#     Gen_Compose.resample!(, state, true)
 
-    end
+#     # update the state of the particles
+#     if isnothing(proc.proposal)
+#         @debug "step without proposal"
+#         @time Gen.particle_filter_step!(state, query.args,
+#                                         (UnknownChange(),),
+#                                         query.observations)
+#         @debug "step pf state log weights $(state.log_weights)"
+#     else
+#         @debug "step with proposal"
+#         Gen.particle_filter_step!(state, query.args,
+#                                   (UnknownChange(),),
+#                                   query.observations,
+#                                   proc.proposal,
+#                                   (query.observations, proc.prop_args...))
+
+#     end
 
 
-    @debug "rejuvinating particles"
-    aux_contex = Gen_Compose.rejuvenate!(proc, state)
-    
-    return aux_contex
-end
+#     @debug "rejuvinating particles"
+#     aux_contex = Gen_Compose.rejuvenate!(proc, state)
 
+#     return aux_contex
+# end

@@ -1,13 +1,11 @@
-import PhysicalConstants.CODATA2018: k_B
 using Base.Iterators: take
 using Distributions
 using LinearAlgebra
 
 export MapSensitivity
 
-@with_kw mutable struct MapSensitivity <: AbstractAttentionModel
+@with_kw struct MapSensitivity <: AbstractAttentionModel
     objective::Function = target_designation
-    latents::Function = t -> retrieve_latents(t)
     jitter::Function = tracker_kernel
     samples::Int = 1
     sweeps::Int = 5
@@ -17,7 +15,6 @@ export MapSensitivity
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
     uniform_sweeps::Int = 0
-    weights::Union{Vector{Float64}, Nothing} = nothing # used for averaging
     weights_tau::Float64 = 0.5 # proportion of old weights to keep
 end
 
@@ -32,13 +29,16 @@ function retrieve_latents(tr::Gen.Trace)
 end
 
 # returns the sensitivity of each latent variable
-function hypothesize!(state::Gen.ParticleFilterState, att::MapSensitivity)
+function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
 
-    @unpack objective, samples, latents, jitter = att
+    @unpack proc, state, auxillary = chain
+    @unpack latents = proc
+    @unpack sensitivities = auxillary
+    @unpack objective, samples, jitter = att
+
     seeds = Gen.sample_unweighted_traces(state, samples)
     seed_obj = map(objective, seeds)
 
-    latents = att.latents(first(seeds))
     n_latents = length(latents)
 
     kls = zeros(samples, n_latents)
@@ -60,7 +60,6 @@ function hypothesize!(state::Gen.ParticleFilterState, att::MapSensitivity)
     display(lls)
     
     gs = Vector{Float64}(undef, n_latents)
-    # lse = Vector{Float64}(undef, n_latents)
     # normalizing accross samples
     clamp!(lls, -Inf, 0.)
     for i = 1:n_latents
@@ -70,36 +69,42 @@ function hypothesize!(state::Gen.ParticleFilterState, att::MapSensitivity)
     end
     println("compute weights: $gs")
 
-    if isnothing(att.weights) || any(isinf.(att.weights))
-        att.weights = gs
+    if any(isinf.(sensitivities))
+        sensitivities = gs
     else
         # applying a smoothing kernel across time
-        att.weights = (att.weights * att.weights_tau +
-                       gs * (1.0 - att.weights_tau))
+        sensitivities = (sensitivities * att.weights_tau +
+            gs * (1.0 - att.weights_tau))
     end
-    println("time-smoothed weights: $(att.weights)")
-    return att.weights
+    @pack! auxillary = sensitivities
+    println("time-smoothed weights: $(sensitivities)")
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
-function get_weights(att::MapSensitivity, stats::Vector{Float64})
-    weights = att.smoothness * stats
+function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
+    @unpack auxillary = chain
+    @unpack sensitivities = auxillary
+    weights = att.smoothness * sensitivities
     weights = softmax(weights)
     println("sampling weights: $(weights)")
-    weights
+    @pack! auxillary = weights
 end
 
 # returns number of sweeps (MH moves) to make determined
 # by the sensitivity weights using an exponential function
-function get_sweeps(att::MapSensitivity, stats)
-    x = logsumexp(stats)
-    # amp = att.sweeps*exp(att.k*(x - att.x0))
-    amp = att.sweeps / (1 + exp(-att.k*(x - att.x0)))
+function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
+    @unpack auxillary = chain
+    @unpack sensitivities = auxillary
+    @unpack sweeps, k, x0 = att
+    x = logsumexp(sensitivities)
+    # amp = sweeps / (1 + exp(-k*(x - x0)))
+    amp = k * (x - x0)
 
     println("x: $(x), amp: $(amp)")
-    sweeps = Int64(round(clamp(amp, 0.0, att.sweeps)))
-    println("sweeps: $sweeps")
-    return sweeps
+    cycles = Int64(round(clamp(amp, 0.0, sweeps)))
+    println("cycles: $cycles")
+    @pack! auxillary = cycles
+    return nothing
 end
 
 # no early stopping for sensitivity-based attention

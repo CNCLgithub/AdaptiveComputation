@@ -65,7 +65,7 @@ end
 """
 Plots rejuvenation steps accross time
 """
-function plot_rejuvenation(rejuvenations, path="plots")
+function plot_rejuvenation(rejuvenations, max_sweeps, path="plots")
     mkpath(path)
     k = length(rejuvenations)
     x = collect(1:k)
@@ -73,7 +73,7 @@ function plot_rejuvenation(rejuvenations, path="plots")
     p = plot(x=x, y=rejuvenations,
              Geom.bar,
              Scale.x_continuous(minvalue=0, maxvalue=k),
-             Scale.y_continuous(minvalue=0, maxvalue=20),
+             Scale.y_continuous(minvalue=0, maxvalue=max_sweeps),
              Guide.xlabel("Time"),
              Guide.ylabel("Allocated Compute"),
              Theme(default_color="black",
@@ -91,19 +91,14 @@ function plot_attention(attended, max_sweeps::Int, path::String;
                         tracker_colors=TRACKER_COLORSCHEME)
     mkpath(path)
 
-    k = length(attended)
+    n_trackers, k = size(attended)
     x = collect(1:k)
-    
-    n_trackers = length(first(attended))
     
     plots = []
 
     for i = 1:n_trackers
 
-        att_tracker = Vector{Float64}(undef, k)
-        for t=1:k
-            att_tracker[t] = attended[t][i]
-        end
+        att_tracker = attended[i, :]
 
         p = plot(x=x, y=att_tracker,
                  Geom.bar,
