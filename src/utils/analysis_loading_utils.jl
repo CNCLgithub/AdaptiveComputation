@@ -131,46 +131,37 @@ function get_simplified_target_designation(cg, gt_cg)
     return td
 end
 
-function analyze_chain_receptive_fields(chain;
+function analyze_chain_receptive_fields(chain, path;
                                         n_trackers = 4,
                                         n_dots = 8,
                                         gt_cg_end = nothing)
+    dg = extract_digest(path)
 
-    # reading the file of memory buffer
-    extracted = extract_chain(chain)
-    
     df = DataFrame(frame = Int64[],
                    tracker = Int64[],
-                   attention = Float64[],
+                   cycles = Float64[],
+                   sensitivity = Float64[],
                    td_acc = Float64[])
 
-    aux_state = extracted["aux_state"]
-    #correspondence = extracted["unweighted"][:assignments] # t x particle
-    causal_graphs = extracted["unweighted"][:causal_graph] # t x particle
+    aux_state = dg[:, :auxillary]
+    # causal graphs at the end of inference
+    causal_graphs = map(extract_causal_graph, chain.state.traces)
+    td = map(cg -> get_simplified_target_designation(cg, gt_cg_end),
+             causal_graphs)
 
     #display(correspondence[1,1,:])
     
     # just average td_acc across particles for the last step
-    #n_particles = size(correspondence)[2]
-    n_particles = size(causal_graphs)[2]
-    td = @>> 1:n_particles begin
-        #map(i -> MOT.get_target_designation(n_trackers, correspondence[1,i,:], masks_end, receptive_fields))
-        map(i -> get_simplified_target_designation(causal_graphs[end,i], gt_cg_end))
+    target_xs = collect(1:n_trackers)
+    td_acc = @>> td begin
+        map(x -> length(intersect(x, target_xs))/n_trackers)
+        mean
     end
-    # taking the top designation for each particle (or sampling random if top logscore is Inf)
-    """
-    display(td[1][1:5])
-    top_td = @>> td map(x-> isinf(x[1][2]) ? randperm(Int(n_dots))[1:n_trackers] : x[1][1])
-    display(top_td)
-    td_acc = @>> top_td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
-    """
-    td_acc = @>> td map(x -> length(intersect(x, collect(1:n_trackers)))/n_trackers) mean
-    
-    for frame = 1:size(causal_graphs)[1], tracker = 1:n_trackers
-        att = aux_state[frame].attended_trackers[tracker]
-        #probs = td[frame, particle][tracker]
-        #pos = positions[frame, particle][tracker]
-        push!(df, (frame, tracker, att, td_acc))
+
+    for frame = 1:length(aux_state), tracker = 1:n_trackers
+        cycles = aux_state[frame].allocated[tracker]
+        sens = aux_state[frame].sensitivities[tracker]
+        push!(df, (frame, tracker, cycles, sens, td_acc))
     end
     return df
 end

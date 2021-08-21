@@ -5,37 +5,26 @@ export extract_tracker_positions,
         extract_pmbrfs_params,
         extract_chain
 
-using JLD2, FileIO
+using JLD2
+using DataFrames
+using Gen_Compose:SeqPFChain
 
-function extract_chain(r::String)
-    v = []
-    jldopen(r, "r") do data
-        for i = 1:length(keys(data))
-            push!(v, data["$i"])
-        end
-    end
-    v = collect(Dict, v)
-    extract_chain(v)
+function digest_auxillary(c::SeqPFChain)
+    deepcopy(c.auxillary)
 end
 
-function extract_chain(r::Gen_Compose.SequentialChain)
-    extract_chain(r.buffer)
-end
-
-function extract_chain(buffer::Array{T}) where T<:Dict
-    extracts = T()
-    k = length(buffer)
-    fields = collect(keys(first(buffer)))
-    for field in fields
-        results = [buffer[t][field] for t = 1:k]
-        if typeof(first(results)) <: Dict
-            results = merge(vcat, results...)
-        else
-            results = vcat(results...)
+function extract_digest(f::String)
+    df = DataFrame()
+    jldopen(f, "r") do data
+        steps = data["current_idx"]
+        steps === 0 && return df
+        df = DataFrame(data["1"])
+        steps === 1 && return df
+        @inbounds for i = 2:steps
+            push!(df, data["$i"])
         end
-        extracts[field] = results
     end
-    return extracts
+    return df
 end
 
 function extract_tracker_positions(trace::Gen.Trace)
@@ -105,10 +94,11 @@ function extract_tracker_masks(trace::Gen.Trace)
 end
 
 function extract_causal_graph(trace::Gen.Trace)
-    t, motion, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    cg = [ret[2][t]]
-    cg = reshape(cg, (1,1,size(cg)...))
+    @>> trace begin
+        get_retval # (init_state, states)
+        last # states
+        last # CausalGraph
+    end
 end
 
 function extract_trace(trace::Gen.Trace)
