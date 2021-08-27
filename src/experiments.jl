@@ -81,15 +81,6 @@ function query_from_params(gt_causal_graphs,
                            k::Int64;
                            vis::Bool = false)
     
-    if graphics_params.receptive_fields isa NullReceptiveFields
-        assignments_func = extract_assignments
-    else
-        assignments_func = extract_assignments_receptive_fields
-    end
-
-    # _lm = Dict(:causal_graph => extract_causal_graph,
-    #            :trace => extract_trace,
-    #            )
     latent_map = LatentMap(
         :auxillary => digest_auxillary
     )

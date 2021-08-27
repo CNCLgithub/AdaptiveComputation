@@ -82,7 +82,8 @@ function get_bit_masks(cg::CausalGraph,
 
 
     @unpack img_dims, gauss_amp, gauss_std, gauss_r_multiple = graphics
-    @unpack dot_radius, area_width, area_height = (get_prop(cg, :gm))
+    # @unpack dot_radius, area_width, area_height = (get_prop(cg, :gm))
+    @unpack dot_radius, area_width, area_height = gm
 
     positions = @>> get_objects(cg, Dot) map(x -> x.pos)
 
@@ -171,10 +172,8 @@ function get_bit_masks_rf(cgs::Vector{CausalGraph},
 
     @unpack img_dims, flow_decay_rate, gauss_amp = graphics
     flows = @>> vs begin
-        map(v -> ExponentialFlow(flow_decay_rate,
-                                 spzeros(Float64, reverse(img_dims)...),
-                                 # TODO make this a param in graphics
-                                 gauss_amp))
+        map(v -> ExponentialFlow(decay_rate = flow_decay_rate,
+                                 memory = spzeros(Float64, reverse(img_dims)...)))
         collect(ExponentialFlow)
     end
 

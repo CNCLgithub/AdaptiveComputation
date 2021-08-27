@@ -1,19 +1,52 @@
-"""
-Computes the entropy of a discrete distribution
-"""
-function entropy(ps::AbstractArray{Float64})
-    # -k_B * sum(map(p -> p * log(p), ps))
-    normed = ps .- logsumexp(ps)
-    s = 0
-    for (p,n) in zip(ps, normed)
-        s += p * exp(n)
-    end
-    -1 * s
+using OptimalTransport
+using StatsBase: pairwise
+
+function discrete_measure(d::Dict{K, Float64}) where {K}
+    lws = collect(values(d))
+    lws = lws .- logsumexp(lws)
+    ws = exp.(lws)
+    ks = collect(keys(d))
+    # non_zero = not_approx_zero.(ws)
+    # non_zero = lws .> -300
+    # ws = ws[non_zero]
+    # ks = collect(keys(d))[non_zero]
+    (ks, ws)
 end
 
-function entropy(pd::Dict)
-    lls = collect(Float64, values(pd))
-    log(entropy(lls))
+function td_cost(x::Int64, y::Int64)::Float64
+    x === y ? 0. : 1.
+end
+
+function td_cost(x::BitVector, y::BitVector)::Float64
+    b = sum(map(|, x, y))
+    b === 0 && return 0.
+    a = sum(map(&, x, y))
+    c = 1.0 - a / b
+end
+
+function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
+                      λ::Float64 = 1.0,
+                      ε::Float64 = 0.01) where {K, V}
+    a_k, a_w = discrete_measure(p)
+    b_k, b_w = discrete_measure(q)
+    c = pairwise(td_cost, a_k, b_k)
+    ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
+    d = sum(ot .* c)
+    # if log(d) > -50.
+    #     println("p")
+    #     display(p)
+    #     println("q")
+    #     display(q)
+    #     println("ot")
+    #     display(ot)
+    #     println("c")
+    #     display(c)
+    # end
+    isnan(d) ? 0. : d
+end
+
+function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}) where {K,V}
+    @>> map(sinkhorn_div, ps, qs) mean
 end
 
 """
@@ -25,34 +58,23 @@ function resolve_correspondence(p::Dict{K,V}, q::Dict{K,V}) where {K, V<:Float64
     s = collect(union(keys(p), keys(q)))
     vals = Matrix{Float64}(undef, length(s), 2)
     for (i, k) in enumerate(s)
-        pv = get(p, k, 0.)
-        if pv === 0
-            pv = -Inf
-        end
-        qv = get(q, k, 0.)
-        if qv === 0
-            qv = -Inf
-        end
-        vals[i, 1] = pv
-        vals[i, 2] = qv
+        vals[i, 1] = get(p, k, -Inf)
+        vals[i, 2] = get(q, k, -Inf)
     end
     # println("probs = ")
     # display(Dict(zip(s, eachrow(vals))))
     vals[:, 1] .-= logsumexp(vals[:, 1])
     vals[:, 2] .-= logsumexp(vals[:, 2])
-    # display(Dict(zip(s, eachrow(vals))))
+    display(Dict(zip(s, eachrow(vals))))
     (s, vals)
-end
-
-# this is for receptive fields
-function js_div(ps::T, qs::T) where T<:Array
-    @>> map(js_div, ps, qs) mean
 end
 
 # returns relative entropy (in particular, Jensen-Shannon divergence)
 # between p and q distributions
-function js_div(p::T, q::T;
-                error_on_empty=true) where T<:Dict
+function js_div(p::Dict{K,V}, q::Dict{K,V};
+                error_on_empty=true) where {K, V}
+
+    m1 = DiscreteMeasure()
     labels, probs = resolve_correspondence(p, q)
     if isempty(labels)
         display(p); display(q)
@@ -66,20 +88,25 @@ function js_div(p::T, q::T;
     order = sortperm(probs[:, 1], rev= true)
     kl = 0.0
     @inbounds for i in order
+        # event is zero prob in both cases
         probs[i, 1] === -Inf && probs[i, 2] === -Inf && continue
         _kl = 0.5 * exp(probs[i, 1]) * (probs[i, 1] - ms[i])
         _kl += 0.5 * exp(probs[i, 2]) * (probs[i, 2] - ms[i])
+        kl += _kl
         # _kl = round(_kl, sigdigits = 8)
-        kl += (_kl == Inf) || isnan(_kl) ? 1.0 : _kl # set maximum div
-        # println("$(labels[i]) => $(probs[i, :]) | $(ms[i]) => $(log(_kl)), $(log(kl))")
+        # kl += (_kl == Inf) || isnan(_kl) ? 1.0 : _kl # set maximum div
+        println("$(labels[i]) => $(probs[i, :]) | $(ms[i]) => $(log(_kl)), $(log(kl))")
     end
     clamp(kl, 0., 1.)
 end
-
-
-function get_entropy(ps::Vector{Float64})
-    @>> ps map(p -> (-p * log(p))) sum
+# this is for receptive fields
+function js_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}) where {K,V}
+    @>> map(js_div, ps, qs) mean
 end
+
+const not_approx_zero = !isapprox(0.; atol = 1E-12)
+
+
 
 # average jeffs divergence between ps and qs
 function jeffs_d(ps::T, qs::T) where T<:Array

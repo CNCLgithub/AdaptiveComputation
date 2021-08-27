@@ -22,10 +22,10 @@ function load(::Type{MapSensitivity}, path; kwargs...)
     MapSensitivity(;read_json(path)..., kwargs...)
 end
 
-function retrieve_latents(tr::Gen.Trace)
-    args = Gen.get_args(tr)
-    ntrackers = args[2].n_trackers
-    collect(1:ntrackers)
+function top_n_traces(state::Gen.ParticleFilterState, n::Int64)
+    @unpack traces, log_weights = state
+    inds = sortperm(log_weights; rev=true)[1:n]
+    traces[inds]
 end
 
 # returns the sensitivity of each latent variable
@@ -37,6 +37,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @unpack objective, samples, jitter = att
 
     seeds = Gen.sample_unweighted_traces(state, samples)
+    # seeds = top_n_traces(state, samples)
     seed_obj = map(objective, seeds)
 
     n_latents = length(latents)
@@ -48,36 +49,40 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         jittered, lls[i, j] = jitter(seeds[i], j, att)
         kls[i, j] = @>> jittered begin
             objective
-            js_div(seed_obj[i])
-            # jeffs_d(seed_obj[i])
+            sinkhorn_div(seed_obj[i])
             log
         end
     end
 
-    println("log kl")
-    display(kls)
-    println("log weights")
-    display(lls)
+    # println("log kl")
+    # display(kls)
+    # println("log weights")
+    # display(lls)
     
     gs = Vector{Float64}(undef, n_latents)
     # normalizing accross samples
     clamp!(lls, -Inf, 0.)
-    for i = 1:n_latents
+    lses = @>> lls eachcol map(logsumexp)
+    @inbounds for i = 1:n_latents
         # gs[i] = logsumexp(kls[:, i]) - log(samples)
-        gs[i] = logsumexp(kls[:, i] + lls[:, i]) - log(samples)
-        # gs[i] = sum(exp.(log.(kls[:, i]) .+ lls[:, i])) / att.samples
+        if isinf(lses[i])
+            gs[i] = logsumexp(kls[:, i]) - log(samples)
+        else
+            gs[i] = logsumexp(kls[:, i] + (lls[:, i] .- lses[i]))
+        # gs[i] = logsumexp(kls[:, i] + lls[:, i]) - log(samples)
+        end
     end
-    println("compute weights: $gs")
+    # println("compute weights: $gs")
 
     if any(isinf.(sensitivities))
         sensitivities = gs
     else
         # applying a smoothing kernel across time
-        sensitivities = (sensitivities * att.weights_tau +
-            gs * (1.0 - att.weights_tau))
+        sensitivities = logsumexp.(sensitivities .+ att.weights_tau,
+                                   gs .+ log(1.0 - exp(att.weights_tau)))
     end
     @pack! auxillary = sensitivities
-    println("time-smoothed weights: $(sensitivities)")
+    # println("time-smoothed weights: $(sensitivities)")
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
@@ -86,7 +91,7 @@ function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     weights = att.smoothness * sensitivities
     weights = softmax(weights)
-    println("sampling weights: $(weights)")
+    # println("sampling weights: $(weights)")
     @pack! auxillary = weights
 end
 
@@ -97,12 +102,14 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     @unpack sweeps, k, x0 = att
     x = logsumexp(sensitivities)
-    # amp = sweeps / (1 + exp(-k*(x - x0)))
-    amp = k * (x - x0)
+    amp = (sweeps - 1) / (1 + exp(-k*(x - x0))) + 1
+    # amp = k * (x - x0)
 
-    println("x: $(x), amp: $(amp)")
-    cycles = Int64(round(clamp(amp, 0.0, sweeps)))
-    println("cycles: $cycles")
+    # println("x: $(x), amp: $(amp)")
+    # cycles = Int64(round(clamp(amp, 0.0, sweeps)))
+    # cycles = Int64(round(clamp(amp, 1.0, sweeps)))
+    cycles = Int64(floor(amp))
+    # println("cycles: $cycles")
     @pack! auxillary = cycles
     return nothing
 end

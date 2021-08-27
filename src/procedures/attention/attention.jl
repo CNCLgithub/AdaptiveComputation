@@ -21,12 +21,14 @@ end
 function rejuvenate_attention!(chain::SeqPFChain,
                                attention::AbstractAttentionModel)
     # generate goal-driven hypotheses (ie. sensitivity)
+    println("hypothesize!")
     @time hypothesize!(chain, attention)
     # process those hypotheses into categorical weights for adaptive cycles
     goal_relevance!(chain, attention)
     # obtain the total amount of effort to be expended
     budget_cycles!(chain, attention)
     # main loop going through rejuvenation
+    println("perturb_state!")
     @time perturb_state!(chain, attention)
     return nothing
 end
