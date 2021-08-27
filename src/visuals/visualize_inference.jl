@@ -40,11 +40,11 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
     plot_rejuvenation(sum(attended, dims = 1), max_c, path)
         
     # # rendering observed flow masks from receptive fields
-    # choices = get_choices(unweighted[1])
-    # for t=1:k
-    #     render_rf_masks(choices, t, gm, graphics,
-    #                     joinpath(path, "obs_rf_masks"))
-    # end
+    choices = @>> chain.state.traces first get_choices
+    for t=1:k
+        render_rf_masks(choices, t, gm, graphics,
+                        joinpath(path, "obs_rf_masks"))
+    end
     
     # # rendering predicted distribution flow masks from receptive fields
     # states = collect(CausalGraph, causal_graphs[1])
