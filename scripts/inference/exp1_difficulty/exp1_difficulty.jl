@@ -5,6 +5,9 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
+# using Profile
+# using StatProfilerHTML
+
 experiment_name = "exp1_difficulty"
 
 function parse_commandline()
@@ -111,17 +114,16 @@ function main()
     #             "proc" => "$(@__DIR__)/proc.json",
     #             "graphics" => "$(@__DIR__)/graphics.json",
     #             "dataset" => "/datasets/exp1_difficulty.jld2",
-    #             # "scene" => 2,
-    #             "scene" => 34,
+    #             "scene" => 65,
     #             "chain" => 1,
-    #             "time" => 60,
+    #             "time" => 41,
     #             "step_size" => 10,
-    #             "restart" => true,
+    #             "restart" => false,
     #             "viz" => true])
 
 
     # increase the size of GenRFS memoization table
-    modify_partition_ctx!(100)
+    modify_partition_ctx!(10)
 
     # loading scene data
     scene_data = MOT.load_scene(args["scene"], args["dataset"])
@@ -177,15 +179,18 @@ function main()
     chain_path = joinpath(path, "$(c).jld2")
 
     println("running chain $c")
+
+    # Profile.init(delay = 1E-3,
+    #              n = 10^8)
+    # Profile.clear()
+    # @profilehtml begin
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
-                                       args["step_size"])
+                                    args["step_size"])
     end
-
-    # Profile.init(delay = 1E-4,
-    #              n = 10^8)
+    # end
 
     df = MOT.analyze_chain_receptive_fields(chain, chain_path,
                                             n_trackers = gm.n_trackers,
