@@ -54,10 +54,10 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         end
     end
 
-    # println("log kl")
-    # display(kls)
-    # println("log weights")
-    # display(lls)
+    println("log kl")
+    display(kls)
+    println("log weights")
+    display(lls)
     
     gs = Vector{Float64}(undef, n_latents)
     # normalizing accross samples

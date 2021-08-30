@@ -3,7 +3,7 @@
     "img_height": 80,
 
     "gauss_r_multiple": 6.5,
-    "gauss_std": 0.7,
+    "gauss_std": 0.8,
     "gauss_amp": 0.90,
 
     "flow_decay_rate": -0.5,

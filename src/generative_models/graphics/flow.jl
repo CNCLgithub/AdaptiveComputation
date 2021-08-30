@@ -8,19 +8,13 @@ evolve(::Flow, ::Space) = error("not implemented")
     decay_rate::Float64
     exp_dr::Float64 = exp(decay_rate)
     memory::T
-    lower::Float64 = 1E-5
+    lower::Float64 = 1E-6
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
     # decay memory
     decayed = flow.memory * flow.exp_dr
 
-    # @inbounds for i in eachindex(decayed)
-    #     decayed[i] = round(decayed[i]; digits = 5)
-    # end
-    # decayed = round.(decayed, digits = 5)
-    # map!(_round, decayed, decayed)
-    # dropzeros!(decayed)
     droptol!(decayed, flow.lower)
 
     memory = max.(space, decayed)

@@ -5,6 +5,6 @@
     "scale": 1.0,
     "samples": 10,
     "sweeps": 10,
-    "ancestral_steps": 1,
-    "weights_tau": 0.05
+    "ancestral_steps": 2,
+    "weights_tau": -10
 }

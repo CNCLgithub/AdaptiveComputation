@@ -1,6 +1,7 @@
 export read_json, merge_trial, merge_experiment
 
 using CSV
+using CSV: write
 using JSON
 
 """
@@ -39,7 +40,7 @@ function merge_experiment(exp_path::String)
         filter(isdir)
         map(merge_trial)
         x -> vcat(x...)
-        CSV.write("$(exp_path.csv)")
+        write("$(exp_path).csv")
     end
     return nothing
     # trials = filter(isdir, readdir(exp_path, join = true))

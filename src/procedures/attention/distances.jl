@@ -32,17 +32,7 @@ function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
     c = pairwise(td_cost, a_k, b_k)
     ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
     d = sum(ot .* c)
-    # if log(d) > -50.
-    #     println("p")
-    #     display(p)
-    #     println("q")
-    #     display(q)
-    #     println("ot")
-    #     display(ot)
-    #     println("c")
-    #     display(c)
-    # end
-    isnan(d) ? 0. : d
+    isnan(d) || d < 0. ? 0. : d
 end
 
 function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}) where {K,V}
