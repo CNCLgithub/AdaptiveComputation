@@ -46,12 +46,6 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
                         joinpath(path, "obs_rf_masks"))
     end
     
-    # # rendering predicted distribution flow masks from receptive fields
-    # states = collect(CausalGraph, causal_graphs[1])
-    # for t=1:k
-    #     render_rf_masks(states, t, gm, graphics,
-    #                     joinpath(path, "pred_dist_rf_masks"))
-    # end
 
     # visualizing inference on stimuli
     unweighted = Gen.sample_unweighted_traces(chain.state, np)
@@ -63,6 +57,15 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
     render_scene(gm, gt_causal_graphs, causal_graphs,
                  graphics.rf_dims, attended;
                  base = joinpath(path, "render"))
+
+
+
+    # rendering predicted distribution flow masks from receptive fields
+    states = causal_graphs[1, :]
+    for t=1:k
+        render_rf_masks(states, t, gm, graphics,
+                        joinpath(path, "pred_dist_rf_masks"))
+    end
 end
 
 function get_n_back_cgs(trace::Trace, n_back_cgs::Int64)::Vector{CausalGraph}

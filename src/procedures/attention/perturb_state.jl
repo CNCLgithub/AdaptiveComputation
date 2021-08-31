@@ -7,19 +7,27 @@ export perturb_state!
 Perturbs velocity based on probs of assignments to observations.
 """
 
-@gen  function state_proposal(trace::Gen.Trace, tracker::Int64,
-                                      att::MapSensitivity)
+
+function _state_proposal(trace::Gen.Trace, tracker::Int64,
+                         att::MapSensitivity)
     t, gm, dm, gr = Gen.get_args(trace)
     choices = Gen.get_choices(trace)
 
-    i = max(1, t-att.ancestral_steps)
+    @unpack ancestral_steps = att
+    i = max(1, t - ancestral_steps)
     addr = :kernel => i => :dynamics => :trackers => tracker => :ang
     ang = choices[addr]
+
     inertia = choices[:kernel => i => :dynamics => :trackers => tracker => :inertia]
     @unpack k_min, k_max = dm
     k = inertia ? k_max : k_min
-    {addr} ~ von_mises(ang, k)
+    (addr, ang, k)
+end
 
+@gen  function state_proposal(trace::Gen.Trace, tracker::Int64,
+                              att:MapSensitivity)
+    (addr, ang, k) = _state_proposal(trace, tracker, att)
+    {addr} ~ von_mises(ang, k)
     return nothing
 end
 
@@ -29,7 +37,7 @@ function apply_random_walk(trace::Gen.Trace, proposal, proposal_args)
     proposal_args_forward = (trace, proposal_args...,)
     (fwd_choices, fwd_weight, _) = propose(proposal, proposal_args_forward)
     # @show fwd_weight
-    (new_trace, weight, _, discard) = update(trace,
+    (new_trace, weight, _, discard) = Gen.update(trace,
         model_args, argdiffs, fwd_choices)
     # @show weight
     proposal_args_backward = (new_trace, proposal_args...,)
@@ -77,10 +85,10 @@ function perturb_state!(chain::SeqPFChain,
     allocated = zeros(size(allocated))
     num_particles = length(state.traces)
     accepted = 0
-    for i=1:num_particles
+    @inbounds for i=1:num_particles
         tracker = Gen.categorical(weights)
         allocated[tracker] += cycles
-        for j = 1:cycles
+        for _ = 1:cycles
             new_tr, ls = att.jitter(state.traces[i], tracker, att)
             if log(rand()) < ls
                 state.traces[i] = new_tr

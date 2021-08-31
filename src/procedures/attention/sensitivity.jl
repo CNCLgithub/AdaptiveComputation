@@ -105,7 +105,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     amp = (sweeps - 1) / (1 + exp(-k*(x - x0))) + 1
     # amp = k * (x - x0)
 
-    # println("x: $(x), amp: $(amp)")
+    println("x: $(x), amp: $(amp)")
     # cycles = Int64(round(clamp(amp, 0.0, sweeps)))
     # cycles = Int64(round(clamp(amp, 1.0, sweeps)))
     cycles = Int64(floor(amp))

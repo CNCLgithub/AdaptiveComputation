@@ -8,12 +8,20 @@ export InertiaModel
 Model that uses inertial change points to "explain" interactions
 """
 @with_kw struct InertiaModel <: AbstractDynamicsModel
+
+    # stochastic motion parameters
     vel::Float64 = 10 # base vel
     bern::Float64 = 0.9
     k_min::Float64 = 0.5 # min von_misses kappa for angle
     k_max::Float64 = 100.0 # max von_misses kappa for angle
     w_min::Float64 = 2.5 # min standard deviation for magnitude noise
     w_max::Float64 = 5.5 # max standard deviation for magnitude noise
+
+    # force parameters
+    # wall rep-> *
+    wall_rep_m::Float64 = 10.0
+    wall_rep_a::Float64 = 0.02
+    wall_rep_x0::Float64 = 0.0
 end
 
 function load(::Type{InertiaModel}, path::String)
@@ -58,15 +66,11 @@ function dynamics_update(dm::InertiaModel,
         v = MetaGraphs.nv(cg)
         set_prop!(cg, v, :object, thing)
     end
+    dynamics_update!(cg, dm)
     graphics_update(cg, prev_cg)
     return cg
 end
-################################################################################
-# Helpers
-################################################################################
-include("helpers.jl")
 
-################################################################################
-# Gen functions
-################################################################################
+include("helpers.jl")
+include("dynamics.jl")
 include("gen.jl")

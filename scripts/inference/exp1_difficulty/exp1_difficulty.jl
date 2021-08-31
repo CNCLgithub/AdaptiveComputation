@@ -107,19 +107,19 @@ end
 
 
 function main()
-    args = parse_commandline()
-    # args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-    #             "dm" => "$(@__DIR__)/dm.json",
-    #             "gm" => "$(@__DIR__)/gm.json",
-    #             "proc" => "$(@__DIR__)/proc.json",
-    #             "graphics" => "$(@__DIR__)/graphics.json",
-    #             "dataset" => "/datasets/exp1_difficulty.jld2",
-    #             "scene" => 65,
-    #             "chain" => 1,
-    #             "time" => 41,
-    #             "step_size" => 10,
-    #             "restart" => false,
-    #             "viz" => true])
+    # args = parse_commandline()
+    args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
+                "dm" => "$(@__DIR__)/dm.json",
+                "gm" => "$(@__DIR__)/gm.json",
+                "proc" => "$(@__DIR__)/proc.json",
+                "graphics" => "$(@__DIR__)/graphics.json",
+                "dataset" => "/datasets/exp1_difficulty.jld2",
+                "scene" => 48,
+                "chain" => 1,
+                "time" => 120,
+                "step_size" => 60,
+                "restart" => false,
+                "viz" => true])
 
 
     # increase the size of GenRFS memoization table
