@@ -84,8 +84,18 @@ end
 function update(dm::InertiaModel,
                 dot::Dot, rep::Vector{Float64})
     @unpack pos, vel = dot
+    # undo vel step
+    pos[1:2] -= vel
+
+    # change direction without changing magnitude
+    m = norm(vel)
     vel += rep
-    pos[1:2] += rep
+    m /= norm(vel)
+    if !(isinf(m) || isnan(m))
+        vel *= m
+    end
+
+    pos[1:2] += vel
     # @show vel
     # @show pos
     Dot(pos = pos, vel = vel, radius = dot.radius)
