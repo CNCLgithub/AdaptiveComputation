@@ -19,7 +19,7 @@ Model that uses inertial change points to "explain" interactions
 
     # force parameters
     # wall rep-> *
-    wall_rep_m::Float64 = 10.0
+    wall_rep_m::Float64 = 0.0
     wall_rep_a::Float64 = 0.02
     wall_rep_x0::Float64 = 0.0
 end

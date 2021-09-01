@@ -105,22 +105,24 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function default_args()
+    args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
+                "dm" => "$(@__DIR__)/dm.json",
+                "gm" => "$(@__DIR__)/gm.json",
+                "proc" => "$(@__DIR__)/proc.json",
+                "graphics" => "$(@__DIR__)/graphics.json",
+                "dataset" => "/datasets/exp1_difficulty.jld2",
+                "scene" => 60,
+                "chain" => 1,
+                "time" => 240,
+                "step_size" => 60,
+                "restart" => false,
+                "viz" => true])
+end
 
 function main()
     args = parse_commandline()
-    # args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-    #             "dm" => "$(@__DIR__)/dm.json",
-    #             "gm" => "$(@__DIR__)/gm.json",
-    #             "proc" => "$(@__DIR__)/proc.json",
-    #             "graphics" => "$(@__DIR__)/graphics.json",
-    #             "dataset" => "/datasets/exp1_difficulty.jld2",
-    #             "scene" => 61,
-    #             "chain" => 1,
-    #             "time" => 120,
-    #             "step_size" => 60,
-    #             "restart" => false,
-    #             "viz" => true])
-
+    # args = default_args()
 
     # increase the size of GenRFS memoization table
     modify_partition_ctx!(10)

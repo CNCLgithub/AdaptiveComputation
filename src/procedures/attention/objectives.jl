@@ -49,16 +49,7 @@ function _td(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
     @inbounds for p = 1:np
         # col vectors for which obs are included as sets of targets
         key = vec(reduce(|, cube[:, :, p], dims = 2))
-        # only entries with full sets
-        if sum(key) === ne
-            td[key] = haskey(td, key) ? logsumexp(td[key], ls[p]) : ls[p]
-        else
-            for complete in keys(td)
-                i = sum(map(&, key, complete))
-                (i === 0 || all(complete[key])) && continue
-                td[key] = logsumexp(td[key], ls[p] + log(i) - lne)
-            end
-        end
+        td[key] = haskey(td, key) ? logsumexp(td[key], ls[p]) : ls[p]
     end
     # map!(x -> x - total, values(td))
     td

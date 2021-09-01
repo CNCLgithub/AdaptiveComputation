@@ -17,11 +17,11 @@ function td_cost(x::Int64, y::Int64)::Float64
     x === y ? 0. : 1.
 end
 
-function td_cost(x::BitVector, y::BitVector)::Float64
-    b = sum(map(|, x, y))
-    b === 0 && return 0.
-    a = sum(map(&, x, y))
-    c = 1.0 - a / b
+function td_cost(a::BitVector, b::BitVector)::Float64
+    aorb = sum(map(|, a, b))
+    aorb === 0 && return 0.
+    axorb = sum(map(⊻, a, b))
+    axorb / aorb
 end
 
 function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
@@ -31,7 +31,16 @@ function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
     b_k, b_w = discrete_measure(q)
     c = pairwise(td_cost, a_k, b_k)
     ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
-    d = sum(ot .* c)
+    d = 0.
+    @inbounds for i in eachindex(ot)
+        d += exp(log(ot[i]) + log(c[i]))
+    end
+    # display(p)
+    # display(q)
+    # println("cost")
+    # display(c)
+    # println("plan")
+    # display(ot)
     isnan(d) || d < 0. ? 0. : d
 end
 

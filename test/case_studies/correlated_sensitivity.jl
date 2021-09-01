@@ -132,7 +132,7 @@ function main()
                  "scene" => 10,
                  "chain" => 1,
                  "fps" => 60,
-                 "frames" => 15,
+                 "frames" => 30,
                  "restart" => true,
                  "viz" => true,
                  "step_size" => 10])
