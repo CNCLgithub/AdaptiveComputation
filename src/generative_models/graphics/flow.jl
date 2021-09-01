@@ -8,7 +8,7 @@ evolve(::Flow, ::Space) = error("not implemented")
     decay_rate::Float64
     exp_dr::Float64 = exp(decay_rate)
     memory::T
-    lower::Float64 = 1E-6
+    lower::Float64 = 1E-7
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}

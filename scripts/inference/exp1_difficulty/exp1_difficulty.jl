@@ -114,7 +114,7 @@ function default_args()
                 "dataset" => "/datasets/exp1_difficulty.jld2",
                 "scene" => 60,
                 "chain" => 1,
-                "time" => 240,
+                "time" => 100,
                 "step_size" => 60,
                 "restart" => false,
                 "viz" => true])

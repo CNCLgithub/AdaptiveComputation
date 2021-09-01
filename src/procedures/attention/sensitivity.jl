@@ -74,15 +74,16 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     end
     # println("compute weights: $gs")
 
-    if any(isinf.(sensitivities))
-        sensitivities = gs
-    else
-        # applying a smoothing kernel across time
-        sensitivities = logsumexp.(sensitivities .+ att.weights_tau,
-                                   gs .+ log(1.0 - exp(att.weights_tau)))
+    @unpack weights_tau = att
+    inv_wt = log(1.0 - exp(weights_tau))
+    @inbounds for i in eachindex(sensitivities)
+        # sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : logsumexp(sensitivities[i] + weights_tau,
+        #                                                              gs[i] + inv_wt)
+        sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : sensitivities[i] * exp(weights_tau) +
+            gs[i] * exp(inv_wt)
     end
     @pack! auxillary = sensitivities
-    # println("time-smoothed weights: $(sensitivities)")
+    println("time-smoothed weights: $(sensitivities)")
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
@@ -91,7 +92,7 @@ function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     weights = att.smoothness * sensitivities
     weights = softmax(weights)
-    # println("sampling weights: $(weights)")
+    println("sampling weights: $(weights)")
     @pack! auxillary = weights
 end
 
@@ -102,13 +103,15 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     @unpack sweeps, k, x0 = att
     x = logsumexp(sensitivities)
-    amp = (sweeps - 1) / (1 + exp(-k*(x - x0))) + 1
-    # amp = k * (x - x0)
+    # amp = sweeps / (1 + exp(-k*(x - x0)))
+    amp = k * (x - x0)
 
     println("x: $(x), amp: $(amp)")
-    # cycles = Int64(round(clamp(amp, 0.0, sweeps)))
-    # cycles = Int64(round(clamp(amp, 1.0, sweeps)))
-    cycles = Int64(floor(amp))
+    cycles = @> amp begin
+        clamp(0., sweeps)
+        floor
+        Int64
+    end
     # println("cycles: $cycles")
     @pack! auxillary = cycles
     return nothing
