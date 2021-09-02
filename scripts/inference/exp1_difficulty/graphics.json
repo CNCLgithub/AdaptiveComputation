@@ -1,6 +1,6 @@
 {
-    "img_width": 100,
-    "img_height": 100,
+    "img_width": 60,
+    "img_height": 60,
 
     "gauss_r_multiple": 6.5,
     "gauss_std": 0.75,

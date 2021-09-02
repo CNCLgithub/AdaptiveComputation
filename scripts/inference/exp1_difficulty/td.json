@@ -1,7 +1,7 @@
 {
-    "smoothness": 1.0,
+    "smoothness": 0.5,
     "k": 0.25,
-    "x0": -90,
+    "x0": -93,
     "scale": 1.0,
     "samples": 10,
     "sweeps": 10,
