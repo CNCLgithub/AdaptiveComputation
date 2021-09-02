@@ -36,15 +36,18 @@ function apply_random_walk(trace::Gen.Trace, proposal, proposal_args)
     argdiffs = map((_) -> NoChange(), model_args)
     proposal_args_forward = (trace, proposal_args...,)
     (fwd_choices, fwd_weight, _) = propose(proposal, proposal_args_forward)
-    # @show fwd_weight
     (new_trace, weight, _, discard) = Gen.update(trace,
         model_args, argdiffs, fwd_choices)
-    # @show weight
     proposal_args_backward = (new_trace, proposal_args...,)
     (bwd_weight, _) = Gen.assess(proposal, proposal_args_backward, discard)
-    # @show bwd_weight
     alpha = weight - fwd_weight + bwd_weight
-    (new_trace, weight)
+    if isnan(alpha)
+        @show fwd_weight
+        @show weight
+        @show bwd_weight
+        error("nan in proposal")
+    end
+    (new_trace, alpha)
 end
 
 function tracker_kernel(trace::Gen.Trace, tracker::Int64,
@@ -84,16 +87,12 @@ function perturb_state!(chain::SeqPFChain,
     @unpack weights, cycles, allocated = auxillary
     allocated = zeros(size(allocated))
     num_particles = length(state.traces)
-    accepted = 0
-    @inbounds for i=1:num_particles
+    @inbounds for i=1:num_particles, _ = 1:cycles
         tracker = Gen.categorical(weights)
-        allocated[tracker] += cycles
-        for _ = 1:cycles
-            new_tr, ls = att.jitter(state.traces[i], tracker, att)
-            if log(rand()) < ls
-                state.traces[i] = new_tr
-                accepted += 1
-            end
+        allocated[tracker] += 1
+        new_tr, ls = att.jitter(state.traces[i], tracker, att)
+        if log(rand()) < ls
+            state.traces[i] = new_tr
         end
     end
     @pack! auxillary = allocated
