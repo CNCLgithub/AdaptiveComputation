@@ -5,7 +5,8 @@ import os
 import argparse
 from slurmpy import sbatch
 
-script = 'bash {0!s}/run.sh julia -C "generic" ' + \
+# script = 'bash {0!s}/run.sh julia -J "/project/mot.so" -C generic' + \
+script = 'bash {0!s}/run.sh julia ' + \
          '/project/scripts/inference/exp1_difficulty/exp1_difficulty.jl'
 
 def att_tasks(args):
@@ -23,7 +24,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 10,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 40,
+    parser.add_argument('--duration', type = int, default = 20,
                         help = 'job duration (min)')
 
     subparsers = parser.add_subparsers(title='Attention models')

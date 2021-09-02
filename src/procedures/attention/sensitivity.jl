@@ -65,7 +65,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     lses = @>> lls eachcol map(logsumexp)
     @inbounds for i = 1:n_latents
         # gs[i] = logsumexp(kls[:, i]) - log(samples)
-        if isinf(lses[i])
+        if isinf(lses[i]) || isnan(lses[i])
             gs[i] = logsumexp(kls[:, i]) - log(samples)
         else
             gs[i] = logsumexp(kls[:, i] + (lls[:, i] .- lses[i]))
