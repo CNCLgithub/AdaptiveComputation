@@ -1,8 +1,9 @@
 bootstrap: docker
-from: julia:1.6
+from: ubuntu:18.04
 
 %environment
- export PATH=$PATH:/miniconda/bin
+ export PATH=$PATH:"/miniconda/bin"
+ export PATH=$PATH:"/usr/local/julia-1.6.2/bin"
 
 %runscript
   exec bash "$@"
@@ -28,6 +29,14 @@ from: julia:1.6
                      xdg-utils \
                      cmake
  apt-get clean
+
+
+ # setup julia
+ wget "https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.2-linux-x86_64.tar.gz" \
+     -O "julia.tar.gz"
+ tar -xzf "julia.tar.gz" -C "/usr/local/"
+ rm "julia.tar.gz"
+
 
  # Setup conda
  wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O conda.sh
