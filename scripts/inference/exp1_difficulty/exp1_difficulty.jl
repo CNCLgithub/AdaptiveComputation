@@ -87,6 +87,10 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/td.json"
 
+        "--objective"
+        help = "Attention objective"
+        arg_type = Function
+        default = target_designation_flat
     end
     @add_arg_table! s["data_correspondence"] begin
         "--params"
@@ -106,18 +110,20 @@ function parse_commandline()
 end
 
 function default_args()
-    args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-                "dm" => "$(@__DIR__)/dm.json",
-                "gm" => "$(@__DIR__)/gm.json",
-                "proc" => "$(@__DIR__)/proc.json",
-                "graphics" => "$(@__DIR__)/graphics.json",
-                "dataset" => "/datasets/exp1_difficulty.jld2",
-                "scene" => 63,
-                "chain" => 1,
-                "time" => 100,
-                "step_size" => 60,
-                "restart" => false,
-                "viz" => true])
+    args = Dict(
+        "target_designation" => Dict(["params" => "$(@__DIR__)/td.json",
+                                      "objective" => target_designation_flat]),
+        "dm" => "$(@__DIR__)/dm.json",
+        "gm" => "$(@__DIR__)/gm.json",
+        "proc" => "$(@__DIR__)/proc.json",
+        "graphics" => "$(@__DIR__)/graphics.json",
+        "dataset" => "/datasets/exp1_difficulty.jld2",
+        "scene" => 30,
+        "chain" => 1,
+        "time" => 60,
+        "step_size" => 60,
+        "restart" => false,
+        "viz" => true)
 end
 
 function main()
@@ -161,8 +167,9 @@ function main()
                               length(gt_cgs))
 
     att_mode = "target_designation"
-    att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields,
+    att = MOT.load(MapSensitivity,
+                   args[att_mode]["params"],
+                   objective = args[att_mode]["objective"],
                    )
 
     proc = MOT.load(PopParticleFilter, args["proc"];

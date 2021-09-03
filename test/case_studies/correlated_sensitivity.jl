@@ -166,7 +166,7 @@ function main()
 
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields,
+                   objective = MOT.target_designation_flat,
                    )
 
     proc = MOT.load(PopParticleFilter, args["proc"];

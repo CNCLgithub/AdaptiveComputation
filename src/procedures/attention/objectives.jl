@@ -1,4 +1,5 @@
 
+export target_designation_full, target_designation_flat
 # Objectives
 
 # target designation 2:
@@ -55,9 +56,7 @@ function _td(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
     td
 end
 
-# returns a vector of target designation distributions
-# for each receptive_field
-function target_designation_receptive_fields(tr::Gen.Trace)
+function target_designation_full(tr::Gen.Trace)
     t = first(Gen.get_args(tr))
 
     rfs_vec = @>> Gen.get_retval(tr) begin
@@ -75,8 +74,30 @@ function target_designation_receptive_fields(tr::Gen.Trace)
 
     # @debug "receptive fields $(typeof(receptive_fields[1]))"
     tds = @>> receptive_fields begin
-        # map(rf -> _td(convert(Vector{BitMatrix}, rf[2][:masks]),
-        #               rfs_vec[rf[1]]))
+        map(rf -> _td(convert(Vector{BitMatrix}, rf[2][:masks]),
+                      rfs_vec[rf[1]]))
+    end
+end
+# returns a vector of target designation distributions
+# for each receptive_field
+function target_designation_flat(tr::Gen.Trace)
+    t = first(Gen.get_args(tr))
+
+    rfs_vec = @>> Gen.get_retval(tr) begin
+        last # get the states
+        last # get the last state
+        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
+    end # rfes for each rf
+
+    receptive_fields = @> tr begin
+        get_choices
+        get_submap(:kernel => t => :receptive_fields)
+        get_submaps_shallow
+        # vec of tuples (rf id, rf mask choicemap)
+    end # masks for each rf
+
+    # @debug "receptive fields $(typeof(receptive_fields[1]))"
+    tds = @>> receptive_fields begin
         #  using the "flat" version of td for stability
         map(rf -> _td2(convert(Vector{BitMatrix}, rf[2][:masks]),
                        rfs_vec[rf[1]]))

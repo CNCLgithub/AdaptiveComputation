@@ -72,15 +72,15 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         # gs[i] = logsumexp(kls[:, i] + lls[:, i]) - log(samples)
         end
     end
-    # println("compute weights: $gs")
+    println("compute weights: $gs")
 
     @unpack weights_tau = att
-    inv_wt = log(1.0 - exp(weights_tau))
+    inv_wt = 1.0 - weights_tau
     @inbounds for i in eachindex(sensitivities)
         # sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : logsumexp(sensitivities[i] + weights_tau,
         #                                                              gs[i] + inv_wt)
-        sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : sensitivities[i] * exp(weights_tau) +
-            gs[i] * exp(inv_wt)
+        sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : sensitivities[i] * weights_tau +
+            gs[i] * inv_wt
     end
     @pack! auxillary = sensitivities
     println("time-smoothed weights: $(sensitivities)")

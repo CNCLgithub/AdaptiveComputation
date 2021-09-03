@@ -31,16 +31,19 @@ function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
     b_k, b_w = discrete_measure(q)
     c = pairwise(td_cost, a_k, b_k)
     ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
-    d = 0.
-    @inbounds for i in eachindex(ot)
-        d += exp(log(ot[i]) + log(c[i]))
-    end
+    # ot = sinkhorn(a_w, b_w, c, ε)
+    d = sum(ot .* c)
+    # d = 0.
+    # @inbounds for i in eachindex(ot)
+    #     d += exp(log(ot[i]) + log(c[i]))
+    # end
     # display(p)
     # display(q)
-    # println("cost")
-    # display(c)
+    # # println("cost")
+    # # display(c)
     # println("plan")
-    # display(ot)
+    # display(ot .* c)
+    # @show d
     isnan(d) || d < 0. ? 0. : d
 end
 

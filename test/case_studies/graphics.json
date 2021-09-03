@@ -1,17 +1,17 @@
 {
-    "img_width": 80,
-    "img_height": 80,
+    "img_width": 120,
+    "img_height": 120,
 
-    "gauss_r_multiple": 6.5,
-    "gauss_std": 0.95,
-    "gauss_amp": 0.99,
+    "gauss_r_multiple": 5.0,
+    "gauss_std": 0.55,
+    "gauss_amp": 0.25,
 
-    "flow_decay_rate": -0.3,
-    
+    "flow_decay_rate": -1.5,
+
     "rf_width": 1,
     "rf_height": 1,
     "rf_threshold" : 0.005,
     "rf_overlap": 0.5,
 
-    "bern_existence_prob": 0.85
+    "bern_existence_prob": 0.75
 }

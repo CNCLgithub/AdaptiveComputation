@@ -50,7 +50,7 @@ function extract_td_accuracy(c::SeqPFChain)
     @unpack state = c
     traces = sample_unweighted_traces(state, length(state.traces))
     @>> traces begin
-        map(target_designation_receptive_fields) # traces x rf
+        map(target_designation_flat) # traces x rf
         map(first)  # assuming only a 1x1 receptive field
         map(td_accuracy)
         mean        # average across traces

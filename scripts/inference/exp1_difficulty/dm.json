@@ -4,7 +4,7 @@
     "k_min": 1.0,
     "k_max": 250.0,
     "w_min": 0.001,
-    "w_max": 0.01,
+    "w_max": 0.1,
 
     "wall_rep_m": 1.0,
     "wall_rep_a": 0.02,
