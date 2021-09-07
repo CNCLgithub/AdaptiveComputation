@@ -7,6 +7,6 @@
     "w_max": 0.1,
 
     "wall_rep_m": 1.0,
-    "wall_rep_a": 0.02,
+    "wall_rep_a": 0.03,
     "wall_rep_x0": 0.0
 }

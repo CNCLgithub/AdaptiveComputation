@@ -10,7 +10,7 @@ export MapSensitivity
     samples::Int = 1
     sweeps::Int = 5
     smoothness::Float64 = 1.003
-    scale::Float64 = 100.0
+    scale::Float64 = 1.0
     k::Float64 = 0.5
     x0::Float64 = 5.0
     ancestral_steps::Int = 3
@@ -34,7 +34,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack latents = proc
     @unpack sensitivities = auxillary
-    @unpack objective, samples, jitter = att
+    @unpack objective, scale, samples, jitter = att
 
     seeds = Gen.sample_unweighted_traces(state, samples)
     # seeds = top_n_traces(state, samples)
@@ -49,7 +49,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         jittered, lls[i, j] = jitter(seeds[i], j, att)
         kls[i, j] = @>> jittered begin
             objective
-            sinkhorn_div(seed_obj[i])
+            sinkhorn_div(seed_obj[i]; scale = scale)
             log
         end
     end

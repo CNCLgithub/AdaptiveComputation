@@ -1,8 +1,9 @@
 using OptimalTransport
 using StatsBase: pairwise
 
-function discrete_measure(d::Dict{K, Float64}) where {K}
-    lws = collect(values(d))
+function discrete_measure(d::Dict{K, Float64},
+                          scale::Float64) where {K}
+    lws = collect(values(d)) .* scale
     lws = lws .- logsumexp(lws)
     ws = exp.(lws)
     ks = collect(keys(d))
@@ -26,29 +27,18 @@ end
 
 function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
                       λ::Float64 = 1.0,
-                      ε::Float64 = 0.01) where {K, V}
-    a_k, a_w = discrete_measure(p)
-    b_k, b_w = discrete_measure(q)
+                      ε::Float64 = 0.01,
+                      scale::Float64 = 1.0) where {K, V}
+    a_k, a_w = discrete_measure(p, scale)
+    b_k, b_w = discrete_measure(q, scale)
     c = pairwise(td_cost, a_k, b_k)
     ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
-    # ot = sinkhorn(a_w, b_w, c, ε)
     d = sum(ot .* c)
-    # d = 0.
-    # @inbounds for i in eachindex(ot)
-    #     d += exp(log(ot[i]) + log(c[i]))
-    # end
-    # display(p)
-    # display(q)
-    # # println("cost")
-    # # display(c)
-    # println("plan")
-    # display(ot .* c)
-    # @show d
     isnan(d) || d < 0. ? 0. : d
 end
 
-function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}) where {K,V}
-    @>> map(sinkhorn_div, ps, qs) mean
+function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}; kwargs...) where {K,V}
+    @>> map((p,q) -> sinkhorn_div(p,q;kwargs...), ps, qs) mean
 end
 
 """

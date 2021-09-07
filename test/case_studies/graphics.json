@@ -1,10 +1,10 @@
 {
-    "img_width": 120,
-    "img_height": 120,
+    "img_width": 100,
+    "img_height": 100,
 
     "gauss_r_multiple": 5.0,
     "gauss_std": 0.55,
-    "gauss_amp": 0.25,
+    "gauss_amp": 0.55,
 
     "flow_decay_rate": -1.5,
 
