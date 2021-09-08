@@ -103,8 +103,8 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     @unpack sweeps, k, x0 = att
     x = logsumexp(sensitivities)
-    # amp = sweeps / (1 + exp(-k*(x - x0)))
-    amp = k * (x - x0)
+    amp = exp(-k * (x - x0))
+    # amp = k * (x - x0)
 
     println("x: $(x), amp: $(amp)")
     cycles = @> amp begin
