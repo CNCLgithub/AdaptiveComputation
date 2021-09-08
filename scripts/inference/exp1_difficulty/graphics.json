@@ -2,11 +2,11 @@
     "img_height": 100,
     "img_width": 100,
 
-    "gauss_r_multiple": 5.0,
-    "gauss_std": 0.55,
-    "gauss_amp": 0.50,
+    "gauss_r_multiple": 5.5,
+    "gauss_std": 0.75,
+    "gauss_amp": 0.35,
 
-    "flow_decay_rate": -1.0,
+    "flow_decay_rate": -0.5,
 
     "rf_width": 1,
     "rf_height": 1,
