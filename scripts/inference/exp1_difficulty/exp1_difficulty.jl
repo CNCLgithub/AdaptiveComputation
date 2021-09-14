@@ -118,7 +118,7 @@ function default_args()
         "proc" => "$(@__DIR__)/proc.json",
         "graphics" => "$(@__DIR__)/graphics.json",
         "dataset" => "/datasets/exp1_difficulty.jld2",
-        "scene" => 34,
+        "scene" => 24,
         "chain" => 1,
         "time" => 240,
         "step_size" => 60,
@@ -127,8 +127,8 @@ function default_args()
 end
 
 function main()
-    args = parse_commandline()
-    # args = default_args()
+    # args = parse_commandline()
+    args = default_args()
 
     # increase the size of GenRFS memoization table
     modify_partition_ctx!(10)

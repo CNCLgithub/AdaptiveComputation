@@ -18,6 +18,37 @@ end
 
 include("gm_params.jl")
 
+
+################################################################################
+# Causation
+################################################################################
+
+function init_cg_from_things(cg::CausalGraph, things::AbstractArray{Things})
+    @>> things begin
+        dynamics_init(cg)
+        graphics_init
+    end
+end
+
+function get_init_cg(cg::CausalGraph)
+    get_init_cg(get_gm(cg), get_dm(cg), get_graphics(cg))
+end
+function get_init_cg(gm::AbstractGMParams, dm::AbstractDynamicsModel)
+    get_init_cg(gm, dm, NullGraphics())
+end
+function get_init_cg(gm::AbstractGMParams, dm::AbstractDynamicsModel,
+                     graphics::AbstractGraphics)
+    cg = CausalGraph(SimpleDiGraph())
+    set_prop!(cg, :gm, gm)
+    set_prop!(cg, :dm, dm)
+    set_prop!(cg, :graphics, graphics)
+    return cg
+end
+
+function causal_update(cg::CausalGraph, diff)
+
+end
+
 ################################################################################
 # Dynamics
 ################################################################################
@@ -71,7 +102,7 @@ include("graphics/graphics.jl")
 # Inference models
 ################################################################################
 
-include("common/common.jl")
+# include("common/common.jl")
 include("isr/isr.jl")
 include("inertia/inertia.jl")
 #include("squishy/gm_squishy.jl")

@@ -23,7 +23,7 @@ end
 @gen static function isr_init(cg::CausalGraph)
     cgs = fill(cg, cg.n_trackers)
     trackers = @trace(Gen.Map(isr_tracker)(cgs), :trackers)
-    chain_cg = init_cg_from_trackers(cg, trackers)
+    chain_cg = init_cg_from_things(cg, trackers)
     return chain_cg
 end
 

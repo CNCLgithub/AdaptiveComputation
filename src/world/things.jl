@@ -93,13 +93,24 @@ struct UniformEnsemble <: Ensemble
 end
 
 function UniformEnsemble(cg)
+    @>> cg LifeCycle UniformEnsemble(cg)
+end
+
+function UniformEnsemble(cg, lf::LifeCycle)
+
+    @unpack surived, died, born = lf
+
     gm = get_gm(cg)
     graphics = get_graphics(cg)
+    prev_env = something
+
+    nens = isnothing(prev_env) ? distractor_rate : prev_env.rate + (died - born)
+
     
     n_receptive_fields = length(graphics.receptive_fields)
     r = ceil(gm.dot_radius * graphics.img_dims[1] / gm.area_width)
     n_pixels_rf = @>> graphics.receptive_fields first get_dimensions prod
-    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * (gm.distractor_rate / n_receptive_fields)
+    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * (nenv / n_receptive_fields)
     # just the threshold from receptive_fields
     # pixel_prob = @>> graphics.receptive_fields begin
         # first

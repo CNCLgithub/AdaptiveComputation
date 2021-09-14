@@ -29,7 +29,7 @@ end
     cgs = fill(cg, gm.n_trackers)
     trackers = @trace(Gen.Map(inertia_tracker)(cgs), :trackers)
     things = [ensemble; trackers]
-    chain_cg = init_cg_from_trackers(cg, things)
+    chain_cg = init_cg_from_things(cg, things)
     return chain_cg
 end
 
@@ -76,20 +76,34 @@ end
     return d
 end
 
-@gen static function inertial_update(prev_cg::CausalGraph)
-    ensemble = UniformEnsemble(prev_cg)
-    (cgs, vs) = inertia_step_args(prev_cg)
+@gen static function inertial_update(prev_cg::CausalGraph, lf::LifeCycle)
+    (cgs, vs) = inertia_step_args(prev_cg, lf)
     trackers = @trace(Map(inertial_step)(cgs, vs), :trackers)
+    ensemble = UniformEnsemble(prev_cg, lf)
     things = [ensemble; trackers]
     return things
+end
+
+@gen static function interial_epistemics(prev_cg::CausalGraph)
+    born = {:birth} ~ rfs()
+    died = {:death} ~ rfs()
+    lf = LifeCycle(prev_cg, born, died)
+    return lf
 end
 
 @gen static function inertia_kernel(t::Int,
                                     prev_cg::CausalGraph)
 
-    # advancing causal graph according to dynamics
-    things = @trace(inertial_update(prev_cg), :dynamics)
-    new_cg = dynamics_update(get_dm(prev_cg), prev_cg, things)
+    # epistemics kernel
+    lf = @trace(inertial_epsitemics(prev_cg), :epistemics)
+
+    # update kinematic state for representations
+    new_things = @trace(inertial_update(prev_cg, lf), :dynamics)
+
+    # advancing causal graph (updating dynamics and graphics)
+    diff = diff_from_update(lf, new_things)
+    new_cg = causal_update(prev_cg, diff)
+
     rfs_vec = get_prop(new_cg, :rfs_vec)
     @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
     return new_cg
