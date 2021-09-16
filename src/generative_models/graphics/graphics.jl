@@ -65,8 +65,10 @@ function graphics_init(graphics::Graphics, cg::CausalGraph)
     return cg
 end
 
-function graphics_update(graphics::Graphics, cg::CausalGraph,
-                         prev_cg::CausalGraph)
+function graphics_update!(cg::CausalGraph,
+                          graphics::Graphics,
+                          diff::Diff,
+                          prev_cg::CausalGraph)
 
     vs = @> cg begin
         filter_vertices((g, v) -> get_prop(g, v, :object) isa

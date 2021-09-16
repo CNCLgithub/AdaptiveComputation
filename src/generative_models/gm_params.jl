@@ -15,8 +15,8 @@ function load(::Type{GMParams}, path; kwargs...)
     GMParams(;read_json(path)..., kwargs...)
 end
 
-function tracker_bounds(gm::GMParams, cg::CausalGraph)
-    @unpack area_width, area_height, dot_radius = (get_gm(cg))
+function tracker_bounds(gm::GMParams)
+    @unpack area_width, area_height, dot_radius = gm
     xs = (-0.5*area_width + dot_radius, 0.5*area_width - dot_radius)
     ys = (-0.5*area_height + dot_radius, 0.5*area_height - dot_radius)
     (xs, ys, dot_radius)

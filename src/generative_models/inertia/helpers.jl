@@ -1,3 +1,42 @@
+function static(dm::InertiaModel, cg::CausalGraph)
+    get_object_verts(cg, Wall)
+end
+
+function death(dm::InertiaModel, cg::CausalGraph)
+    gm = get_gm(cg)
+    @unpack death_rate = gm
+    vs = get_object_verts(cg, Dot)
+    n = length(vs)
+    elements = RFSElements{Int64}(undef, n)
+    n === 0 && return elements
+    @inbounds for i = 1:n
+        elements[i] = BernoulliElement{Int64}(death_rate,
+                                              id_dist, (vs[i],))
+    end
+    elements
+end
+
+
+function birth_diff(dm::InertiaModel, cg::CausalGraph,
+                    born::AbstractArray{Thing},
+                    died::AbstractArray{Int64})
+    ens_idx = @> cg get_object_verts(UniformEnsemble) first
+    ens = UniformEnsemble(cg, died, born)
+    changed = Dict{Int64, Thing}(ens_idx => ens)
+    Diff(born, died, static(dm, cg), changed)
+end
+
+function birth_limit(dm::InertiaModel, cg::CausalGraph)
+    gm = get_gm(cg)
+    nthings = get_object_verts(cg, Dot)
+    gm.max_things - nthings
+end
+
+function birth_args(dm::InertiaModel, cg::CausalGraph, n::Int64)
+    gm = get_gm(cg)
+    fill(gm, n)
+end
+
 
 walls_idx(dm::InertiaModel) = collect(1:4)
 

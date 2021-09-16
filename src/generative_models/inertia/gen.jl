@@ -5,8 +5,8 @@ export gm_inertia_mask
 ################################################################################
 # Initial State
 ################################################################################
-@gen static function inertia_tracker(cg::CausalGraph)::Dot
-    xs, ys, radius = tracker_bounds(cg)
+@gen static function inertia_tracker(gm::AbstractGMParams)::Dot
+    xs, ys, radius = tracker_bounds(gm)
     x = @trace(uniform(xs[1], xs[2]), :x)
     y = @trace(uniform(ys[1], ys[2]), :y)
 
@@ -20,16 +20,29 @@ export gm_inertia_mask
     # z (depth) drawn at beginning
     z = @trace(uniform(0, 1), :z)
 
-    return Dot(pos=[x,y,z], vel=[vx, vy], radius=radius)
+    tr = target_rate(gm)
+    target = @trace(bernoulli(tr), :target)
+
+
+    return Dot(pos=[x,y,z], vel=[vx, vy], radius=radius,
+               target = target)
 end
 
-@gen static function inertia_init(cg::CausalGraph)
-    gm = get_gm(cg)
-    ensemble = UniformEnsemble(cg)
-    cgs = fill(cg, gm.n_trackers)
-    trackers = @trace(Gen.Map(inertia_tracker)(cgs), :trackers)
+@gen static function inertia_init(gm::GMParams, dm::InertiaModel,
+                                  gr::AbstractGraphics)
+
+    n_trackers = @trace(uniform_discrete(0., gm.max_things),
+                        :n_trackers)
+    gms = fill(gm, n_trackers)
+    trackers = @trace(Gen.Map(inertia_tracker)(gms), :trackers)
+    n_tracked_targets = sum(map(target, trackers))
+
+    ens_rate = gm.max_things - n_trackers
+    ens_targets = gm.n_targets - n_tracked_targets
+    ensemble = UniformEnsemble(gm, gr, ens_rate, ens_targets)
+
     things = [ensemble; trackers]
-    chain_cg = init_cg_from_things(cg, things)
+    chain_cg = causal_init(gm, dm, gr, things)
     return chain_cg
 end
 
@@ -76,19 +89,23 @@ end
     return d
 end
 
-@gen static function inertial_update(prev_cg::CausalGraph, lf::LifeCycle)
+@gen static function inertial_update(prev_cg::CausalGraph, lf::Diff)
     (cgs, vs) = inertia_step_args(prev_cg, lf)
     trackers = @trace(Map(inertial_step)(cgs, vs), :trackers)
-    ensemble = UniformEnsemble(prev_cg, lf)
-    things = [ensemble; trackers]
-    return things
+    diff = Diff(prev_cg, lf, vs, trackers)
+    return diff
 end
 
 @gen static function interial_epistemics(prev_cg::CausalGraph)
-    born = {:birth} ~ rfs()
-    died = {:death} ~ rfs()
-    lf = LifeCycle(prev_cg, born, died)
-    return lf
+    death_rfs = death(prev_cg)
+    died = @trace(rfs(death_rfs), :death)
+
+    bl = birth_limit(prev_cg) + died
+    to_birth = @trace(uniform_discrete(0., bl), :to_birth)
+    bargs = birth_args(prev_cg, died)
+    born = @trace(Gen.Map(inertia_tracker)(bargs), :birth)
+    diff = birth_diff(prev_cg, born, died)
+    return diff
 end
 
 @gen static function inertia_kernel(t::Int,
@@ -98,10 +115,9 @@ end
     lf = @trace(inertial_epsitemics(prev_cg), :epistemics)
 
     # update kinematic state for representations
-    new_things = @trace(inertial_update(prev_cg, lf), :dynamics)
+    diff = @trace(inertial_update(prev_cg, lf), :dynamics)
 
     # advancing causal graph (updating dynamics and graphics)
-    diff = diff_from_update(lf, new_things)
     new_cg = causal_update(prev_cg, diff)
 
     rfs_vec = get_prop(new_cg, :rfs_vec)
@@ -124,9 +140,8 @@ end
 
 @gen static function gm_inertia_mask(k::Int, gm, dm, graphics)
     
-    cg = get_init_cg(gm, dm, graphics)
-    init_state = @trace(inertia_init(cg), :init_state)
-    states = @trace(Gen.Unfold(inertia_kernel)(k, init_state), :kernel)
+    init_cg = @trace(inertia_init(gm, dm, graphics), :init_state)
+    states = @trace(Gen.Unfold(inertia_kernel)(k, init_cg), :kernel)
     result = (init_state, states)
     return result
 end

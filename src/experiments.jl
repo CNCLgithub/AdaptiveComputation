@@ -53,8 +53,9 @@ function get_init_constraints(cg::CausalGraph)
     get_init_constraints(cg, length(init_dots))
 end
 function get_init_constraints(cg::CausalGraph, n::Int64)
-    cm = Gen.choicemap()
     init_dots = get_objects(cg, Dot)
+    cm = Gen.choicemap()
+    cm[:init_state => :n_trackers] = n
     for i=1:n
         addr = :init_state => :trackers => i => :x
         cm[addr] = init_dots[i].pos[1]
@@ -65,8 +66,11 @@ function get_init_constraints(cg::CausalGraph, n::Int64)
         normv = norm(vel)
         ang = vel ./ normv
         ang = normv == 0. ? 0. : atan(ang[2], ang[1])
-        addr = :init_state => :trackers => i => :ang
-        cm[addr] = ang
+        cm[:init_state => :trackers => i => :ang] = ang
+
+        # by convention, the first n trackers are targets
+        # in the source trace
+        cm[:init_state => :trackers => i => :target] = true
     end
     return cm
 end

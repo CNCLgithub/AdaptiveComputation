@@ -8,6 +8,18 @@ function render!(cg::CausalGraph, prev_cg::CausalGraph)::Vector{Space}
     graphics = get_graphics(cg)
     spaces = render!(cg, prev_cg, graphics)
 end
+function render!(cg::CausalGraph, prev_cg::CausalGraph,
+                 graphics::Graphics, diff::Diff)::Vector{Space}
+    vs = get_prop(cg, :graphics_vs)
+    spaces = Vector{Space{Float64}}(undef, length(vs))
+    @inbounds for i = 1:length(vs)
+        sp = render_elem!(cg, prev_cg, vs[i],
+                          get_prop(cg, vs[i], :object))
+        set_prop!(cg, vs[i], :space, sp)
+        @inbounds spaces[i] = sp
+    end
+    return spaces
+end
 
 function render!(cg::CausalGraph, prev_cg::CausalGraph,
                  graphics::Graphics)::Vector{Space}
@@ -23,7 +35,7 @@ function render!(cg::CausalGraph, prev_cg::CausalGraph,
 end
 
 function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
-                      v::Int64, d::Dot)::Space
+                      src::Int64, dst::Int64, d::Dot)::Space
 
     @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = (get_prop(cg, :graphics))
     @unpack area_width, area_height = (get_prop(cg, :gm))
@@ -37,19 +49,19 @@ function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
                                    gauss_r_multiple,
                                    gauss_amp, gauss_std)
 
-    if has_prop(prev_cg, v, :flow)
-        flow = evolve(get_prop(prev_cg, v, :flow), space)
+    if has_prop(prev_cg, src, :flow)
+        flow = evolve(get_prop(prev_cg, src, :flow), space)
     else
         @unpack flow_decay_rate = (get_prop(cg, :graphics))
         flow = ExponentialFlow(decay_rate = flow_decay_rate, memory = space)
     end
-    set_prop!(cg, v, :flow, flow)
+    set_prop!(cg, dst, :flow, flow)
     
     return flow.memory
 end
 
 function render_elem!(cg::CausalGraph, prev_cg::CausalGraph,
-                      v::Int64, e::UniformEnsemble)::Space
+                      src::Int64, dst::Int64, e::UniformEnsemble)::Space
     @unpack img_dims = (get_prop(cg, :graphics))
     space = Fill(e.pixel_prob, reverse(img_dims))
 end
