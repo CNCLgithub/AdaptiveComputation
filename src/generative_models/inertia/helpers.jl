@@ -20,10 +20,14 @@ end
 function birth_diff(dm::InertiaModel, cg::CausalGraph,
                     born::AbstractArray{Thing},
                     died::AbstractArray{Int64})
+    st = StaticPath[]
+    for w in get_object_verts(cg, Wall)
+        push!(st, w => :object)
+    end
     ens_idx = @> cg get_object_verts(UniformEnsemble) first
     ens = UniformEnsemble(cg, died, born)
-    changed = Dict{Int64, Thing}(ens_idx => ens)
-    Diff(born, died, static(dm, cg), changed)
+    changed = Dict{ChangeDiff, Thing}((ens_idx => :object), ens)
+    Diff(born, died, st, changed)
 end
 
 function birth_limit(dm::InertiaModel, cg::CausalGraph)
@@ -35,6 +39,22 @@ end
 function birth_args(dm::InertiaModel, cg::CausalGraph, n::Int64)
     gm = get_gm(cg)
     fill(gm, n)
+end
+
+
+"""
+Creates a `Diff` with `:object` updates for each tracker.
+Also propagates graphics state
+"""
+function diff_from_trackers(vs::Vector{Int64}, trackers::AbstractArray{Thing},
+                            prev_cg::CausalGraph)
+    chng = Dict{ChangeDiff, Any}()
+    st = Vector{StaticPath}(undef, length(vs))
+    @inbounds for i = 1:length(vs)
+        chng[vs[i] => :object] = trackers[i]
+        st[i] = vs[i] => :flow
+    end
+    Diff(Thing[], Int64[], st, chng)
 end
 
 

@@ -89,10 +89,14 @@ end
     return d
 end
 
-@gen static function inertial_update(prev_cg::CausalGraph, lf::Diff)
-    (cgs, vs) = inertia_step_args(prev_cg, lf)
+@gen static function inertial_update(prev_cg::CausalGraph, bddiff::Diff)
+    # only define diff for trackers that did not die in `bddiff`
+    (cgs, vs) = inertia_step_args(prev_cg, bddiff)
     trackers = @trace(Map(inertial_step)(cgs, vs), :trackers)
-    diff = Diff(prev_cg, lf, vs, trackers)
+    tdiff = diff_from_trackers(vs, trackers)
+    # merge birth/death and motion diff to be applied in a
+    # single step
+    diff = merge(bddiff, tdiff)
     return diff
 end
 
@@ -111,15 +115,17 @@ end
 @gen static function inertia_kernel(t::Int,
                                     prev_cg::CausalGraph)
 
-    # epistemics kernel
-    lf = @trace(inertial_epsitemics(prev_cg), :epistemics)
+    # epistemics kernel - birth/death diff
+    bddiff = @trace(inertial_epsitemics(prev_cg), :epistemics)
 
     # update kinematic state for representations
-    diff = @trace(inertial_update(prev_cg, lf), :dynamics)
+    # merge with `bdd` for effeciency
+    idiff = @trace(inertial_update(prev_cg, bddiff), :dynamics)
 
-    # advancing causal graph (updating dynamics and graphics)
-    new_cg = causal_update(prev_cg, diff)
+    # advancing causal graph (dynamics -> kinematics -> graphics)
+    new_cg = causal_update(prev_cg, idiff)
 
+    # predict observations as a random finite set (opt. receptive fields)
     rfs_vec = get_prop(new_cg, :rfs_vec)
     @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
     return new_cg

@@ -65,38 +65,27 @@ function graphics_init(graphics::Graphics, cg::CausalGraph)
     return cg
 end
 
-function graphics_update!(cg::CausalGraph,
-                          graphics::Graphics,
-                          diff::Diff,
-                          prev_cg::CausalGraph)
+function predict(graphics::Graphics, cg::CausalGraph)::Diff
 
-    vs = @> cg begin
-        filter_vertices((g, v) -> get_prop(g, v, :object) isa
-                        Union{Dot, UniformEnsemble})
-        (@>> collect(Int64))
-    end
-    set_prop!(cg, :graphics_vs, vs)
+    # # cut each mass matrix into each receptive fiel
+    # spaces_rf = @>> graphics.receptive_fields begin
+    #     map(rf -> cropfilter(rf, spaces))
+    # end
+    #
+    vs = filter_vertices(cg, :space)
+    nvs = length(rendered_vs)
 
-    # first create the sparse mass matrices for each element
-    spaces = render!(cg, prev_cg)
-
-    # cut each mass matrix into each receptive field
-    spaces_rf = @>> graphics.receptive_fields begin
-        map(rf -> cropfilter(rf, spaces))
-    end
-
-    # construct the
+    # construct receptive fields
     rfs_vec = init_rfs_vec(graphics.rf_dims)
-    for i in LinearIndices(graphics.rf_dims)
-        rfes = RFSElements{BitMatrix}(undef, length(spaces_rf[i]))
-        for (j, space_rf) in enumerate(spaces_rf[i])
-            rfes[j] = predict(cg, get_prop(cg, vs[j], :object), space_rf)
+    @inbounds for i in LinearIndices(graphics.rf_dims)
+        rfes = RFSElements{BitMatrix}(undef, nvs)
+        for j in 1:nvs
+            rfes[j] = predict(cg, vs[j], get_prop(cg, vs[j], :object))
         end
         rfs_vec[i] = rfes
     end
-    set_prop!(cg, :rfs_vec, rfs_vec)
 
-    return cg
+    Diff(Dict{ChangeDiff, Any}((:rfs_vec => :rfv_vec) => rfs_vec))
 end
 
 ################################################################################
@@ -105,12 +94,14 @@ end
 
 include("space.jl")
 
-function predict(cg::CausalGraph, e::Dot, space::Space)
+function predict(cg::CausalGraph, v::Int64, e::Dot)
     ep = get_graphics(cg).bern_existence_prob
+    space = get_prop(cg, v, :space)
     BernoulliElement{BitMatrix}(ep, mask, (space,))
 end
 
-function predict(cg::CausalGraph, e::UniformEnsemble, space::Space)
+function predict(cg::CausalGraph, v::Int64, e::UniformEnsemble)
+    space = get_prop(cg, v, :space)
     PoissonElement{BitMatrix}(e.rate, mask, (space,))
 end
 
