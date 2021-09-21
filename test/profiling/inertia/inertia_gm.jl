@@ -5,7 +5,7 @@ using StatProfilerHTML
 
 function main()
     gm = GMParams()
-    dm = InertiaDynamics()
+    dm = InertiaModel()
     rf_dims = (1,1)
     img_dims = (100, 100)
     receptive_fields = get_rectangle_receptive_fields(rf_dims,

@@ -38,7 +38,8 @@ end
 
 function birth_args(dm::InertiaModel, cg::CausalGraph, n::Int64)
     gm = get_gm(cg)
-    fill(gm, n)
+    dm = get_dm(cg)
+    (fill(gm, n), fill(dm, n))
 end
 
 
@@ -88,4 +89,16 @@ end
 
 function vector_to(a::Object, b::Object)
     b.pos[1:2] - a.pos[1:2]
+end
+
+function UniformEnsemble(gm::GMParams, gr::Graphics, rate::Float64,
+                         targets::Int64)
+    n_receptive_fields = length(gr.receptive_fields)
+    rate_per_field = rate / n_receptive_fields
+
+    r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
+    n_pixels_rf = @>> gr.receptive_fields first get_dimensions prod
+    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * rate_per_field
+
+    UniformEnsemble(rate_per_field, pixel_prob, targets)
 end

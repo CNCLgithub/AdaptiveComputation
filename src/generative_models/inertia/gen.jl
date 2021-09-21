@@ -5,12 +5,12 @@ export gm_inertia_mask
 ################################################################################
 # Initial State
 ################################################################################
-@gen static function inertia_tracker(gm::AbstractGMParams)::Dot
+@gen static function inertia_tracker(gm::GMParams,
+                                     dm::InertiaModel)::Dot
     xs, ys, radius = tracker_bounds(gm)
     x = @trace(uniform(xs[1], xs[2]), :x)
     y = @trace(uniform(ys[1], ys[2]), :y)
 
-    dm  = get_dm(cg)
     ang = @trace(von_mises(0.0, 1e-5), :ang) # super flat
     mag = @trace(normal(dm.vel, 1e-2), :std)
 
@@ -31,10 +31,11 @@ end
 @gen static function inertia_init(gm::GMParams, dm::InertiaModel,
                                   gr::AbstractGraphics)
 
-    n_trackers = @trace(uniform_discrete(0., gm.max_things),
+    n_trackers = @trace(uniform_discrete(0, gm.max_things),
                         :n_trackers)
     gms = fill(gm, n_trackers)
-    trackers = @trace(Gen.Map(inertia_tracker)(gms), :trackers)
+    dms = fill(dm, n_trackers)
+    trackers = @trace(Gen.Map(inertia_tracker)(gms, dms), :trackers)
     n_tracked_targets = sum(map(target, trackers))
 
     ens_rate = gm.max_things - n_trackers
@@ -100,23 +101,23 @@ end
     return diff
 end
 
-@gen static function interial_epistemics(prev_cg::CausalGraph)
+@gen static function inertial_epistemics(prev_cg::CausalGraph)
     death_rfs = death(prev_cg)
     died = @trace(rfs(death_rfs), :death)
 
     bl = birth_limit(prev_cg) + died
-    to_birth = @trace(uniform_discrete(0., bl), :to_birth)
-    bargs = birth_args(prev_cg, died)
-    born = @trace(Gen.Map(inertia_tracker)(bargs), :birth)
+    to_birth = @trace(uniform_discrete(0, bl), :to_birth)
+    (gms, dms) = birth_args(prev_cg, died)
+    born = @trace(Gen.Map(inertia_tracker)(gms, dms), :birth)
     diff = birth_diff(prev_cg, born, died)
     return diff
 end
 
-@gen static function inertia_kernel(t::Int,
+@gen static function inertia_kernel(t::Int64,
                                     prev_cg::CausalGraph)
 
     # epistemics kernel - birth/death diff
-    bddiff = @trace(inertial_epsitemics(prev_cg), :epistemics)
+    bddiff = @trace(inertial_epistemics(prev_cg), :epistemics)
 
     # update kinematic state for representations
     # merge with `bdd` for effeciency
@@ -151,12 +152,3 @@ end
     result = (init_state, states)
     return result
 end
-
-# @gen static function gm_inertia_pos(k::Int, gm, dm)
-
-#     cg = get_init_cg(gm, dm)
-#     init_state = @trace(inertia_init(cg), :init_state)
-#     states = @trace(Gen.Unfold(inertia_pos_kernel)(k, init_state), :kernel)
-#     result = (init_state, states)
-#     return result
-# end

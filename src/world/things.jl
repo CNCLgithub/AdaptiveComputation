@@ -139,16 +139,5 @@ function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
     UniformEnsemble(gm, gr, rate, et)
 end
 
-function UniformEnsemble(gm::GMParams, gr::Graphics, rate::Float64,
-                         targets::Int64)
-    n_receptive_fields = length(gr.receptive_fields)
-    rate_per_field = rate / n_receptive_fields
-
-    r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
-    n_pixels_rf = @>> gr.receptive_fields first get_dimensions prod
-    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * rate_per_field
-
-    UniformEnsemble(rate_per_field, pixel_prob, targets)
-end
 
 get_pos(e::UniformEnsemble) = [0,0,-Inf]

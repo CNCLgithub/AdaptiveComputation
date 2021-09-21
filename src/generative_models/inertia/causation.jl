@@ -1,3 +1,20 @@
+function causal_init(gm::GMParams,
+                     dm::InertiaModel,
+                     gr::Graphics,
+                     things::AbstractArray{Thing})
+    cg = CausalGraph(SimpleDiGraph())
+    ws = init_walls(gm.area_width, gm.area_height)
+    nnew = length(ws) + length(things)
+    born = [ws; things]
+    ch = Dict{ChangeDiff, Any}(
+        (:gm => :gm) => gm,
+        (:dm => :dm) => dm,
+        (:graphics => :graphics) => gr,
+    )
+    d = Diff(born, Int64[], StaticPath[], ch)
+    patch(cg, d)
+end
+
 function causal_update(dm::InertiaModel, prev_cg::CausalGraph,
                        initdiff::Diff)::CausalGraph
 

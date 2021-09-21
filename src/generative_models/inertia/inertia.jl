@@ -30,4 +30,6 @@ end
 
 include("helpers.jl")
 include("dynamics.jl")
+include("kinematics.jl")
+include("causation.jl")
 include("gen.jl")
