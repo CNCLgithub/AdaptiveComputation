@@ -18,10 +18,18 @@ function main()
                         rf_dims = rf_dims,
                         img_dims = img_dims,
                         receptive_fields = receptive_fields)
-    args = (3, gm, dm, graphics)
+    args = (100, gm, dm, graphics)
 
-    Profile.init(delay = 0.001,
+    cm = choicemap()
+    cm[:init_state => :n_trackers = 4]
+    for i = 1:4
+        cm[:init_state => :trackers => i => :target] = true
+    end
+    Profile.init(delay = 0.0001,
                  n = 10^6)
+    Profile.clear()
+    generate(gm_inertia_mask, args)
+    @time generate(gm_inertia_mask, args)
     @profilehtml trace, _ = generate(gm_inertia_mask, args)
     @profilehtml trace, _ = generate(gm_inertia_mask, args)
 end

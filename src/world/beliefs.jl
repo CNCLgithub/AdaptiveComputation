@@ -5,8 +5,9 @@ import Base.merge
 
 # Vertices, Edges, Graph
 const ChangeSrc = Union{Int64, Edge, Symbol}
-const ChangeDiff = Pair{ChangeSrc, Symbol}
 const StaticPath = Pair{ChangeSrc, Symbol}
+const ChangeDiff = Pair{ChangeSrc, Symbol}
+const ChangeDict = Dict{ChangeDiff, Any}
 
 struct Diff
     # persistence
@@ -31,7 +32,7 @@ end
 function Base.merge(a::Diff, b::Diff)
     safe_static = filter(x -> !in(first(x), a.died), b.static)
     Diff(
-        [a.born, b.born],
+        [a.born; b.born],
         union(a.died, b.died),
         union(a.static, safe_static),
         merge(a.changed, b.changed)
@@ -41,8 +42,8 @@ end
 
 const Registry = Dict{ChangeSrc, ChangeSrc}
 
-function search_registry!(r::Registry, cg::CausalGraph, src::Int64)
-    dst = getkey(r, src, 0)
+function search_registry!(r::Registry, cg::CausalGraph, v::Int64)
+    dst = get(r, v, 0)
     dst !== 0 && return dst
     add_vertex!(cg)
     dst = MetaGraphs.nv(cg)
@@ -77,13 +78,15 @@ function patch(prev_cg::CausalGraph, diff::Diff)
     # all survived things are copied
     # these are typically walls
     for (src, prop) in static
-        dst = search_registry!(cg, registry, src)
-        @>> read(cg, src, prop) patch!(cg, dst, prop, dst)
+        dst = search_registry!(registry, cg, src)
+        # println("$src : $prop -> $dst")
+        @>> read(prev_cg, src, prop) patch!(cg, dst, prop)
     end
 
     # things that have changed but existed before
     for ((src, prop), val) in changed
-        dst = search_registry!(cg, registry, src)
+        dst = search_registry!(registry, cg, src)
+        # println("$src => $prop : $val -> $dst")
         patch!(cg, dst, prop, val)
     end
 
@@ -91,7 +94,8 @@ function patch(prev_cg::CausalGraph, diff::Diff)
     for ps in born
         add_vertex!(cg)
         dst = MetaGraphs.nv(cg)
-        set_props!(cg, dst, ps)
+        # println("$ps -> $dst")
+        set_prop!(cg, dst, :object, ps)
     end
 
     return cg
@@ -108,7 +112,7 @@ function patch!(g::CausalGraph, dst::Symbol, prop::Symbol, val)
     set_prop!(g, dst, val)
 end
 function patch!(g::CausalGraph, dst::Union{Int64, Edge}, prop::Symbol, val)
-    set_prop!(b, dst, prop, val)
+    set_prop!(g, dst, prop, val)
 end
 
 """
@@ -129,9 +133,9 @@ function patch!(cg::CausalGraph, diff::Diff)
     end
     # things that have changed but existed before
     for ((s, prop), val) in changed
-        istype(s, Edge) && !has_edge(cg, s) &&
+        isa(s, Edge) && !has_edge(cg, s) &&
             add_edge!(cg, src(s), dst(s))
-        set_prop!(cg, s, prop, val)
+        patch!(cg, s, prop, val)
     end
     return nothing
 end

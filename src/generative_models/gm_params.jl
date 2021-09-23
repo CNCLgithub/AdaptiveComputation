@@ -4,6 +4,7 @@ export GMParams
 @with_kw struct GMParams <: AbstractGMParams
     max_things::Int64 = 8
     death_rate::Float64 = 0.1
+    target_rate::Float64 = 0.25
     n_targets::Int64 = 4
     init_pos_spread::Real = 300.0
     area_height::Float64 = 800.0

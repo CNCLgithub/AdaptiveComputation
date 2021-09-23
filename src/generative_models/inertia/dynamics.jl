@@ -7,24 +7,23 @@ function dynamics_update(dm::InertiaModel, cg::CausalGraph)::Diff
     # `Wall`s don't change.
     # `UniformEnsemble` might change
     st = StaticPath[]
-    for w in get_object_verts(cg, Wall)
-        push!(st, w => :object)
-    end
+    ch = ChangeDict()
 
-    # Resolve forces all other elements
-    changed = Dict{ChangeDiff, Any}
-    for v in LightGraphs.vertices(cg)
+    # foreach(v -> (print("$(v) => "); display(props(cg, v))), LightGraphs.vertices(cg))
+    for v in get_object_verts(cg, Union{Wall, Dot})
         obj = get_prop(cg, v, :object)
-        dynamics_update!(changed, cg, dm, v, obj)
+        isa(obj, Wall) && push!(st, v => :object)
+        # Resolve forces all other elements
+        isa(obj, Dot) && dynamics_update!(ch, dm, cg, v, obj)
     end
-    return nothing
+    Diff(Thing[], Int64[], st, ch)
 end
 
 
 """
 Catchall for undefined dynamics
 """
-function dynamics_update!(ch::Dict,
+function dynamics_update!(ch::ChangeDict,
                           dm::InertiaModel,
                           cg::CausalGraph,
                           v::Int64,
@@ -36,7 +35,7 @@ end
 Vertex update logic.
 First update vertices given walls and accumulate interactions
 """
-function dynamics_update!(ch::Dict{ChangeDiff},
+function dynamics_update!(ch::ChangeDict,
                           dm::InertiaModel,
                           cg::CausalGraph,
                           v::Int64,
@@ -58,7 +57,7 @@ end
 """
 Define vertex to vertex interactions as edges
 """
-function dynamics_update!(ch::Dict{ChangeDiff},
+function dynamics_update!(ch::ChangeDict,
                           dm::InertiaModel,
                           cg::CausalGraph,
                           w::Int64,

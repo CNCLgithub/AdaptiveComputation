@@ -71,6 +71,9 @@ function _get_wall_normal(p1::Vector{Float64}, p2::Vector{Float64},
     return _contains(n, area_width, area_height) ? n : -n
 end
 
+# TODO: faster implementation?
+walls(cg::CausalGraph) = get_object_verts(cg, Wall)
+
 abstract type Polygon <: Object end
 
 @with_kw mutable struct NGon <: Polygon
@@ -116,16 +119,15 @@ function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
 
     # number of trackers in ensemble
 
-    t = tracked(cg) # n trackers at t-1
-    tt = 0 # n tracked targets at time t-1
-    for v in t
-        tt += target(get_prop(cg, v, :object))
-    end
-    for b in born # plus any newly tracked targets
+    # t = tracked(cg) # n trackers at t-1
+    t = get_object_verts(cg, Dot)
+    tt = 0 # new tracked targets
+    for b in born
          tt += target(b)
     end
 
-    et = gm.n_targets - tt
+    prev_ens = first(get_object_verts(cg, UniformEnsemble))
+    et = prev_ens.targets - tt
     for v in died
         # adjusting for any dead tracked targets
         et += target(get_prop(cg, v, :object))
@@ -134,7 +136,7 @@ function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
     # rate of ensemble
     n_born = length(born)
     n_died = length(died)
-    rate = gm.max_things - length(t) - n_born + n_died
+    rate = prev_ens.rate - n_born + n_died
 
     UniformEnsemble(gm, gr, rate, et)
 end

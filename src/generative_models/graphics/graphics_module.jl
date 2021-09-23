@@ -46,8 +46,8 @@ function predict(graphics::Graphics, cg::CausalGraph)::Diff
     #     map(rf -> cropfilter(rf, spaces))
     # end
     #
-    vs = filter_vertices(cg, :space)
-    nvs = length(rendered_vs)
+    vs = collect(filter_vertices(cg, :space))
+    nvs = length(vs)
 
     # construct receptive fields
     rfs_vec = init_rfs_vec(graphics.rf_dims)
@@ -73,7 +73,7 @@ Only updates local memory (:flow) and observation space (:space)
 """
 function render(gr::Graphics,
                 cg::CausalGraph)::Diff
-    ch = Dict{ChangeDiff, Any}()
+    ch = ChangeDict()
     for v in LightGraphs.vertices(cg)
         @>> get_prop(cg, v, :object) render_elem!(ch, gr, cg, v)
     end
@@ -83,7 +83,7 @@ end
 """
 Catch for undefined graphics
 """
-function render_elem!(::ChangeDiff,
+function render_elem!(::ChangeDict,
                       ::Graphics,
                       ::CausalGraph,
                       ::Int64,
@@ -94,13 +94,13 @@ end
 """
 Rendering Dots
 """
-function render_elem!(ch::ChangeDiff,
+function render_elem!(ch::ChangeDict,
                       gr::Graphics,
                       cg::CausalGraph,
                       v::Int64,
                       d::Dot)
 
-    @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = graphics
+    @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = gr
     @unpack area_width, area_height = (get_prop(cg, :gm))
 
     # going from area dims to img dims
@@ -112,10 +112,10 @@ function render_elem!(ch::ChangeDiff,
                                    gauss_r_multiple,
                                    gauss_amp, gauss_std)
 
-    if has_prop(cg, src, :flow)
-        flow = evolve(get_prop(prev_cg, src, :flow), space)
+    if has_prop(cg, v, :flow)
+        flow = evolve(get_prop(cg, v, :flow), space)
     else
-        @unpack flow_decay_rate = graphics
+        @unpack flow_decay_rate = gr
         flow = ExponentialFlow(decay_rate = flow_decay_rate, memory = space)
     end
 
@@ -132,12 +132,12 @@ Rendering `UniformEnsemble`
 
 No `:flow` needed.
 """
-function render_elem!(ch::ChangeDiff,
+function render_elem!(ch::ChangeDict,
                       gr::Graphics,
                       cg::CausalGraph,
                       v::Int64,
                       e::UniformEnsemble)
-    @unpack img_dims = graphics
+    @unpack img_dims = gr
     ch[v => :space] = Fill(e.pixel_prob, reverse(img_dims))
 end
 

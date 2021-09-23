@@ -10,13 +10,12 @@ function kinematics_update(dm::InertiaModel, cg::CausalGraph)::Diff
     # `Diff` implicitly treats everything as static when
     # static is empty.
     st = StaticPath[]
-
-    changed = Dict{ChangeDiff, Any}
+    ch = ChangeDict()
     for v in LightGraphs.vertices(cg)
         obj = get_prop(cg, v, :object)
-        kinematics_update!(changed, dm, cg, v, obj)
+        kinematics_update!(ch, dm, cg, v, obj)
     end
-    return nothing
+    Diff(Thing[], Int64[], st, ch)
 end
 
 
@@ -24,7 +23,7 @@ end
 """
 Catchall for undefined kinematics
 """
-function kinematics_update!(ch::Dict{ChangeDiff},
+function kinematics_update!(ch::ChangeDict,
                             dm::InertiaModel,
                             cg::CausalGraph,
                             v::Int64,
@@ -32,7 +31,7 @@ function kinematics_update!(ch::Dict{ChangeDiff},
     return nothing
 end
 
-function kinematics_update!(ch::Dict{ChangeDiff},
+function kinematics_update!(ch::ChangeDict,
                             dm::InertiaModel,
                             cg::CausalGraph,
                             v::Int64,

@@ -1,5 +1,7 @@
 export load_scene
 
+import Base.read
+
 function try_read(scene, element::String)
     datum = nothing
     try
@@ -15,12 +17,12 @@ end
 function load_scene(scene, dataset_path)
     
     file = jldopen(dataset_path, "r")
-    scene = read(file, "$scene")
+    scene = base.read(file, "$scene")
     gt_causal_graphs = scene["gt_causal_graphs"]
     aux_data = try_read(scene, "aux_data")
     close(file)
     println("scene data loaded")
-    
-    scene_data = Dict([:gt_causal_graphs => gt_causal_graphs,
+
+    scene_data = dict([:gt_causal_graphs => gt_causal_graphs,
                        :aux_data => aux_data])
 end

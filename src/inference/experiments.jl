@@ -53,7 +53,12 @@ function get_init_constraints(cg::CausalGraph)
     get_init_constraints(cg, length(init_dots))
 end
 function get_init_constraints(cg::CausalGraph, n::Int64)
+    #TODO: convert datasets into type agnostic format
     init_dots = get_objects(cg, Dot)
+    if isempty(init_dots)
+        init_dots = get_objects(cg, JLD2.ReconstructedTypes.var"##Dot#377")
+    end
+    display(typeof(get_prop(cg, 5, :object)))
     cm = Gen.choicemap()
     cm[:init_state => :n_trackers] = n
     for i=1:n

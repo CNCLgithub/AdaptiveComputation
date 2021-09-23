@@ -5,14 +5,15 @@ export target_designation_full, target_designation_flat
 # target designation 2:
 # for each observation gets score for being a target
 function _td2(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
-    @assert first(pmbrfs) isa PoissonElement "First element assumed to be clutter"
+
+    ens_i = findfirst(x -> isa(UniformEnsemble), pmbrfs)
+    @assert !isnothing(ens_i) "One element must be an Ensemble"
 
     ls, cube = GenRFS.associations(pmbrfs, xs)
     # ls = ls .- logsumexp(ls)
-    cube = cube[:, 2:end, :]
+    cube = cube[:, 1:end .!= ens_i, :]
     nx, ne, np = size(cube)
     td = Dict{Int64, Float64}()
-    # assuming first element is pmbrfs
     if ne === 0
         for k = 1:nx
             td[k] = 0.0 # log(1.0)

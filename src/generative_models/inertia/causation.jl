@@ -2,6 +2,9 @@ function causal_init(gm::GMParams,
                      dm::InertiaModel,
                      gr::Graphics,
                      things::AbstractArray{Thing})
+    # initialize causal graph with initial states
+    # initialization of dynamics and graphics
+    # is done by gen functions
     cg = CausalGraph(SimpleDiGraph())
     ws = init_walls(gm.area_width, gm.area_height)
     nnew = length(ws) + length(things)
@@ -12,7 +15,12 @@ function causal_init(gm::GMParams,
         (:graphics => :graphics) => gr,
     )
     d = Diff(born, Int64[], StaticPath[], ch)
-    patch(cg, d)
+    cg = patch(cg, d)
+
+    # initialize graphics
+    @>> cg render(gr) patch!(cg)
+
+    return cg
 end
 
 function causal_update(dm::InertiaModel, prev_cg::CausalGraph,

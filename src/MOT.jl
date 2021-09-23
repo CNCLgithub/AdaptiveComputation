@@ -9,16 +9,15 @@ using Parameters: @with_kw, @unpack, @pack!
 using Lazy: @>, @>>
 
 
-function __init__()
-    @load_generated_functions
-end
+# function __init__()
+# end
 
 include("world/world.jl")
 include("distributions/distributions.jl")
 include("utils/utils.jl")
 include("generative_models/generative_models.jl")
-include("procedures/procedures.jl")
+include("inference/inference.jl")
 include("visuals/visuals.jl")
-include("experiments.jl")
 
+@load_generated_functions
 end

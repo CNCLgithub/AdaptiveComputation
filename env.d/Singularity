@@ -1,11 +1,8 @@
 bootstrap: docker
-from: nvidia/cuda:10.1-cudnn7-devel
-
+from: ubuntu:18.04
 
 %environment
- export PATH=$PATH:/blender/blender
- export PATH=$PATH:/miniconda/bin
- export PATH=$PATH:/julia-1.4.2/bin
+ export PATH=$PATH:"/usr/local/julia-1.6.2/bin"
 
 %runscript
   exec bash "$@"
@@ -13,8 +10,6 @@ from: nvidia/cuda:10.1-cudnn7-devel
 %post
  apt-get update
  apt-get install -y software-properties-common
- add-apt-repository ppa:jonathonf/ffmpeg-4
- apt-get update --fix-missing
  apt-get install -y  build-essential \
                      graphviz \
                      git \
@@ -26,35 +21,26 @@ from: nvidia/cuda:10.1-cudnn7-devel
                      libsm6 \
                      libxrender-dev \
                      libgl1-mesa-dev \
-                     mesa-utils \
-                     xvfb \
                      gettext \
                      gettext-base \
                      libgtk-3-dev \
                      libglib2.0-dev \
                      xdg-utils \
-                     cmake
+                     cmake \
+                     python3.8-dev \
+                     python3-pip
+
  apt-get clean
 
- # Install Julia
- wget "https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.2-linux-x86_64.tar.gz" \
-      -O "/julia.tar.gz"
- tar xvzf "/julia.tar.gz"
- ln -s /julia-1.4.2/bin/julia /usr/bin/julia
- chmod +x /usr/bin/julia
+ /usr/bin/python3.8 -m pip install --upgrade pip
+ /usr/bin/python3.8 -m pip install pipenv virtualenv
 
- # Setup blender
- wget "https://yale.box.com/shared/static/8wsh0mbvvxfds04xwaef034dcocjrq5w.gz" \
-      -O /blender.tar.gz
- tar xf /blender.tar.gz
- rm /blender.tar.gz
- mv blender-2.* /blender
- chmod +x blender/blender
 
- # Setup conda
- wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O conda.sh
- bash conda.sh -b -p /miniconda
- rm conda.sh
+ # setup julia
+ wget "https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.2-linux-x86_64.tar.gz" \
+     -O "julia.tar.gz"
+ tar -xzf "julia.tar.gz" -C "/usr/local/"
+ rm "julia.tar.gz"
 
 
  # Add an sbatch workaround

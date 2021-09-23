@@ -26,19 +26,18 @@ function birth_diff(dm::InertiaModel, cg::CausalGraph,
     end
     ens_idx = @> cg get_object_verts(UniformEnsemble) first
     ens = UniformEnsemble(cg, died, born)
-    changed = Dict{ChangeDiff, Thing}((ens_idx => :object), ens)
+    changed = Dict{ChangeDiff, Thing}((ens_idx => :object) => ens)
     Diff(born, died, st, changed)
 end
 
 function birth_limit(dm::InertiaModel, cg::CausalGraph)
     gm = get_gm(cg)
-    nthings = get_object_verts(cg, Dot)
-    gm.max_things - nthings
+    nthings = length(get_object_verts(cg, Dot))
+    gm.max_things - nthings !== 0 # 1 or 0
 end
 
 function birth_args(dm::InertiaModel, cg::CausalGraph, n::Int64)
     gm = get_gm(cg)
-    dm = get_dm(cg)
     (fill(gm, n), fill(dm, n))
 end
 
@@ -47,9 +46,8 @@ end
 Creates a `Diff` with `:object` updates for each tracker.
 Also propagates graphics state
 """
-function diff_from_trackers(vs::Vector{Int64}, trackers::AbstractArray{Thing},
-                            prev_cg::CausalGraph)
-    chng = Dict{ChangeDiff, Any}()
+function diff_from_trackers(vs::Vector{Int64}, trackers::AbstractArray{<:Thing})
+    chng = ChangeDict()
     st = Vector{StaticPath}(undef, length(vs))
     @inbounds for i = 1:length(vs)
         chng[vs[i] => :object] = trackers[i]
@@ -67,8 +65,9 @@ function get_walls(cg::CausalGraph, dm::InertiaModel)
     end
 end
 
-function inertia_step_args(cg::CausalGraph)
-    vs = get_object_verts(cg, Dot)
+function inertia_step_args(cg::CausalGraph, d::Diff)
+    vs = @> cg get_object_verts(Dot) setdiff(d.died)
+    # vs = get_object_verts(cg, Dot)
     cgs = fill(cg, length(vs))
     (cgs, vs)
 end
@@ -91,8 +90,8 @@ function vector_to(a::Object, b::Object)
     b.pos[1:2] - a.pos[1:2]
 end
 
-function UniformEnsemble(gm::GMParams, gr::Graphics, rate::Float64,
-                         targets::Int64)
+function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
+                         targets)
     n_receptive_fields = length(gr.receptive_fields)
     rate_per_field = rate / n_receptive_fields
 

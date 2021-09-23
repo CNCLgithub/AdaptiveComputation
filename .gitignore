@@ -8,12 +8,12 @@ tmp/
 build
 htmlcov
 
-.julia/
-mot.so
-mot.sif
-.pyenv
-output/
+jenv/
+*.so
+*.sif
+pyenv
 user.conf
+env.d/spaths
 
 *.png
 *.gif
