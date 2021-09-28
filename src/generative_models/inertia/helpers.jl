@@ -8,8 +8,9 @@ end
 
 function InertiaKernelState(world::CausalGraph,
                             es::RFSElements{T},
-                            xs::AbstractArray{T}) where {T}
-    (pls, pt) = GenRFS.associations(es, xs)
+                            xs::Vector) where {T}
+    _xs = collect(T, xs)
+    (pls, pt) = GenRFS.associations(es, _xs)
     InertiaKernelState(world, es, xs, pt, pls)
 end
 
@@ -21,7 +22,7 @@ end
 function correspondence(st::InertiaKernelState)
     @unpack es, pt, pls = st
     # all trackers (anything that isnt an ensemble)
-    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
+    tracker_ids = findall(x -> isa(x, BernoulliElement), es)
     pt = pt[:, tracker_ids, :]
     correspondence(pt, pls)
 end
@@ -44,18 +45,20 @@ end
 
 function trackers(dm::InertiaModel, tr::Trace)
     t = first(get_args(tr))
-    changed = tr[:kernel => t => :dynamcis => :trackers]
-    n_chng = length(changed)
+    st = tr[:kernel => t]
+    vs = get_object_verts(st.world, Dot)
+    nv = length(vs)
     n_born = tr[:kernel => t => :epistemics => :to_birth]
-    ts = Vector{Pair}(undef, n_chng + n_born)
+    n_chng = nv - n_born
+    ts = Vector{Tuple}(undef, n_chng + n_born)
     # while the vertices of trackers may not be contiguous
     # across time steps, trackers order is preserved
     # First updated trackers (`changed`) and then new trackers.
     @inbounds for i = 1:n_chng
-        ts[i] = :kernel => t => :dynamics => :trackers => i
+        ts[i] = (:kernel, t, :dynamics, :trackers, i)
     end
     @inbounds for i = 1:n_born
-        ts[i + n_chng] = :kernel => t => :epistemics => :birth => i
+        ts[i + n_chng] = (:kernel, t, :epistemics, :birth, i)
     end
     ts
 end

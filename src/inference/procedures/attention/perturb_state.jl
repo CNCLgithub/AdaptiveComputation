@@ -8,25 +8,24 @@ Perturbs velocity based on probs of assignments to observations.
 """
 
 
-function _state_proposal(trace::Gen.Trace, tracker::Pair,
+function _state_proposal(trace::Gen.Trace, tracker::Tuple,
                          att::MapSensitivity)
     t, gm, dm, gr = Gen.get_args(trace)
-    # choices = Gen.get_choices(trace)
 
     @unpack ancestral_steps = att
     i = max(1, t - ancestral_steps)
-    addr = tracker => :ang
+    addr = foldr(Pair, (tracker..., :ang))
     ang = trace[addr]
 
-    iaddr = tracker => :inertia
-    inertia = get(trace, iaddr, false) # no inertia if not defined
+    iaddr = foldr(Pair, (tracker..., :inertia))
+    inertia = tracker[3] == :dynamics ? trace[iaddr] : false
     @unpack k_min, k_max = dm
     k = inertia ? k_max : k_min
     (addr, ang, k)
 end
 
-@gen  function state_proposal(trace::Gen.Trace, tracker_addr::Pair,
-                              att:MapSensitivity)
+@gen  function state_proposal(trace::Gen.Trace, tracker::Tuple,
+                              att::MapSensitivity)
     (addr, ang, k) = _state_proposal(trace, tracker, att)
     {addr} ~ von_mises(ang, k)
     return nothing
@@ -51,27 +50,29 @@ function apply_random_walk(trace::Gen.Trace, proposal, proposal_args)
     (new_trace, alpha)
 end
 
-function tracker_kernel(trace::Gen.Trace, tracker::Int64,
+function tracker_kernel(trace::Gen.Trace, tracker::Tuple,
                         att::MapSensitivity)
     new_tr, w1 = apply_random_walk(trace, state_proposal,
                                    (tracker, att))
+    (new_tr, w1)
     # @show w1
-    new_tr, w2 = ancestral_tracker_move(new_tr, tracker, att)
-    # @show w2
-    (new_tr, w1 + w2)
+    # new_tr, w2 = ancestral_tracker_move(new_tr, tracker, att)
+    # # @show w2
+    # (new_tr, w1 + w2)
 end
 
 # rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
 
-function ancestral_tracker_move(trace::Gen.Trace, tracker::Int64, att::MapSensitivity)
+function ancestral_tracker_move(trace::Gen.Trace, tracker::Tuple, att::MapSensitivity)
     args = Gen.get_args(trace)
     t = first(args)
-    addrs = []
-    t === 1 && return (trace, 0.)
+    (t === 1 || tracker[3] == :epistemics) && return (trace, 0.)
 
+    tid = last(tracker)
+    addrs = []
     for i = max(2, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :trackers => tracker
-        push!(addrs, addr)
+        addr = :kernel => i => :dynamics => :trackers => tid
+        has_value(trace, addr) && push!(addrs, addr)
     end
     (new_tr, ll) = take(regenerate(trace, Gen.select(addrs...)), 2)
 end
@@ -85,14 +86,15 @@ end
 function perturb_state!(chain::SeqPFChain,
                         att::AbstractAttentionModel)
     @unpack state, auxillary = chain
-    @unpack weights, cycles, allocated = auxillary
-    allocated = zeros(size(allocated))
+    @unpack weights, cycles = auxillary
+    allocated = zeros(size(weights))
     num_particles = length(state.traces)
     @inbounds for i=1:num_particles
         # map obs weights back to target centric weights
-        c = correspondence(tr)
-        tweights = softmax(sum(weights .* c, dims = 2))
-        tracker_addrs = trackers(tr)
+        c = correspondence(state.traces[i])
+        # TODO: this is ugly
+        tweights = vec(softmax(sum(weights .* c, dims = 1)))
+        tracker_addrs = trackers(state.traces[i])
         for _ = 1:cycles
             # sample a tracker
             ti = Gen.categorical(tweights)

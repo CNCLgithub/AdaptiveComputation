@@ -65,9 +65,10 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
             jittered, ls = jitter(seeds[i], latents[j] , att)
             div = @>> jittered begin
                 objective
-                sinkhorn_div(seed_obj; scale = scale)
+                x -> sinkhorn_div(seed_obj, x; scale = scale)
                 log
-            end + ls + seed_ls[i]
+            end
+            div += ls + seed_ls[i]
             register_to_obs!(sensitivities, jittered, j, div)
         end
     end

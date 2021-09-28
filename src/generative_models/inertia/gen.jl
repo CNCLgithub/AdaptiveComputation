@@ -113,9 +113,11 @@ end
     bl = birth_limit(dm, prev_cg) + ndied
     # to_birth = @trace(uniform_discrete(0, bl), :to_birth)
     to_birth = @trace(uniform_discrete(0, bl), :to_birth)
-    (gms, dms) = birth_args(dm, prev_cg, ndied)
+    (gms, dms) = birth_args(dm, prev_cg, to_birth)
     born = @trace(Gen.Map(inertia_tracker)(gms, dms), :birth)
-    diff = birth_diff(dm, prev_cg, collect(Thing, born), died)
+    diff = birth_diff(dm, prev_cg,
+                      collect(Thing, born),
+                      collect(Int64, died))
     return diff
 end
 
@@ -140,8 +142,8 @@ end
 
     # store the associations for later use
     current_state = InertiaKernelState(new_cg,
-                                        es,
-                                        xs)
+                                       es,
+                                       xs)
 
     return current_state
 end
