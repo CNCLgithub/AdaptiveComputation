@@ -21,7 +21,7 @@ function main()
     args = (100, gm, dm, graphics)
 
     cm = choicemap()
-    cm[:init_state => :n_trackers = 4]
+    cm[:init_state => :n_trackers] = 4
     for i = 1:4
         cm[:init_state => :trackers => i => :target] = true
     end

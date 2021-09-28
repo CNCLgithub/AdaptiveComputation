@@ -112,7 +112,7 @@ end
 target(u::UniformEnsemble) = u.rate === 0. ? 0. : u.targets / u.rate
 
 function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
-                         born::Vector{Thing})
+                         born::Vector{Thing}, prev_ens::UniformEnsemble)
 
     gm = get_gm(cg)
     gr = get_graphics(cg)
@@ -126,7 +126,6 @@ function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
          tt += target(b)
     end
 
-    prev_ens = first(get_object_verts(cg, UniformEnsemble))
     et = prev_ens.targets - tt
     for v in died
         # adjusting for any dead tracked targets

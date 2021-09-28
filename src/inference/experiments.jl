@@ -1,19 +1,15 @@
 function get_observations(graphics::Graphics, masks)
     k = size(masks, 1)
     observations = Vector{Gen.ChoiceMap}(undef, k)
-    @unpack receptive_fields = graphics
-    
     for t=1:k
         cm = Gen.choicemap()
-        for i=1:length(receptive_fields)
-            @debug "# of masks for rf $(i): $(length(masks[t][i]))"
-            cm[:kernel => t => :receptive_fields => i => :masks] = masks[t][i]
-        end
+        cm[:kernel => t => :masks] = masks[t]
         observations[t] = cm
     end
     return observations
 end
 
+# TODO: depricate? only used in a test
 function constraints_from_cgs(cgs::Vector{CausalGraph},
                               gm::Gen.GenerativeFunction,
                               args::Tuple)
@@ -55,10 +51,6 @@ end
 function get_init_constraints(cg::CausalGraph, n::Int64)
     #TODO: convert datasets into type agnostic format
     init_dots = get_objects(cg, Dot)
-    if isempty(init_dots)
-        init_dots = get_objects(cg, JLD2.ReconstructedTypes.var"##Dot#377")
-    end
-    display(typeof(get_prop(cg, 5, :object)))
     cm = Gen.choicemap()
     cm[:init_state => :n_trackers] = n
     for i=1:n
@@ -67,11 +59,12 @@ function get_init_constraints(cg::CausalGraph, n::Int64)
         addr = :init_state => :trackers => i => :y
         cm[addr] = init_dots[i].pos[2]
 
-        vel = init_dots[i].vel
-        normv = norm(vel)
-        ang = vel ./ normv
-        ang = normv == 0. ? 0. : atan(ang[2], ang[1])
-        cm[:init_state => :trackers => i => :ang] = ang
+        # TODO: add vel to `cg_from_positions`
+        # vel = init_dots[i].vel
+        # normv = norm(vel)
+        # ang = vel ./ normv
+        # ang = normv == 0. ? 0. : atan(ang[2], ang[1])
+        # cm[:init_state => :trackers => i => :ang] = ang
 
         # by convention, the first n trackers are targets
         # in the source trace
@@ -102,9 +95,9 @@ function query_from_params(gt_causal_graphs,
 
     display(init_constraints)
 
-    masks = get_bit_masks_rf(gt_causal_graphs,
-                             graphics_params,
-                             gm_params)
+    masks = render_from_cgs(graphics_params,
+                            gm_params,
+                            gt_causal_graphs)
     observations = get_observations(graphics_params, masks)
 
     init_args = (0, gm_params, dm_params, graphics_params)
@@ -121,7 +114,7 @@ function query_from_params(gt_causal_graphs,
 
 
     q = first(query)
-    ms = q.observations[:kernel => 1 => :receptive_fields => 1 => :masks]
+    ms = q.observations[:kernel => 1 => :masks]
     @debug "number of masks $(length(ms))"
     
     return query

@@ -8,23 +8,24 @@ Perturbs velocity based on probs of assignments to observations.
 """
 
 
-function _state_proposal(trace::Gen.Trace, tracker::Int64,
+function _state_proposal(trace::Gen.Trace, tracker::Pair,
                          att::MapSensitivity)
     t, gm, dm, gr = Gen.get_args(trace)
-    choices = Gen.get_choices(trace)
+    # choices = Gen.get_choices(trace)
 
     @unpack ancestral_steps = att
     i = max(1, t - ancestral_steps)
-    addr = :kernel => i => :dynamics => :trackers => tracker => :ang
-    ang = choices[addr]
+    addr = tracker => :ang
+    ang = trace[addr]
 
-    inertia = choices[:kernel => i => :dynamics => :trackers => tracker => :inertia]
+    iaddr = tracker => :inertia
+    inertia = get(trace, iaddr, false) # no inertia if not defined
     @unpack k_min, k_max = dm
     k = inertia ? k_max : k_min
     (addr, ang, k)
 end
 
-@gen  function state_proposal(trace::Gen.Trace, tracker::Int64,
+@gen  function state_proposal(trace::Gen.Trace, tracker_addr::Pair,
                               att:MapSensitivity)
     (addr, ang, k) = _state_proposal(trace, tracker, att)
     {addr} ~ von_mises(ang, k)
@@ -87,12 +88,20 @@ function perturb_state!(chain::SeqPFChain,
     @unpack weights, cycles, allocated = auxillary
     allocated = zeros(size(allocated))
     num_particles = length(state.traces)
-    @inbounds for i=1:num_particles, _ = 1:cycles
-        tracker = Gen.categorical(weights)
-        allocated[tracker] += 1
-        new_tr, ls = att.jitter(state.traces[i], tracker, att)
-        if log(rand()) < ls
-            state.traces[i] = new_tr
+    @inbounds for i=1:num_particles
+        # map obs weights back to target centric weights
+        c = correspondence(tr)
+        tweights = softmax(sum(weights .* c, dims = 2))
+        tracker_addrs = trackers(tr)
+        for _ = 1:cycles
+            # sample a tracker
+            ti = Gen.categorical(tweights)
+            allocated += c[:, ti]
+            # perform an mh move
+            new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
+            if log(rand()) < ls
+                state.traces[i] = new_tr
+            end
         end
     end
     @pack! auxillary = allocated

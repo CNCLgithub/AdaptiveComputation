@@ -28,62 +28,54 @@ function top_n_traces(state::Gen.ParticleFilterState, n::Int64)
     traces[inds]
 end
 
+function trackers(tr::Gen.Trace)
+    t, _, dm, _ = get_args(tr)
+    trackers(dm, tr)
+end
+
+function register_to_obs!(gr::Vector{Float64}, tr::Gen.Trace, j::Int64, div::Float64)
+    ws = correspondence(tr)
+    ws = ws[:, j]
+    ws .-= softmax(ws)
+    rmul!(ws, div)
+    gr += ws
+    return nothing
+end
+
+
 # returns the sensitivity of each latent variable
 function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
 
     @unpack proc, state, auxillary = chain
-    @unpack latents = proc
-    @unpack sensitivities = auxillary
     @unpack objective, scale, samples, jitter = att
 
     seeds = Gen.sample_unweighted_traces(state, samples)
-    # seeds = top_n_traces(state, samples)
-    seed_obj = map(objective, seeds)
+    seed_ls = get_score.(seeds)
+    seed_ls .-= maximum(seed_ls)
+    # seed_obj = map(objective, seeds)
+    # tracker_addrs = map(trackers, seeds)
+    # n_latents = map(count_trackers, seeds)
 
-    n_latents = length(latents)
-
-    kls = zeros(samples, n_latents)
-    lls = zeros(samples, n_latents)
-    @inbounds for i = 1:samples, j = 1:n_latents
-        # println("Working on sample $(i), latent $(j)")
-        jittered, lls[i, j] = jitter(seeds[i], j, att)
-        kls[i, j] = @>> jittered begin
-            objective
-            sinkhorn_div(seed_obj[i]; scale = scale)
-            log
+    sensitivities = @>> seeds first n_obs zeros
+    @inbounds for i = 1:samples
+        latents = trackers(seeds[i])
+        seed_obj = objective(seeds[i])
+        for j = 1:length(latents)
+            # println("Working on sample $(i), latent $(j)")
+            jittered, ls = jitter(seeds[i], latents[j] , att)
+            div = @>> jittered begin
+                objective
+                sinkhorn_div(seed_obj; scale = scale)
+                log
+            end + ls + seed_ls[i]
+            register_to_obs!(sensitivities, jittered, j, div)
         end
     end
 
-    println("log kl")
-    display(kls)
-    println("log weights")
-    display(lls)
-    
-    gs = Vector{Float64}(undef, n_latents)
-    # normalizing accross samples
-    clamp!(lls, -Inf, 0.)
-    lses = @>> lls eachcol map(logsumexp)
-    @inbounds for i = 1:n_latents
-        # gs[i] = logsumexp(kls[:, i]) - log(samples)
-        if isinf(lses[i]) || isnan(lses[i])
-            gs[i] = logsumexp(kls[:, i]) - log(samples)
-        else
-            gs[i] = logsumexp(kls[:, i] + (lls[:, i] .- lses[i]))
-        # gs[i] = logsumexp(kls[:, i] + lls[:, i]) - log(samples)
-        end
-    end
-    println("compute weights: $gs")
-
-    @unpack weights_tau = att
-    inv_wt = 1.0 - weights_tau
-    @inbounds for i in eachindex(sensitivities)
-        # sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : logsumexp(sensitivities[i] + weights_tau,
-        #                                                              gs[i] + inv_wt)
-        sensitivities[i] = isinf(sensitivities[i]) ? gs[i] : sensitivities[i] * weights_tau +
-            gs[i] * inv_wt
-    end
+    println("log sensitivity")
+    display(sensitivities)
     @pack! auxillary = sensitivities
-    println("time-smoothed weights: $(sensitivities)")
+    return nothing
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
@@ -92,7 +84,6 @@ function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     weights = att.smoothness * sensitivities
     weights = softmax(weights)
-    println("sampling weights: $(weights)")
     @pack! auxillary = weights
 end
 
@@ -102,7 +93,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack sweeps, k, x0 = att
-    x = logsumexp(sensitivities)
+    x = logsumexp(sensitivities) - log(length(sensitivities))
     amp = exp(-k * (x - x0))
     # amp = k * (x - x0)
 

@@ -77,8 +77,8 @@ cont_dest="${SENV[envd]}/${SENV[cont]}"
 [[ "${@}" =~ "all" ]] || [[ "${@}" =~ "datasets" ]] && \
     [[ "${@}" =~ "all" ]] || [[ "${@}" =~ "datasets" ]] && \
     echo "pulling datasets" && \
-    wget "https://yale.box.com/shared/static/y064orseciieeada3jbsb73zrwr7qeqj.jld2" \
-    -O "${SPATHS[datasets]}/exp1_difficulty.jld2" && \
+    # wget "https://yale.box.com/shared/static/y064orseciieeada3jbsb73zrwr7qeqj.jld2" \
+    # -O "${SPATHS[datasets]}/exp1_difficulty.jld2" && \
     wget "https://yale.box.com/shared/static/a8lnpspo2bt6fj6dcd006bl67ftzulsh.json" \
     -O "${SPATHS[datasets]}/exp1_difficulty.json"
 

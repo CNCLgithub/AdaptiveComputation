@@ -42,7 +42,12 @@ end
 
     things = collect(Thing, [ensemble; trackers])
     chain_cg = causal_init(gm, dm, gr, things)
-    return chain_cg
+    init_st = InertiaKernelState(chain_cg,
+                                 RFSElements{Any}(undef, 0),
+                                 [],
+                                 falses(0,0,0),
+                                 Float64[])
+    return init_st
 end
 
 
@@ -115,7 +120,9 @@ end
 end
 
 @gen static function inertia_kernel(t::Int64,
-                                    prev_cg::CausalGraph)
+                                    prev_st::InertiaKernelState)
+
+    prev_cg = prev_st.world
 
     # epistemics kernel - birth/death diff
     bddiff = @trace(inertial_epistemics(prev_cg), :epistemics)
@@ -128,9 +135,15 @@ end
     new_cg = causal_update(get_dm(prev_cg), prev_cg, idiff)
 
     # predict observations as a random finite set (opt. receptive fields)
-    rfs_vec = get_prop(new_cg, :rfs_vec)
-    @trace(Map(sample_masks)(rfs_vec), :receptive_fields)
-    return new_cg
+    es = get_prop(new_cg, :es)
+    xs = @trace(rfs(es), :masks)
+
+    # store the associations for later use
+    current_state = InertiaKernelState(new_cg,
+                                        es,
+                                        xs)
+
+    return current_state
 end
 
 # for position only

@@ -14,8 +14,10 @@ using Gen_Compose: initial_args, initial_constraints,
     rejuvenation::Union{Function, Nothing} = nothing
     rejuv_args::Tuple = ()
 
+    # TODO: depricate
+    # Maybe replace with an Att-based initializer
     # address schema for IOT sensitivity
-    latents::Vector{Int64}
+    # latents::Vector{Int64}
 end
 
 function load(::Type{PopParticleFilter}, path; kwargs...)
@@ -26,7 +28,7 @@ end
     attempts::Int64 = 0
     acceptance::Float64 = 0.
     cycles::Int64 = 0
-    weights::Vector{Float64}
+    weights::Vector{Float64} = Float64[]
     sensitivities::Vector{Float64} = fill(-Inf, length(weights))
     allocated::Vector{Float64} = zeros(length(weights))
 end
@@ -50,7 +52,6 @@ function Gen_Compose.initialize_chain(proc::PopParticleFilter,
                                            constraints,
                                            proc.particles)
 
-    nl = length(proc.latents)
-    aux = AdaptiveComputation(; weights = zeros(nl))
+    aux = AdaptiveComputation()
     return SeqPFChain(query, proc, state, aux)
 end

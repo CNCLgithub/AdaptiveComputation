@@ -39,27 +39,14 @@ function load(::Type{Graphics}, path::String)
              gauss_r_multiple, gauss_amp, gauss_std, bern_existence_prob)
 end
 
-function predict(graphics::Graphics, cg::CausalGraph)::Diff
-
-    # # cut each mass matrix into each receptive fiel
-    # spaces_rf = @>> graphics.receptive_fields begin
-    #     map(rf -> cropfilter(rf, spaces))
-    # end
-    #
+function predict(gr::Graphics, cg::CausalGraph)::Diff
     vs = collect(filter_vertices(cg, :space))
     nvs = length(vs)
-
-    # construct receptive fields
-    rfs_vec = init_rfs_vec(graphics.rf_dims)
-    @inbounds for i in LinearIndices(graphics.rf_dims)
-        rfes = RFSElements{BitMatrix}(undef, nvs)
-        for j in 1:nvs
-            rfes[j] = predict(cg, vs[j], get_prop(cg, vs[j], :object))
-        end
-        rfs_vec[i] = rfes
+    es = RFSElements{BitMatrix}(undef, nvs)
+    @inbounds for j in 1:nvs
+        es[j] = predict(gr, cg, vs[j], get_prop(cg, vs[j], :object))
     end
-
-    Diff(Dict{ChangeDiff, Any}((:rfs_vec => :rfv_vec) => rfs_vec))
+    Diff(Dict{ChangeDiff, Any}((:es => :es) => es))
 end
 
 
@@ -144,13 +131,13 @@ end
 ################################################################################
 # Prediction
 ################################################################################
-function predict(cg::CausalGraph, v::Int64, e::Dot)
-    ep = get_graphics(cg).bern_existence_prob
+function predict(gr::Graphics, cg::CausalGraph, v::Int64, e::Dot)
+    ep = gr.bern_existence_prob
     space = get_prop(cg, v, :space)
     BernoulliElement{BitMatrix}(ep, mask, (space,))
 end
 
-function predict(cg::CausalGraph, v::Int64, e::UniformEnsemble)
+function predict(gr::Graphics, cg::CausalGraph, v::Int64, e::UniformEnsemble)
     space = get_prop(cg, v, :space)
     PoissonElement{BitMatrix}(e.rate, mask, (space,))
 end
@@ -160,87 +147,29 @@ end
 # Helpers
 ################################################################################
 
-# Returns a Vector{BitMatrix} with dots drawn according to the causal graph
-function get_bit_masks(cg::CausalGraph,
-                       graphics::Graphics,
-                       gm::GMParams)
-
-
-    @unpack img_dims, gauss_amp, gauss_std, gauss_r_multiple = graphics
-    # @unpack dot_radius, area_width, area_height = (get_prop(cg, :gm))
-    @unpack dot_radius, area_width, area_height = gm
-
-    positions = @>> get_objects(cg, Dot) map(x -> x.pos)
-
-    # sorting according to depth
-    depth_perm = sortperm(map(x->x[3], positions))
-    positions = positions[depth_perm]
-
-    # initially empty image
-    img_so_far = BitArray{2}(zeros(reverse(graphics.img_dims)))
-
-    n_objects = size(positions,1)
-    masks = Vector{SparseMatrixCSC}(undef, n_objects)
-
-    scaled_r = (dot_radius / area_width) * img_dims[1]
-
-    for i=1:n_objects
-        x, y = translate_area_to_img(positions[i][1:2]...,
-                                     img_dims..., area_width, area_height)
-        masks[i] = draw_gaussian_dot_mask([x,y], scaled_r, img_dims...,
-                                          gauss_r_multiple,
-                                          gauss_amp, gauss_std)
-    end
-
-    masks = masks[invperm(depth_perm)]
-    masks
-end
-
-"""
-    generate_masks(cgs::Vector{CausalGraph},
-                        graphics::Graphics,
-                        gm::AbstractGMParams)
-
-    Generates masks, adds flow and crops them according to receptive fields.
-...
-# Arguments:
-- cgs::Vector{CausalGraph} : causal graphs describing the scene
-- graphics : graphical parameters
-- gm : generative model parameters
-"""
-
-function get_bit_masks_rf(cgs::Vector{CausalGraph},
-                          graphics::Graphics,
-                          gm::AbstractGMParams)
+function render_from_cgs(gr::Graphics,
+                         gm::GMParams,
+                         cgs::Vector{CausalGraph})
     k = length(cgs)
-    # time x receptive_field x object
-    bit_masks_rf = Vector{Vector{Vector{BitMatrix}}}(undef, k)
+    # time x thing
+    # first time step is initialization (not inferred)
+    bit_masks= Vector{Vector{BitMatrix}}(undef, k-1)
 
-    vs = @> first(cgs) begin
-        get_objects(Dot)
+    # initialize graphics
+    g = first(cgs)
+    set_prop!(g, :gm, gm)
+    gr_diff = render(gr, g)
+    @inbounds for t = 2:k
+        g = cgs[t]
+        set_prop!(g, :gm, gm)
+        # carry over graphics from last step
+        patch!(g, gr_diff)
+        # render graphics from current step
+        gr_diff = render(gr, g)
+        patch!(g, gr_diff)
+        @>> g predict(gr) patch!(g)
+        # create masks
+        bit_masks[t - 1] = rfs(get_prop(g, :es))
     end
-    n_objects = length(vs)
-
-    @unpack img_dims, flow_decay_rate, gauss_amp = graphics
-    flows = @>> vs begin
-        map(v -> ExponentialFlow(decay_rate = flow_decay_rate,
-                                 memory = spzeros(Float64, reverse(img_dims)...)))
-        collect(ExponentialFlow)
-    end
-
-    for t=1:k
-        # first create the amodal mask for each object
-        bit_masks = Vector{BitMatrix}(undef, n_objects)
-        for (i, m) in enumerate(get_bit_masks(cgs[t], graphics, gm))
-            flows[i] = evolve(flows[i], m) # evolve the flow
-            bit_masks[i] = mask(flows[i].memory) # mask is the composed flow thing
-        end
-        # then parse each mask across receptive fields
-        bit_masks_rf[t] = @>> graphics.receptive_fields begin
-            map(rf -> cropfilter(rf, bit_masks))
-        end
-        @debug "# of masks per rf : $(map(length, bit_masks_rf[t]))"
-    end
-
-    bit_masks_rf
+    bit_masks
 end

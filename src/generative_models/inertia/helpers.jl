@@ -1,3 +1,65 @@
+struct InertiaKernelState
+    world::CausalGraph
+    es::RFSElements
+    xs::AbstractArray
+    pt::BitArray{3}
+    pls::Vector{Float64}
+end
+
+function InertiaKernelState(world::CausalGraph,
+                            es::RFSElements{T},
+                            xs::AbstractArray{T}) where {T}
+    (pls, pt) = GenRFS.associations(es, xs)
+    InertiaKernelState(world, es, xs, pt, pls)
+end
+
+function assocs(st::InertiaKernelState)
+    (st.pt, st.pls)
+end
+
+
+function correspondence(st::InertiaKernelState)
+    @unpack es, pt, pls = st
+    # all trackers (anything that isnt an ensemble)
+    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
+    pt = pt[:, tracker_ids, :]
+    correspondence(pt, pls)
+end
+
+function td_flat(st::InertiaKernelState)
+    @unpack es, pt, pls = st
+    # all trackers (anything that isnt an ensemble)
+    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
+    pt = pt[:, tracker_ids, :]
+    td_flat(pt, pls) # P(x_i = Target)
+end
+
+function td_full(st::InertiaKernelState)
+    @unpack es, pt, pls = st
+    # all trackers (anything that isnt an ensemble)
+    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
+    pt = pt[:, tracker_ids, :]
+    td_full(pt, pls) # P({x...} are targets)
+end
+
+function trackers(dm::InertiaModel, tr::Trace)
+    t = first(get_args(tr))
+    changed = tr[:kernel => t => :dynamcis => :trackers]
+    n_chng = length(changed)
+    n_born = tr[:kernel => t => :epistemics => :to_birth]
+    ts = Vector{Pair}(undef, n_chng + n_born)
+    # while the vertices of trackers may not be contiguous
+    # across time steps, trackers order is preserved
+    # First updated trackers (`changed`) and then new trackers.
+    @inbounds for i = 1:n_chng
+        ts[i] = :kernel => t => :dynamics => :trackers => i
+    end
+    @inbounds for i = 1:n_born
+        ts[i + n_chng] = :kernel => t => :epistemics => :birth => i
+    end
+    ts
+end
+
 function static(dm::InertiaModel, cg::CausalGraph)
     get_object_verts(cg, Wall)
 end
@@ -25,7 +87,8 @@ function birth_diff(dm::InertiaModel, cg::CausalGraph,
         push!(st, w => :object)
     end
     ens_idx = @> cg get_object_verts(UniformEnsemble) first
-    ens = UniformEnsemble(cg, died, born)
+    prev_ens = get_prop(cg, ens_idx, :object)
+    ens = UniformEnsemble(cg, died, born, prev_ens)
     changed = Dict{ChangeDiff, Thing}((ens_idx => :object) => ens)
     Diff(born, died, st, changed)
 end
@@ -101,3 +164,4 @@ function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
 
     UniformEnsemble(rate_per_field, pixel_prob, targets)
 end
+

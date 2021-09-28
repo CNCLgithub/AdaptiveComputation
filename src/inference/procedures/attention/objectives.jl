@@ -1,18 +1,49 @@
 
-export target_designation_full, target_designation_flat
+export correspondence, td_flat, td_full
+
+function n_obs(tr::Gen.Trace)
+    @>> tr begin
+        get_args
+        first
+        t -> tr[:kernel => t => :masks]
+        length
+    end
+end
+
 # Objectives
+
+function assocs(tr::Gen.Trace)
+    @>> tr begin
+        get_args
+        first
+        t -> tr[:kernel => t]
+        assocs
+    end
+end
+
+function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
+    ls = ls .- logsumexp(ls)
+    nx, ne, np = size(ptensor)
+    c = zeros(nx, ne)
+    @inbounds for p = 1:np
+        c += ptensor[:, :, p] * exp(ls[p])
+    end
+    return c
+end
+
+function correspondence(tr::Gen.Trace)
+    @>> tr begin
+        get_args
+        first # time t
+        t -> tr[:kernel => t] # state
+        correspondence # state specific
+    end
+end
 
 # target designation 2:
 # for each observation gets score for being a target
-function _td2(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
-
-    ens_i = findfirst(x -> isa(UniformEnsemble), pmbrfs)
-    @assert !isnothing(ens_i) "One element must be an Ensemble"
-
-    ls, cube = GenRFS.associations(pmbrfs, xs)
-    # ls = ls .- logsumexp(ls)
-    cube = cube[:, 1:end .!= ens_i, :]
-    nx, ne, np = size(cube)
+function td_flat(pt::BitArray{3}, ls::Vector{Float64})
+    nx, ne, np = size(pt)
     td = Dict{Int64, Float64}()
     if ne === 0
         for k = 1:nx
@@ -25,23 +56,26 @@ function _td2(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
     # @show ls
     # @show total_lse
     @inbounds for x = 1:nx
-        assigned = vec(reduce(|, cube[x, :, :], dims = 1))
+        assigned = vec(reduce(|, pt[x, :, :], dims = 1))
         td[x] = sum(assigned) === 0 ? -Inf : logsumexp(ls[assigned]) - total_lse
     end
     td
 end
 
+
+function td_flat(tr::Gen.Trace)
+    @>> tr begin
+        get_args
+        first # time t
+        t -> tr[:kernel => t] # state
+        td_flat # state specific flat
+    end
+end
+
 # target designation 1:
 # scores and normalizes each partition SET
-function _td(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
-    @assert first(pmbrfs) isa PoissonElement "First element assumed to be clutter"
-
-    ls, cube = GenRFS.associations(pmbrfs, xs)
-    # ls = ls .- logsumexp(ls)
-    # assuming first element is pmbrfs
-    cube = cube[:, 2:end, :]
-    nx, ne, np = size(cube)
-
+function td_full(pt::BitArray{3}, ls::Vector{Float64})
+    nx, ne, np = size(pt)
     # no tracker elements
     ne === 0 && return Dict{BitVector, Float64}(falses(nx) => 0.)
 
@@ -50,57 +84,18 @@ function _td(xs::Vector{T}, pmbrfs::RFSElements{T}) where {T}
     td = Dict{BitVector, Float64}()
     @inbounds for p = 1:np
         # col vectors for which obs are included as sets of targets
-        key = vec(reduce(|, cube[:, :, p], dims = 2))
+        key = vec(reduce(|, pt[:, :, p], dims = 2))
         td[key] = haskey(td, key) ? logsumexp(td[key], ls[p]) : ls[p]
     end
     # map!(x -> x - total, values(td))
     td
 end
 
-function target_designation_full(tr::Gen.Trace)
-    t = first(Gen.get_args(tr))
-
-    rfs_vec = @>> Gen.get_retval(tr) begin
-        last # get the states
-        last # get the last state
-        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
-    end # rfes for each rf
-
-    receptive_fields = @> tr begin
-        get_choices
-        get_submap(:kernel => t => :receptive_fields)
-        get_submaps_shallow
-        # vec of tuples (rf id, rf mask choicemap)
-    end # masks for each rf
-
-    # @debug "receptive fields $(typeof(receptive_fields[1]))"
-    tds = @>> receptive_fields begin
-        map(rf -> _td(convert(Vector{BitMatrix}, rf[2][:masks]),
-                      rfs_vec[rf[1]]))
-    end
-end
-# returns a vector of target designation distributions
-# for each receptive_field
-function target_designation_flat(tr::Gen.Trace)
-    t = first(Gen.get_args(tr))
-
-    rfs_vec = @>> Gen.get_retval(tr) begin
-        last # get the states
-        last # get the last state
-        (cg -> get_prop(cg, :rfs_vec)) # get the receptive fields
-    end # rfes for each rf
-
-    receptive_fields = @> tr begin
-        get_choices
-        get_submap(:kernel => t => :receptive_fields)
-        get_submaps_shallow
-        # vec of tuples (rf id, rf mask choicemap)
-    end # masks for each rf
-
-    # @debug "receptive fields $(typeof(receptive_fields[1]))"
-    tds = @>> receptive_fields begin
-        #  using the "flat" version of td for stability
-        map(rf -> _td2(convert(Vector{BitMatrix}, rf[2][:masks]),
-                       rfs_vec[rf[1]]))
+function td_full(tr::Gen.Trace)
+    @>> tr begin
+        get_args
+        first # time t
+        t -> tr[:kernel => t] # state
+        td_full # state specific obj
     end
 end
