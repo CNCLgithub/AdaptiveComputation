@@ -136,7 +136,6 @@ function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
     n_born = length(born)
     n_died = length(died)
     rate = prev_ens.rate - n_born + n_died
-
     UniformEnsemble(gm, gr, rate, et)
 end
 

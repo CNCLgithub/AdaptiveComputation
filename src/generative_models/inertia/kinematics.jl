@@ -61,5 +61,6 @@ function update(dm::InertiaModel,
     end
 
     pos[1:2] += vel
-    Dot(pos = pos, vel = vel, radius = dot.radius)
+    Dot(pos = pos, vel = vel, radius = dot.radius,
+        target = dot.target)
 end

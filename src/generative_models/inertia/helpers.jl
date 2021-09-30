@@ -28,17 +28,18 @@ function correspondence(st::InertiaKernelState)
 end
 
 function td_flat(st::InertiaKernelState)
-    @unpack es, pt, pls = st
-    # all trackers (anything that isnt an ensemble)
-    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
-    pt = pt[:, tracker_ids, :]
-    td_flat(pt, pls) # P(x_i = Target)
+    @unpack world, es, pt, pls = st
+    things = get_objects(world, Union{Dot, UniformEnsemble})
+    targets = target.(things)
+    tids = targets .> 0
+    pt = pt[:, tids, :]
+    td_flat(pt, pls, targets[tids]) # P(x_i = Target)
 end
 
 function td_full(st::InertiaKernelState)
     @unpack es, pt, pls = st
     # all trackers (anything that isnt an ensemble)
-    tracker_ids = findall(x -> !isa(x, UniformEnsemble), es)
+    tracker_ids = findall(x -> isa(x, BernoulliElement), es)
     pt = pt[:, tracker_ids, :]
     td_full(pt, pls) # P({x...} are targets)
 end
@@ -96,12 +97,17 @@ function birth_diff(dm::InertiaModel, cg::CausalGraph,
     Diff(born, died, st, changed)
 end
 
-function birth_limit(dm::InertiaModel, cg::CausalGraph)
+function birth_limit(dm::InertiaModel, cg::CausalGraph, nd::Int64)
     gm = get_gm(cg)
     nthings = length(get_object_verts(cg, Dot))
-    gm.max_things - nthings !== 0 # 1 or 0
+    # gm.max_things - nthings !== 0 # 1 or 0
+    0.
 end
 
+function birth_args(dm::InertiaModel, cg::CausalGraph, b::Bool)
+    gm = get_gm(cg)
+    b ? ([gm], [dm]) : ([], [])
+end
 function birth_args(dm::InertiaModel, cg::CausalGraph, n::Int64)
     gm = get_gm(cg)
     (fill(gm, n), fill(dm, n))
@@ -158,13 +164,13 @@ end
 
 function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
                          targets)
-    n_receptive_fields = length(gr.receptive_fields)
-    rate_per_field = rate / n_receptive_fields
+    # n_receptive_fields = length(gr.receptive_fields)
+    # rate_per_field = rate / n_receptive_fields
 
     r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
-    n_pixels_rf = @>> gr.receptive_fields first get_dimensions prod
-    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * rate_per_field
+    n_pixels = prod(gr.img_dims)
+    pixel_prob = (2 * pi * r^2 * rate) / n_pixels
 
-    UniformEnsemble(rate_per_field, pixel_prob, targets)
+    UniformEnsemble(rate, pixel_prob, targets)
 end
 

@@ -43,7 +43,14 @@ end
 # target designation 2:
 # for each observation gets score for being a target
 function td_flat(pt::BitArray{3}, ls::Vector{Float64})
+    tw = ones(size(pt, 2))
+    td_flat(pt, ls, tw)
+end
+function td_flat(pt::BitArray{3}, ls::Vector{Float64}, tw::Vector{Float64})
     nx, ne, np = size(pt)
+    @assert ne === length(tw) "Number of elements must match target weights"
+    @assert np === length(ls) "Partition count in `pt` must match log score"
+
     td = Dict{Int64, Float64}()
     if ne === 0
         for k = 1:nx
@@ -51,13 +58,13 @@ function td_flat(pt::BitArray{3}, ls::Vector{Float64})
         end
         return td
     end
-
     total_lse = logsumexp(ls)
-    # @show ls
-    # @show total_lse
     @inbounds for x = 1:nx
-        assigned = vec(reduce(|, pt[x, :, :], dims = 1))
-        td[x] = sum(assigned) === 0 ? -Inf : logsumexp(ls[assigned]) - total_lse
+        tdx = Vector{Float64}(undef, np)
+        for p = 1:np
+            tdx[p] = log(sum(pt[x, :, p] .* tw)) + ls[p]
+        end
+        td[x] = logsumexp(tdx) - total_lse
     end
     td
 end

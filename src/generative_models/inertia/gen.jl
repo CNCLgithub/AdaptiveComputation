@@ -22,7 +22,8 @@ export gm_inertia_mask
 
     target = @trace(bernoulli(gm.target_rate), :target)
 
-    return Dot(pos=[x,y,z], vel=[vx, vy], radius=radius,
+    return Dot(pos=[x,y,z], vel=[vx, vy],
+               radius=radius,
                target = target)
 end
 
@@ -89,7 +90,9 @@ end
     y = _y + vy
     z = @trace(uniform(0, 1), :z)
 
-    d = Dot(pos = [x,y,z], vel = [vx, vy], radius = dot.radius)
+    d = Dot(pos = [x,y,z], vel = [vx, vy],
+            radius = dot.radius,
+            target = dot.target)
     return d
 end
 
@@ -110,9 +113,9 @@ end
     died = @trace(rfs(death_rfs), :death)
     ndied = length(died)
 
-    bl = birth_limit(dm, prev_cg) + ndied
+    bl = birth_limit(dm, prev_cg, ndied)
     # to_birth = @trace(uniform_discrete(0, bl), :to_birth)
-    to_birth = @trace(uniform_discrete(0, bl), :to_birth)
+    to_birth = @trace(bernoulli(bl), :to_birth)
     (gms, dms) = birth_args(dm, prev_cg, to_birth)
     born = @trace(Gen.Map(inertia_tracker)(gms, dms), :birth)
     diff = birth_diff(dm, prev_cg,
@@ -122,7 +125,8 @@ end
 end
 
 @gen static function inertia_kernel(t::Int64,
-                                    prev_st::InertiaKernelState)
+                             prev_st::InertiaKernelState)
+# @gen function inertia_kernel(t::Int64,
 
     prev_cg = prev_st.world
 

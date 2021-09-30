@@ -1,12 +1,47 @@
 export perturb_state!
 
+addr_from_base(base::Nothing, addr) = (addr,)
+addr_from_base(base::Tuple, addr) = (base..., addr)
+function select_from_cm!(s::Selection, base::Tuple, cm::ChoiceMap)
+    for (addr, value) in get_values_shallow(cm)
+        dst = addr_from_base(base, addr)
+        push!(s, foldr(Pair, dst))
+    end
+    for (addr, submap) in get_submaps_shallow(cm)
+        dst = addr_from_base(base, addr)
+        select_from_cm!(s, dst, submap)
+    end
+    return nothing
+end
+function select_from_cm(cm::ChoiceMap)
+    s = Gen.select()
+    select_from_cm!(s, (), cm)
+    s
+end
 
-"""
-	state_perturb(trace, probs)
+function verify_update(tr::Gen.Trace, fwd::ChoiceMap)
+    # first eval fwd choice
+    s = select_from_cm(fwd)
+    display(fwd)
+    fwd_ls = project(tr, s)
+    println("Fwd choice: $(fwd_ls)")
 
-Perturbs velocity based on probs of assignments to observations.
-"""
+    cm = get_choices(tr)
+    s = select_from_cm(cm)
+    println("total ls: $(project(tr, s))")
 
+    t = first(get_args(tr))
+    s = Gen.select(:kernel => t => :masks)
+    ls = project(tr, s)
+    println("P(x | h): $(ls)")
+
+    cm_prior = get_selected(cm, Gen.complement(s))
+    s = select_from_cm(cm_prior)
+    ls = project(tr, s)
+    println("P(h): $(ls)")
+    println("Score of trace $(get_score(tr))")
+    return nothing
+end
 
 function _state_proposal(trace::Gen.Trace, tracker::Tuple,
                          att::MapSensitivity)
@@ -40,11 +75,14 @@ function apply_random_walk(trace::Gen.Trace, proposal, proposal_args)
         model_args, argdiffs, fwd_choices)
     proposal_args_backward = (new_trace, proposal_args...,)
     (bwd_weight, _) = Gen.assess(proposal, proposal_args_backward, discard)
-    alpha = weight - fwd_weight + bwd_weight
+    alpha = get_score(trace) === -Inf ? 1.0 : weight - fwd_weight + bwd_weight
     if isnan(alpha)
         @show fwd_weight
         @show weight
         @show bwd_weight
+        display(discard)
+        verify_update(trace, fwd_choices)
+        verify_update(new_trace, fwd_choices)
         error("nan in proposal")
     end
     (new_trace, alpha)
@@ -90,6 +128,8 @@ function perturb_state!(chain::SeqPFChain,
     allocated = zeros(size(weights))
     num_particles = length(state.traces)
     @inbounds for i=1:num_particles
+        # skip if -Inf
+        get_score(state.traces[i]) === -Inf && continue
         # map obs weights back to target centric weights
         c = correspondence(state.traces[i])
         # TODO: this is ugly

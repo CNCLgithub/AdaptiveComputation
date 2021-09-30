@@ -18,7 +18,7 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset_path" => "/spaths/datasets/exp1_difficulty.json",
-                 "k" => 20,
+                 "k" => 30,
                  "scene" => 1,
                  "step_size" => 60,
                  "viz" => true])
@@ -50,6 +50,8 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.td_flat,
                    )
+
+    display(att)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,

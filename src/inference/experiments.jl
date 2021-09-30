@@ -48,6 +48,7 @@ function get_init_constraints(cg::CausalGraph)
     init_dots = get_objects(cg, Dot)
     get_init_constraints(cg, length(init_dots))
 end
+
 function get_init_constraints(cg::CausalGraph, n::Int64)
     #TODO: convert datasets into type agnostic format
     init_dots = get_objects(cg, Dot)
@@ -77,7 +78,7 @@ end
 function query_from_params(gt_causal_graphs,
                            dgp_params,
                            generative_model,
-                           gm_params::AbstractGMParams,
+                           gm_params::GMParams,
                            dm_params::AbstractDynamicsModel,
                            graphics_params::Graphics,
                            k::Int64;
@@ -95,7 +96,9 @@ function query_from_params(gt_causal_graphs,
 
     display(init_constraints)
 
-    masks = render_from_cgs(graphics_params,
+    # ensure that all obs are present
+    gr = @set graphics_params.bern_existence_prob = 1.0
+    masks = render_from_cgs(gr,
                             gm_params,
                             gt_causal_graphs)
     observations = get_observations(graphics_params, masks)

@@ -72,7 +72,6 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
             register_to_obs!(sensitivities, jittered, j, div)
         end
     end
-
     println("log sensitivity")
     display(sensitivities)
     @pack! auxillary = sensitivities
