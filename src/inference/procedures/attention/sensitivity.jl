@@ -35,10 +35,10 @@ end
 
 function register_to_obs!(gr::Vector{Float64}, tr::Gen.Trace, j::Int64, div::Float64)
     ws = correspondence(tr)
-    ws = ws[:, j]
-    ws .-= softmax(ws)
-    rmul!(ws, div)
-    gr += ws
+    w = ws[:, j]
+    w ./= sum(w)
+    w .*= exp(div)
+    gr += w
     return nothing
 end
 
@@ -49,6 +49,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack objective, scale, samples, jitter = att
 
+    @show state.log_weights
     seeds = Gen.sample_unweighted_traces(state, samples)
     seed_ls = get_score.(seeds)
     seed_ls .-= maximum(seed_ls)
@@ -68,12 +69,14 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
                 x -> sinkhorn_div(seed_obj, x; scale = scale)
                 log
             end
-            div += ls + seed_ls[i]
-            register_to_obs!(sensitivities, jittered, j, div)
+            cs = correspondence(jittered)
+            c = cs[:, j]
+            c .*= exp(div)
+            sensitivities += c
         end
     end
-    println("log sensitivity")
-    display(sensitivities)
+    sensitivities = log.(sensitivities)
+    @show sensitivities
     @pack! auxillary = sensitivities
     return nothing
 end
@@ -83,7 +86,9 @@ function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     weights = att.smoothness * sensitivities
+    # weights = weights ./ sum(weights)
     weights = softmax(weights)
+    @show weights
     @pack! auxillary = weights
 end
 
@@ -93,6 +98,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack sweeps, k, x0 = att
+    # x = log(sum(sensitivities)) - log(length(sensitivities))
     x = logsumexp(sensitivities) - log(length(sensitivities))
     amp = exp(-k * (x - x0))
     # amp = k * (x - x0)

@@ -1,7 +1,7 @@
 export IDPainter
 
 @with_kw struct IDPainter <: Painter
-    colors::Array{ColorTypes.RGB{Float64},1}
+    colors::Vector
     label::Bool = true
     label_size::Float64 = 40.0
     alpha::Float64 = 1.0

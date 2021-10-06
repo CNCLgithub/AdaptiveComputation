@@ -34,6 +34,9 @@ function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
     c = pairwise(td_cost, a_k, b_k)
     ot = sinkhorn_unbalanced(a_w, b_w, c, λ, λ, ε)
     d = sum(ot .* c)
+    # @show a_w
+    # @show b_w
+    # @show d
     isnan(d) || d < 0. ? 0. : d
 end
 

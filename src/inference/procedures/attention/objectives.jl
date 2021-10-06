@@ -28,7 +28,7 @@ function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
     @inbounds for p = 1:np
         c += ptensor[:, :, p] * exp(ls[p])
     end
-    return c
+    c
 end
 
 function correspondence(tr::Gen.Trace)
@@ -61,9 +61,12 @@ function td_flat(pt::BitArray{3}, ls::Vector{Float64}, tw::Vector{Float64})
     total_lse = logsumexp(ls)
     @inbounds for x = 1:nx
         tdx = Vector{Float64}(undef, np)
+        # @show x
         for p = 1:np
+            # @show (pt[x, :, p] .* tw, ls[p])
             tdx[p] = log(sum(pt[x, :, p] .* tw)) + ls[p]
         end
+        # @show tdx
         td[x] = logsumexp(tdx) - total_lse
     end
     td

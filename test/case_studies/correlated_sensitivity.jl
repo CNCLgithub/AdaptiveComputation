@@ -70,12 +70,14 @@ function get_cgs(t::Int64)
     # left target that moves along x = -200
     add_vertex!(cg)
     v = MetaGraphs.nv(cg)
-    set_prop!(cg, v, :object, Dot(pos = [-200.0, 210, 0]))
+    set_prop!(cg, v, :object, Dot(pos = [-200.0, 210, 0],
+                                  target = 1.0))
 
     # right target that moves towards 0,0 from upper right
     add_vertex!(cg)
     v = MetaGraphs.nv(cg)
-    set_prop!(cg, v, :object, Dot(pos = [190.0, 60, 0]))
+    set_prop!(cg, v, :object, Dot(pos = [190.0, 60, 0],
+                                  target = 1.0))
 
     # distractor that gets closer to right tracker
     add_vertex!(cg)
@@ -147,8 +149,8 @@ function main()
     @show scene_stats
 
     gm_params = MOT.load(GMParams, args["gm"])
-    gm_params = @set gm_params.n_trackers = sum(scene_data[:targets])
-    gm_params = @set gm_params.distractor_rate = count(iszero, scene_data[:targets])
+    gm_params = @set gm_params.n_targets = sum(scene_data[:targets])
+    gm_params = @set gm_params.max_things = gm_params.n_targets + count(iszero, scene_data[:targets])
 
     dm_params = MOT.load(InertiaModel, args["dm"])
     dm_params = @set dm_params.vel = scene_stats.vel_mu
@@ -166,15 +168,14 @@ function main()
 
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_flat,
+                   objective = MOT.td_flat,
                    )
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
-                    rejuv_args = (att,),
-                    latents = collect(1:gm_params.n_trackers))
+                    rejuv_args = (att,))
 
-    base_path = "/experiments/$(experiment_name)_$(att_mode)"
+    base_path = "/spaths/experiments/$(experiment_name)_$(att_mode)"
     scene = args["scene"]
     path = joinpath(base_path, "$(scene)")
     try
@@ -187,13 +188,9 @@ function main()
     chain_path = joinpath(path, "$(c).jld2")
 
     println("running chain $c")
-    if isfile(chain_path)
-        chain  = resume_chain(chain_path, args["step_size"])
-    else
-        chain = sequential_monte_carlo(proc, query, chain_path,
-                                       args["step_size"])
-    end
-
+    isfile(chain_path) && rm(chain_path)
+    chain = sequential_monte_carlo(proc, query, chain_path,
+                                    args["step_size"])
     if (args["viz"])
         visualize_inference(chain, chain_path, gt_cgs, gm_params,
                             graphics_params, att, path)

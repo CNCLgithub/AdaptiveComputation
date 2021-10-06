@@ -5,14 +5,15 @@ export load_scene
 #
 # Also assumes that all other properties other than
 # position are irrelevant.
-function cg_from_positions(positions)
+function cg_from_positions(positions, targets)
     nt = length(positions)
     cgs = Vector{CausalGraph}(undef, nt)
     for t = 1:nt
         g = CausalGraph()
         step_pos = positions[t]
         for j = 1:length(step_pos)
-            d = Dot(pos = step_pos[j])
+            d = Dot(pos = step_pos[j],
+                    target = targets[j])
             add_vertex!(g)
             set_prop!(g, j, :object, d)
         end
@@ -27,7 +28,8 @@ end
 function load_scene(dataset_path::String, scene::Int64)
     scene_data = JSON.parsefile(dataset_path)[scene]
     aux_data = scene_data["aux_data"]
-    cgs = cg_from_positions(scene_data["positions"])
+    cgs = cg_from_positions(scene_data["positions"],
+                            aux_data["targets"])
     scene_data = Dict(:gt_causal_graphs => cgs,
                        :aux_data => aux_data)
 end

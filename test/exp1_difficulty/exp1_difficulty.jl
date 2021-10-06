@@ -18,10 +18,11 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset_path" => "/spaths/datasets/exp1_difficulty.json",
-                 "k" => 30,
-                 "scene" => 1,
+                 "k" => 60,
+                 "scene" => 43,
                  "step_size" => 60,
-                 "viz" => true])
+                 "viz" => true,
+                 "resume" => false])
     
     # loading scene data
     scene_data = MOT.load_scene(args["dataset_path"],
@@ -35,6 +36,8 @@ function main()
 
     dm = MOT.load(InertiaModel, args["dm"])
     dm = @set dm.vel = aux_data["vel"]
+
+    display(dm)
 
     graphics = MOT.load(Graphics, args["graphics"])
 
@@ -70,11 +73,14 @@ function main()
     #              n = 10^6)
     # #@profilehtml results = run_inference(query, proc)
     # #@profilehtml results = run_inference(query, proc)
-    if isfile(chain_path)
+    isfile(chain_path) && !args["resume"] && rm(chain_path)
+    if isfile(chain_path) && args["resume"]
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
                                     args["step_size"])
+        # chain = sequential_monte_carlo(proc, query, nothing,
+        #                             args["step_size"])
     end
 
     # df = MOT.analyze_chain_receptive_fields(results,
@@ -82,10 +88,10 @@ function main()
     #                                         n_dots = gm.n_trackers + gm.distractor_rate,
     #                                         gt_cg_end = gt_cgs[end])
 
-    # if (args["viz"])
-    #     visualize_inference(results, gt_cgs, gm,
-    #                         graphics, att, path)
-    # end
+    if (args["viz"])
+        visualize_inference(chain, chain_path, gt_cgs, gm,
+                            graphics, att, path)
+    end
 
     # return results
 end

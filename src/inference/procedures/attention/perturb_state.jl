@@ -133,7 +133,8 @@ function perturb_state!(chain::SeqPFChain,
         # map obs weights back to target centric weights
         c = correspondence(state.traces[i])
         # TODO: this is ugly
-        tweights = vec(softmax(sum(weights .* c, dims = 1)))
+        tweights = vec(sum(weights .* c, dims = 1))
+        tweights ./= sum(tweights)
         tracker_addrs = trackers(state.traces[i])
         for _ = 1:cycles
             # sample a tracker

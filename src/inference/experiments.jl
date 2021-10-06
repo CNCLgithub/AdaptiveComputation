@@ -51,14 +51,16 @@ end
 
 function get_init_constraints(cg::CausalGraph, n::Int64)
     #TODO: convert datasets into type agnostic format
-    init_dots = get_objects(cg, Dot)
+    init_dots = only_targets(cg)
+    n = length(init_dots)
     cm = Gen.choicemap()
     cm[:init_state => :n_trackers] = n
     for i=1:n
+        dot = get_prop(cg, init_dots[i], :object)
         addr = :init_state => :trackers => i => :x
-        cm[addr] = init_dots[i].pos[1]
+        cm[addr] = dot.pos[1]
         addr = :init_state => :trackers => i => :y
-        cm[addr] = init_dots[i].pos[2]
+        cm[addr] = dot.pos[2]
 
         # TODO: add vel to `cg_from_positions`
         # vel = init_dots[i].vel

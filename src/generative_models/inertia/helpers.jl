@@ -20,10 +20,11 @@ end
 
 
 function correspondence(st::InertiaKernelState)
-    @unpack es, pt, pls = st
-    # all trackers (anything that isnt an ensemble)
-    tracker_ids = findall(x -> isa(x, BernoulliElement), es)
-    pt = pt[:, tracker_ids, :]
+    @unpack world, es, pt, pls = st
+    things = get_objects(world, Union{Dot, UniformEnsemble})
+    targets = target.(things)
+    tids = targets .> 0
+    pt = pt[:, tids, :]
     correspondence(pt, pls)
 end
 

@@ -1,6 +1,6 @@
 {
     "scale": 0.25,
-    "smoothness": 0.15,
+    "smoothness": 1.00,
     "k": -0.048,
     "x0": -75,
     "samples": 10,

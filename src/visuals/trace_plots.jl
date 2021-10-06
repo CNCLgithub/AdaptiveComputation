@@ -92,10 +92,11 @@ function plot_attention(attended, max_sweeps::Int, path::String;
     mkpath(path)
 
     n_trackers, k = size(attended)
+    if n_trackers > length(tracker_colors)
+        tracker_colors = ColorScheme(distinguishable_colors(n_trackers))
+    end
     x = collect(1:k)
-    
     plots = []
-
     for i = 1:n_trackers
 
         att_tracker = attended[i, :]
