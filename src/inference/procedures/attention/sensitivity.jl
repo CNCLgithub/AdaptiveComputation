@@ -33,15 +33,6 @@ function trackers(tr::Gen.Trace)
     trackers(dm, tr)
 end
 
-function register_to_obs!(gr::Vector{Float64}, tr::Gen.Trace, j::Int64, div::Float64)
-    ws = correspondence(tr)
-    w = ws[:, j]
-    w ./= sum(w)
-    w .*= exp(div)
-    gr += w
-    return nothing
-end
-
 
 # returns the sensitivity of each latent variable
 function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
@@ -49,7 +40,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack objective, scale, samples, jitter = att
 
-    @show state.log_weights
+    # @show state.log_weights
     seeds = Gen.sample_unweighted_traces(state, samples)
     seed_ls = get_score.(seeds)
     seed_ls .-= maximum(seed_ls)
@@ -60,6 +51,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     sensitivities = @>> seeds first n_obs zeros
     @inbounds for i = 1:samples
         latents = trackers(seeds[i])
+        step_size = -log(length(latents))
         seed_obj = objective(seeds[i])
         for j = 1:length(latents)
             # println("Working on sample $(i), latent $(j)")
@@ -71,7 +63,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
             end
             cs = correspondence(jittered)
             c = cs[:, j]
-            c .*= exp(div)
+            c .*= exp(div + step_size)
             sensitivities += c
         end
     end
@@ -96,7 +88,7 @@ end
 # by the sensitivity weights using an exponential function
 function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
-    @unpack sensitivities = auxillary
+    @unpack sensitivities, cycles = auxillary
     @unpack sweeps, k, x0 = att
     # x = log(sum(sensitivities)) - log(length(sensitivities))
     x = logsumexp(sensitivities) - log(length(sensitivities))
@@ -105,6 +97,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
 
     println("x: $(x), amp: $(amp)")
     cycles = @> amp begin
+        # x -> 0.5 * (x + cycles)
         clamp(0., sweeps)
         floor
         Int64

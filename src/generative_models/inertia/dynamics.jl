@@ -49,7 +49,7 @@ function dynamics_update!(ch::ChangeDict,
     end
 
     # update v -> v?
-    # TODO?
+    # TODO add vertex to vertex repulsions?
 
     return nothing
 end

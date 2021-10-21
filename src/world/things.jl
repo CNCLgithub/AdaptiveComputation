@@ -111,33 +111,4 @@ end
 
 target(u::UniformEnsemble) = u.rate === 0. ? 0. : u.targets / u.rate
 
-function UniformEnsemble(cg::CausalGraph, died::Vector{Int64},
-                         born::Vector{Thing}, prev_ens::UniformEnsemble)
-
-    gm = get_gm(cg)
-    gr = get_graphics(cg)
-
-    # number of trackers in ensemble
-
-    # t = tracked(cg) # n trackers at t-1
-    t = get_object_verts(cg, Dot)
-    tt = 0 # new tracked targets
-    for b in born
-         tt += target(b)
-    end
-
-    et = prev_ens.targets - tt
-    for v in died
-        # adjusting for any dead tracked targets
-        et += target(get_prop(cg, v, :object))
-    end
-
-    # rate of ensemble
-    n_born = length(born)
-    n_died = length(died)
-    rate = prev_ens.rate - n_born + n_died
-    UniformEnsemble(gm, gr, rate, et)
-end
-
-
 get_pos(e::UniformEnsemble) = [0,0,-Inf]

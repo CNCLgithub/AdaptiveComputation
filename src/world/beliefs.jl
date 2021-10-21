@@ -78,6 +78,7 @@ function patch(prev_cg::CausalGraph, diff::Diff)
     # all survived things are copied
     # these are typically walls
     for (src, prop) in static
+        in(src, died) && continue
         dst = search_registry!(registry, cg, src)
         # println("$src : $prop -> $dst")
         @>> read(prev_cg, src, prop) patch!(cg, dst, prop)
@@ -85,6 +86,7 @@ function patch(prev_cg::CausalGraph, diff::Diff)
 
     # things that have changed but existed before
     for ((src, prop), val) in changed
+        in(src, died) && continue
         dst = search_registry!(registry, cg, src)
         # println("$src => $prop : $val -> $dst")
         patch!(cg, dst, prop, val)

@@ -31,6 +31,9 @@ function render_scene(gm::GMParams,
         p = PsiturkPainter(dot_color = "black")
         MOT.paint(p, gt_cgs[i])
 
+        p = SubsetPainter(cg -> only_targets(gt_cgs[i]),
+                          IDPainter(colors = fill(red, nx)))
+
         # then render each particle's state
         for j = 1:np
             p = SubsetPainter(cg -> only_targets(cg),
@@ -38,16 +41,23 @@ function render_scene(gm::GMParams,
             @unpack world = (pf_st[j, i])
             MOT.paint(p, world)
 
-            p = SubsetPainter(cg -> only_targets(cg),
-                              IDPainter(colors = fill(red, nx), #TRACKER_COLORSCHEME[:],
-                                        label = false,
-                                        alpha = alpha))
-            MOT.paint(p, world)
-
 
             c = correspondence(pf_st[j, i])
             tweights = vec(sum(attended[:, i] .* c, dims = 1))
             MOT.paint(att_rings, world, tweights)
+
+            nt = length(tweights)
+            # @show nt
+            nt === 0 && continue
+            p = SubsetPainter(cg -> only_targets(cg),
+                              IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, nx)],
+                              # IDPainter(colors = fill(red, nx),
+                              # IDPainter(colors = TRACKER_COLORSCHEME[:],
+                                        label = false,
+                                        alpha = 0.5))
+            MOT.paint(p, world)
+
+
         end
 
         # p = SubsetPainter(cg -> only_targets(cg, pf_targets),

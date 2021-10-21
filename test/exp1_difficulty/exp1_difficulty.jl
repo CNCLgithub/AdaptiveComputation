@@ -18,8 +18,8 @@ function main()
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
                  "dataset_path" => "/spaths/datasets/exp1_difficulty.json",
-                 "k" => 60,
-                 "scene" => 43,
+                 "k" => 240,
+                 "scene" => 10,
                  "step_size" => 60,
                  "viz" => true,
                  "resume" => false])
@@ -83,10 +83,9 @@ function main()
         #                             args["step_size"])
     end
 
-    # df = MOT.analyze_chain_receptive_fields(results,
-    #                                         n_trackers = gm.n_trackers,
-    #                                         n_dots = gm.n_trackers + gm.distractor_rate,
-    #                                         gt_cg_end = gt_cgs[end])
+    df = MOT.chain_performance(chain, chain_path,
+                               n_targets = gm.n_targets)
+    display(df)
 
     if (args["viz"])
         visualize_inference(chain, chain_path, gt_cgs, gm,

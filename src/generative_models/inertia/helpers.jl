@@ -19,11 +19,16 @@ function assocs(st::InertiaKernelState)
 end
 
 
+"""
+Defines the `InertiaKernelState` correspondence as a marginal
+across partitions on non-zero target trackers.
+"""
 function correspondence(st::InertiaKernelState)
     @unpack world, es, pt, pls = st
     things = get_objects(world, Union{Dot, UniformEnsemble})
+    istracker = map(x -> (isa(x, Dot)), things)
     targets = target.(things)
-    tids = targets .> 0
+    tids = (targets .> 0) .& istracker
     pt = pt[:, tids, :]
     correspondence(pt, pls)
 end
@@ -93,7 +98,27 @@ function birth_diff(dm::InertiaModel, cg::CausalGraph,
     end
     ens_idx = @> cg get_object_verts(UniformEnsemble) first
     prev_ens = get_prop(cg, ens_idx, :object)
-    ens = UniformEnsemble(cg, died, born, prev_ens)
+
+    # create new ensemble
+    gm = get_gm(cg)
+    gr = get_graphics(cg)
+    # number of trackers in ensemble
+    t = get_object_verts(cg, Dot)
+    tt = 0. # new tracked targets
+    for b in born
+         tt += target(b)
+    end
+    et = prev_ens.targets - tt
+    for v in died
+        # adjusting for any dead tracked targets
+        et += target(get_prop(cg, v, :object))
+    end
+    # rate of ensemble
+    n_born = length(born)
+    n_died = length(died)
+    rate = prev_ens.rate - n_born + n_died
+    ens = UniformEnsemble(gm, gr, rate, et)
+
     changed = Dict{ChangeDiff, Thing}((ens_idx => :object) => ens)
     Diff(born, died, st, changed)
 end
@@ -170,7 +195,7 @@ function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
 
     r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
     n_pixels = prod(gr.img_dims)
-    pixel_prob = (2 * pi * r^2 * rate) / n_pixels
+    pixel_prob = (2 * pi * r^2 * gr.gauss_amp) / n_pixels
 
     UniformEnsemble(rate, pixel_prob, targets)
 end

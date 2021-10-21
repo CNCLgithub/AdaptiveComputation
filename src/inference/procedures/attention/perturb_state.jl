@@ -48,21 +48,19 @@ function _state_proposal(trace::Gen.Trace, tracker::Tuple,
     t, gm, dm, gr = Gen.get_args(trace)
 
     @unpack ancestral_steps = att
-    i = max(1, t - ancestral_steps)
-    addr = foldr(Pair, (tracker..., :ang))
-    ang = trace[addr]
-
+    aaddr = foldr(Pair, (tracker..., :ang))
     iaddr = foldr(Pair, (tracker..., :inertia))
     inertia = tracker[3] == :dynamics ? trace[iaddr] : false
     @unpack k_min, k_max = dm
     k = inertia ? k_max : k_min
-    (addr, ang, k)
+    (aaddr, k)
 end
 
 @gen  function state_proposal(trace::Gen.Trace, tracker::Tuple,
                               att::MapSensitivity)
-    (addr, ang, k) = _state_proposal(trace, tracker, att)
-    {addr} ~ von_mises(ang, k)
+    (aaddr, k) = _state_proposal(trace, tracker, att)
+    ang = trace[aaddr]
+    {aaddr} ~ von_mises(ang, k)
     return nothing
 end
 
@@ -90,28 +88,21 @@ end
 
 function tracker_kernel(trace::Gen.Trace, tracker::Tuple,
                         att::MapSensitivity)
-    new_tr, w1 = apply_random_walk(trace, state_proposal,
+    # first update inertia
+    new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
+    new_tr, w2 = apply_random_walk(new_tr, state_proposal,
                                    (tracker, att))
-    (new_tr, w1)
-    # @show w1
-    # new_tr, w2 = ancestral_tracker_move(new_tr, tracker, att)
-    # # @show w2
-    # (new_tr, w1 + w2)
+    (new_tr, w1 + w2)
 end
 
 # rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
 
-function ancestral_tracker_move(trace::Gen.Trace, tracker::Tuple, att::MapSensitivity)
+function ancestral_inertia_move(trace::Gen.Trace, tracker::Tuple, att::MapSensitivity)
     args = Gen.get_args(trace)
-    t = first(args)
-    (t === 1 || tracker[3] == :epistemics) && return (trace, 0.)
-
-    tid = last(tracker)
+    iaddr = foldr(Pair, (tracker..., :inertia))
     addrs = []
-    for i = max(2, t-att.ancestral_steps):t
-        addr = :kernel => i => :dynamics => :trackers => tid
-        has_value(trace, addr) && push!(addrs, addr)
-    end
+    (@> trace get_choices has_value(iaddr)) && push!(addrs, iaddr)
+    isempty(addrs) && return (trace, 0.)
     (new_tr, ll) = take(regenerate(trace, Gen.select(addrs...)), 2)
 end
 
@@ -134,6 +125,8 @@ function perturb_state!(chain::SeqPFChain,
         c = correspondence(state.traces[i])
         # TODO: this is ugly
         tweights = vec(sum(weights .* c, dims = 1))
+        isempty(tweights) && continue # no trackers
+        sum(tweights) == 0. && continue # no goal-relevance
         tweights ./= sum(tweights)
         tracker_addrs = trackers(state.traces[i])
         for _ = 1:cycles

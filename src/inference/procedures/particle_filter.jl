@@ -13,11 +13,6 @@ using Gen_Compose: initial_args, initial_constraints,
     prop_args::Tuple = ()
     rejuvenation::Union{Function, Nothing} = nothing
     rejuv_args::Tuple = ()
-
-    # TODO: depricate
-    # Maybe replace with an Att-based initializer
-    # address schema for IOT sensitivity
-    # latents::Vector{Int64}
 end
 
 function load(::Type{PopParticleFilter}, path; kwargs...)

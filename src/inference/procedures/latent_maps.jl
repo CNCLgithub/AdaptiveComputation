@@ -28,12 +28,12 @@ function extract_digest(f::String)
     return df
 end
 
-function td_accuracy(td::Dict{Int64, Float64}; k::Int64 = 4)
-    mass = -Inf
-    for key = 1:k
-        mass = logsumexp(mass, td[key])
+function td_accuracy(td::Dict{Int64, Float64}; nt::Int64 = 4)
+    ws = Vector{Float64}(undef, nt)
+    @inbounds for k = 1:nt
+        ws[k] = exp(td[k])
     end
-    exp(mass - log(k))
+    ws
 end
 function td_accuracy(td::Dict{BitVector, Float64}; k::Int64 = 4)
     denom = log(k)
@@ -45,14 +45,13 @@ function td_accuracy(td::Dict{BitVector, Float64}; k::Int64 = 4)
     exp(mass - logsumexp(collect(values(td))))
 end
 
-function extract_td_accuracy(c::SeqPFChain)
+function extract_td_accuracy(c::SeqPFChain, ntargets::Int64)
     # particles at last frame of inference
     @unpack state = c
     traces = sample_unweighted_traces(state, length(state.traces))
     @>> traces begin
-        map(target_designation_flat) # traces x rf
-        map(first)  # assuming only a 1x1 receptive field
-        map(td_accuracy)
+        map(td_flat) # traces
+        map(x -> td_accuracy(x; nt = ntargets))
         mean        # average across traces
     end
 end

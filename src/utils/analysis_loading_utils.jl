@@ -76,26 +76,25 @@ function get_simplified_target_designation(cg, gt_cg)
     return td
 end
 
-function analyze_chain_receptive_fields(chain, path;
-                                        n_trackers = 4,
-                                        n_dots = 8,
-                                        gt_cg_end = nothing)
+function chain_performance(chain, path;
+                           n_targets = 4)
     dg = extract_digest(path)
-
-    df = DataFrame(frame = Int64[],
-                   tracker = Int64[],
-                   cycles = Float64[],
-                   sensitivity = Float64[],
-                   td_acc = Float64[])
-
     aux_state = dg[:, :auxillary]
     # causal graphs at the end of inference
-    td_acc = extract_td_accuracy(chain)
+    td_acc = extract_td_accuracy(chain, n_targets)
 
-    for frame = 1:length(aux_state), tracker = 1:n_trackers
-        cycles = aux_state[frame].allocated[tracker]
-        sens = aux_state[frame].sensitivities[tracker]
-        push!(df, (frame, tracker, cycles, sens, td_acc))
+    cycles = 0
+    for frame = 1:length(aux_state)
+        cycles += sum(aux_state[frame].allocated)
     end
+
+    df = DataFrame(id = ones(n_targets),
+                   tracker = 1:n_targets,
+                   # variable = fill(:td_acc, n_targets),
+                   td_acc = td_acc)
+
+    df = unstack(df, :id, :tracker, :td_acc;
+                 renamecols=x->Symbol(:tracker_, x))
+    df[!, :cycles] .= cycles
     return df
 end

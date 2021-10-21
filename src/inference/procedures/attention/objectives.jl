@@ -21,6 +21,10 @@ function assocs(tr::Gen.Trace)
     end
 end
 
+
+"""
+Computes the correspondence of a partition tensor.
+"""
 function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
     ls = ls .- logsumexp(ls)
     nx, ne, np = size(ptensor)
@@ -31,6 +35,10 @@ function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
     c
 end
 
+"""
+Computes the correspondence of the resulting prediction RFS.
+Defers to a state specific dispatch
+"""
 function correspondence(tr::Gen.Trace)
     @>> tr begin
         get_args

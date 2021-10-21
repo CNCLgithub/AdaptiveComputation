@@ -45,19 +45,15 @@ function plot_compute_weights(weights::Matrix{Float64}, path::String;
     # weights = clamp.(weights, -1E6, 0)
     k,n = size(weights)
     ts = repeat(1:k, 1, size(weights, 2))
-    data = []
-    for t = 1:k
-        for i = 1:n
-            push!(data,
-                  Dict(:t => t, :tracker => i, :weight => weights[t, i]))
-        end
+    data = zeros(k)
+    @inbounds for t = 1:k
+        data[t] = logsumexp(weights[t, :]) - log(n)
     end
-    data = DataFrame(data)
-    plt = plot(data,
-               x = :t, y = :weight, color = :tracker,
-               Geom.line,
-               Scale.color_discrete_manual(tracker_colors...),
-               Theme(background_color = "white"))
+    plt = plot(
+        x = 1:k,
+        y = data,
+        Geom.line,
+        Theme(background_color = "white"))
     out = joinpath(path, "compute_weights.png")
     plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
 end
