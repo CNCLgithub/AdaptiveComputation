@@ -51,7 +51,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     sensitivities = @>> seeds first n_obs zeros
     @inbounds for i = 1:samples
         latents = trackers(seeds[i])
-        step_size = -log(length(latents))
+        step_size = log(length(latents))
         seed_obj = objective(seeds[i])
         for j = 1:length(latents)
             # println("Working on sample $(i), latent $(j)")
@@ -60,13 +60,16 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
                 objective
                 x -> sinkhorn_div(seed_obj, x; scale = scale)
                 log
+                x -> x - step_size
             end
             cs = correspondence(jittered)
+            # marginal of assignment for latent to xs
             c = cs[:, j]
-            c .*= exp(div + step_size)
+            c .*= exp(div)
             sensitivities += c
         end
     end
+    # think about normalizing wrt to |xs|
     sensitivities = log.(sensitivities)
     @show sensitivities
     @pack! auxillary = sensitivities

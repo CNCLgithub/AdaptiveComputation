@@ -37,8 +37,6 @@ function main()
     dm = MOT.load(InertiaModel, args["dm"])
     dm = @set dm.vel = aux_data["vel"]
 
-    display(dm)
-
     graphics = MOT.load(Graphics, args["graphics"])
 
     query = query_from_params(gt_cgs,
@@ -53,8 +51,6 @@ function main()
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
                    objective = MOT.td_flat,
                    )
-
-    display(att)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
