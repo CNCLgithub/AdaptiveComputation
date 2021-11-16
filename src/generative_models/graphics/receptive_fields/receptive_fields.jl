@@ -48,6 +48,8 @@ RectangleReceptiveFields = Vector{RectangleReceptiveField}
 
 function crop(rf::RectangleReceptiveField,
               space::Space)
+    # 1x1 RF, no need to slice
+    get_dimensions(rf) == size(space) && return space
     @unpack p1, p2, coords = rf
     @inbounds space[p1[2]:p2[2], p1[1]:p2[1]]
 end
@@ -128,14 +130,14 @@ function get_rectangle_receptive_fields(rf_dims::Tuple{Int64, Int64},
 end
 
 
-function Graphics(::Type{RectangleReceptiveField},
-                  img_dims::Tuple{Int64, Int64},
-                  rf_dims::Tuple{Int64, Int64},
-                  rf_threshold::Float64,
-                  overlap::Int64)
-    receptive_fields = get_rectangle_receptive_fields(rf_dims, img_dims, rf_threshold, overlap)
-    Graphics(img_dims, receptive_fields, flow_decay_rate)
-end
+# function Graphics(::Type{RectangleReceptiveField},
+#                   img_dims::Tuple{Int64, Int64},
+#                   rf_dims::Tuple{Int64, Int64},
+#                   rf_threshold::Float64,
+#                   overlap::Int64)
+#     receptive_fields = get_rectangle_receptive_fields(rf_dims, img_dims, rf_threshold, overlap)
+#     Graphics(img_dims, receptive_fields, flow_decay_rate)
+# end
 
 
 

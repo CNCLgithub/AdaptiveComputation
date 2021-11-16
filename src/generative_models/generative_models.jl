@@ -1,22 +1,23 @@
 export AbstractGMParams, GMParams,
-    AbstractDynamicsModel, dynamics_init, dynamics_update
+    AbstractDynamicsModel, dynamics_update
 
 ################################################################################
-# Interface
+# Generative Model specifications
 ################################################################################
 
 abstract type AbstractGMParams end
 
 
 function tracker_bounds(cg::CausalGraph)
-    tracker_bounds(get_gm(cg), cg)
+    tracker_bounds(get_gm(cg))
 end
 
-function tracker_bounds(::AbstractGMParams, cg::CausalGraph)
+function tracker_bounds(::AbstractGMParams)
     error("Not implemented")
 end
 
 include("gm_params.jl")
+
 
 ################################################################################
 # Dynamics
@@ -24,19 +25,10 @@ include("gm_params.jl")
 
 abstract type AbstractDynamicsModel end
 
-function dynamics_init(cg::CausalGraph, trackers::AbstractArray{Thing})
-    dynamics_init(get_dm(cg), get_gm(cg), cg, trackers)
-end
-function dynamics_init(::AbstractDynamicsModel, cg::CausalGraph,
-                       trackers::AbstractArray{Thing})
-    error("not implemented")
-end
-
-function dynamics_update(cg::CausalGraph, trackers::AbstractArray{Thing})
-    dynamics_update(get_dm(cg), cg, trackers)
-end
-function dynamics_update(::AbstractDynamicsModel, cg::CausalGraph,
-                         trackers::AbstractArray{Thing})
+"""
+Defines how a dynamics model changes dynamic properties (such as forces).
+"""
+function dynamics_update(::AbstractDynamicsModel, ::CausalGraph)::Diff
     error("not implemented")
 end
 ################################################################################
@@ -48,30 +40,43 @@ abstract type AbstractGraphics end
 load(::Type{AbstractGraphics}) = error("not implemented")
 get_observations(::AbstractGraphics) = error("not implemented")
 
-function graphics_init(cg::CausalGraph)::CausalGraph
-    graphics_init(get_graphics(cg), cg)
-end
-
-function graphics_init(::AbstractGraphics, cg::CausalGraph)::CausalGraph
+function render(::AbstractGraphics,
+                ::CausalGraph)::Diff
     error("not implemented")
 end
-
-function graphics_update(cg::CausalGraph, prev_cg::CausalGraph)::CausalGraph
-    graphics_update(get_graphics(cg), cg, prev_cg)
-end
-
-function graphics_update(::AbstractGraphics, cg::CausalGraph,
-                         prev_cg::CausalGraph)::CausalGraph
+function predict(::AbstractGraphics,
+                 ::CausalGraph)::Diff
     error("not implemented")
 end
 
 include("graphics/graphics.jl")
 
+
+################################################################################
+# Causation
+################################################################################
+
+function causal_init(::AbstractGMParams, ::AbstractDynamicsModel,
+                     ::AbstractGraphics, ::AbstractArray{Thing})
+    error("not implemented")
+end
+
+"""
+Every model defines a ladder of causation that
+in turn defines how beliefs over the world change
+across time steps
+"""
+function causal_update(::AbstractDynamicsModel, ::CausalGraph,
+                       ::Diff)::CausalGraph
+    error("not implemented")
+end
+
+
 ################################################################################
 # Inference models
 ################################################################################
 
-include("common/common.jl")
+# include("common/common.jl")
 include("isr/isr.jl")
 include("inertia/inertia.jl")
 #include("squishy/gm_squishy.jl")

@@ -2,6 +2,14 @@ export Object,
         Dot
 
 abstract type Thing end
+
+"""
+The probability that the thing is a target
+"""
+function target(::Thing)
+    error("not implemented")
+end
+
 abstract type Object <: Thing end
 
 @with_kw struct Dot <: Object
@@ -12,7 +20,10 @@ abstract type Object <: Thing end
     radius::Float64 = 20.0
     width::Float64 = 40.0
     height::Float64 = 40.0
+    target::Float64 = 0.
 end
+
+target(d::Dot) = d.target
 
 # Dot(pos::Vector{Float64}, vel::Vector{Float64}) = Dot(pos = pos, vel = vel)
 # Dot(pos::Vector{Float64}, vel::Vector{Float64}, radius::Float64) = Dot(pos = pos, vel = vel,
@@ -25,6 +36,8 @@ end
     p2::Vector{Float64}
     n::Vector{Float64} # wall normal pointing inwards
 end
+
+target(::Wall) = 0.
 
 function init_walls(area_width::Float64, area_height::Float64)
     ws = Vector{Wall}(undef, 4)
@@ -58,6 +71,9 @@ function _get_wall_normal(p1::Vector{Float64}, p2::Vector{Float64},
     return _contains(n, area_width, area_height) ? n : -n
 end
 
+# TODO: faster implementation?
+walls(cg::CausalGraph) = get_object_verts(cg, Wall)
+
 abstract type Polygon <: Object end
 
 @with_kw mutable struct NGon <: Polygon
@@ -87,25 +103,12 @@ radius(p::UGon) = 0
 
 abstract type Ensemble <: Thing end
 
-struct UniformEnsemble <: Ensemble
+@with_kw struct UniformEnsemble <: Ensemble
     rate::Float64
     pixel_prob::Float64
+    targets::Int64 = 0
 end
 
-function UniformEnsemble(cg)
-    gm = get_gm(cg)
-    graphics = get_graphics(cg)
-    
-    n_receptive_fields = length(graphics.receptive_fields)
-    r = ceil(gm.dot_radius * graphics.img_dims[1] / gm.area_width)
-    n_pixels_rf = @>> graphics.receptive_fields first get_dimensions prod
-    pixel_prob =  ((2 * pi * r^2) / n_pixels_rf) * (gm.distractor_rate / n_receptive_fields)
-    # just the threshold from receptive_fields
-    # pixel_prob = @>> graphics.receptive_fields begin
-        # first
-        # (x -> x.threshold)
-    # end
-    UniformEnsemble(gm.distractor_rate/n_receptive_fields, pixel_prob)
-end
+target(u::UniformEnsemble) = u.rate === 0. ? 0. : u.targets / u.rate
 
 get_pos(e::UniformEnsemble) = [0,0,-Inf]

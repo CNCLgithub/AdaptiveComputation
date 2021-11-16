@@ -1,4 +1,4 @@
-using MOT
+using MOT: get_objects, get_pos
 using JSON
 
 function convert_dataset_to_json(dataset_path, json_path; hgm=false)

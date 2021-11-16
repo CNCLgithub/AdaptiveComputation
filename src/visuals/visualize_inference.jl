@@ -31,42 +31,38 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
     attention_weights = collect(hcat(attention_weights...)')
     plot_compute_weights(attention_weights, path)
 
-    attended = Matrix{Float64}(undef, gm.n_trackers, k)
+    attended = Matrix{Float64}(undef, size(attention_weights, 2), k)
     for t=1:k
         attended[:, t] = aux_state[t].allocated
     end
     max_c = attention.sweeps * np
     plot_attention(attended, max_c, path)
     plot_rejuvenation(sum(attended, dims = 1), max_c, path)
-        
-    # # rendering observed flow masks from receptive fields
-    # choices = get_choices(unweighted[1])
-    # for t=1:k
-    #     render_rf_masks(choices, t, gm, graphics,
-    #                     joinpath(path, "obs_rf_masks"))
-    # end
-    
-    # # rendering predicted distribution flow masks from receptive fields
-    # states = collect(CausalGraph, causal_graphs[1])
-    # for t=1:k
-    #     render_rf_masks(states, t, gm, graphics,
-    #                     joinpath(path, "pred_dist_rf_masks"))
-    # end
 
-    # visualizing inference on stimuli
-    unweighted = Gen.sample_unweighted_traces(chain.state, np)
-    causal_graphs = Matrix{CausalGraph}(undef, np, k)
-    for i = 1:np
-        causal_graphs[i, :] = _states(unweighted[i])
+    # # rendering observed flow masks from receptive fields
+    choices = @>> chain.state.traces first get_choices
+    for t=1:k
+        render_masks(choices, t, gm, graphics,
+                     joinpath(path, "obs_rf_masks"))
     end
 
-    render_scene(gm, gt_causal_graphs, causal_graphs,
-                 graphics.rf_dims, attended;
-                 base = joinpath(path, "render"))
-end
 
-function get_n_back_cgs(trace::Trace, n_back_cgs::Int64)::Vector{CausalGraph}
-    t, dm, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    @>> 0:n_back_cgs-1 reverse map(i -> ret[2][max(1, t-i)])
+    # # visualizing inference on stimuli
+    unweighted = Gen.sample_unweighted_traces(chain.state, np)
+    pf_st = Matrix{InertiaKernelState}(undef, np, k)
+    for i = 1:np
+        pf_st[i, :] = _states(unweighted[i])
+    end
+
+    render_scene(gm, gt_causal_graphs, pf_st, attended;
+                 base = joinpath(path, "render"))
+
+
+
+    # # rendering predicted distribution flow masks from receptive fields
+    states = map(world, pf_st[1, :])
+    for t=1:k
+        render_masks(states, t, gm, graphics,
+                     joinpath(path, "pred_dist_rf_masks"))
+    end
 end

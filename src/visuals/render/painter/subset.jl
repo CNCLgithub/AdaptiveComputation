@@ -13,6 +13,12 @@ function paint(p::SubsetPainter, cg::CausalGraph)
     return nothing
 end
 
+function only_targets(cg::CausalGraph)
+    @>> Dot begin
+        get_object_verts(cg)
+        filter(v -> target(get_prop(cg, v, :object)) > 0)
+    end
+end
 function only_targets(cg::CausalGraph, ts::BitArray{1})
     vs = get_object_verts(cg, Dot)
     vs = collect(vs)

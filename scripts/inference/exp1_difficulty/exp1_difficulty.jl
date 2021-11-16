@@ -5,6 +5,9 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
+# using Profile
+# using StatProfilerHTML
+
 experiment_name = "exp1_difficulty"
 
 function parse_commandline()
@@ -34,7 +37,7 @@ function parse_commandline()
         "--dataset"
         help = "jld2 dataset path"
         arg_type = String
-        default = joinpath("/datasets", "$(experiment_name).jld2")
+        default = "/spaths/datasets/$(experiment_name).jld2"
 
         "--time", "-t"
         help = "How many frames"
@@ -84,6 +87,10 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/td.json"
 
+        "--objective"
+        help = "Attention objective"
+        arg_type = Function
+        default = td_flat
     end
     @add_arg_table! s["data_correspondence"] begin
         "--params"
@@ -102,49 +109,40 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function default_args()
+    args = Dict(
+        "target_designation" => Dict(["params" => "$(@__DIR__)/td.json",
+                                      "objective" => td_flat]),
+        "dm" => "$(@__DIR__)/dm.json",
+        "gm" => "$(@__DIR__)/gm.json",
+        "proc" => "$(@__DIR__)/proc.json",
+        "graphics" => "$(@__DIR__)/graphics.json",
+        "dataset" => "/spaths/datasets/exp1_difficulty.json",
+        "scene" => 25,
+        "chain" => 1,
+        "time" => 240,
+        "step_size" => 60,
+        "restart" => true,
+        "viz" => true)
+end
 
 function main()
-    args = parse_commandline()
-    # args = Dict(["target_designation" => Dict(["params" => "$(@__DIR__)/td.json"]),
-    #             "dm" => "$(@__DIR__)/dm.json",
-    #             "gm" => "$(@__DIR__)/gm.json",
-    #             "proc" => "$(@__DIR__)/proc.json",
-    #             "graphics" => "$(@__DIR__)/graphics.json",
-    #             "dataset" => "/datasets/exp1_difficulty.jld2",
-    #             # "scene" => 2,
-    #             "scene" => 34,
-    #             "chain" => 1,
-    #             "time" => 60,
-    #             "step_size" => 10,
-    #             "restart" => true,
-    #             "viz" => true])
+    # args = parse_commandline()
+    args = default_args()
 
-
-    # increase the size of GenRFS memoization table
-    modify_partition_ctx!(100)
 
     # loading scene data
-    scene_data = MOT.load_scene(args["scene"], args["dataset"])
+    scene_data = MOT.load_scene(args["dataset"],
+                                args["scene"])
     gt_cgs = scene_data[:gt_causal_graphs][1:args["time"]]
     aux_data = scene_data[:aux_data]
 
-    n_trackers = sum(aux_data.targets)
     gm = MOT.load(GMParams, args["gm"])
-    gm = @set gm.n_trackers = n_trackers # always 4 targets but whatever
-    gm = @set gm.distractor_rate = sum(aux_data.n_distractors)
-
-    dgp = deepcopy(gm)
-    dgp = @set dgp.n_trackers = length(aux_data.targets)
-    dgp = @set dgp.distractor_rate = 0.
-    @show dgp
-
+    gm = @set gm.n_targets = sum(aux_data["targets"]) # always 4 targets but whatever
+    gm = @set gm.max_things = gm.n_targets + aux_data["n_distractors"]
 
     dm = MOT.load(InertiaModel, args["dm"])
-    dm = @set dm.vel = aux_data[:vel]
-
-    @show aux_data
-    @show dm
-    @show gm
+    dm = @set dm.vel = aux_data["vel"]
 
     graphics = MOT.load(Graphics, args["graphics"])
 
@@ -157,16 +155,16 @@ function main()
                               length(gt_cgs))
 
     att_mode = "target_designation"
-    att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields,
+    att = MOT.load(MapSensitivity,
+                   args[att_mode]["params"],
+                   objective = args[att_mode]["objective"],
                    )
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
-                    rejuv_args = (att,),
-                    latents = collect(1:n_trackers))
+                    rejuv_args = (att,))
 
-    path = "/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
+    path = "/spaths/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
     try
         isdir(path) || mkpath(path)
     catch e
@@ -177,20 +175,19 @@ function main()
     chain_path = joinpath(path, "$(c).jld2")
 
     println("running chain $c")
+
+    isfile(chain_path) && args["restart"] && rm(chain_path)
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
-                                       args["step_size"])
+                                    args["step_size"])
     end
+    # end
 
-    # Profile.init(delay = 1E-4,
-    #              n = 10^8)
-
-    df = MOT.analyze_chain_receptive_fields(chain, chain_path,
-                                            n_trackers = gm.n_trackers,
-                                            n_dots = gm.n_trackers + gm.distractor_rate,
-                                            gt_cg_end = gt_cgs[end])
+    df = MOT.chain_performance(chain, chain_path,
+                               n_targets = gm.n_targets)
+    display(df)
     df[!, :scene] .= args["scene"]
     df[!, :chain] .= c
     CSV.write(joinpath(path, "$(c).csv"), df)

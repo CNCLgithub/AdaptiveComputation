@@ -1,7 +1,7 @@
 using MOT
 using MOT: CausalGraph
+using Gen_Compose
 using Setfield
-using Lazy: @>, @>>
 
 using Profile
 using StatProfilerHTML
@@ -17,65 +17,78 @@ function main()
                  "graphics" => "$(@__DIR__)/graphics.json",
                  "gm" => "$(@__DIR__)/gm.json",
                  "proc" => "$(@__DIR__)/proc.json",
-                 "dataset_path" => "/datasets/exp1_difficulty.jld2",
-                 "k" => 20,
-                 "scene" => 1,
-                 "viz" => true])
+                 "dataset_path" => "/spaths/datasets/exp1_difficulty.json",
+                 "k" => 240,
+                 "scene" => 10,
+                 "step_size" => 60,
+                 "viz" => true,
+                 "resume" => false])
     
     # loading scene data
-    scene_data = MOT.load_scene(args["scene"], args["dataset_path"])
+    scene_data = MOT.load_scene(args["dataset_path"],
+                                args["scene"])
     gt_cgs = scene_data[:gt_causal_graphs][1:args["k"]]
     aux_data = scene_data[:aux_data]
-    
+
     gm = MOT.load(GMParams, args["gm"])
-    @set gm.n_trackers = sum(aux_data.targets) # always 4 targets but whatever
-    @set gm.distractor_rate = sum(aux_data.n_distractors)
+    gm = @set gm.n_targets = sum(aux_data["targets"]) # always 4 targets but whatever
+    gm = @set gm.max_things = gm.n_targets + aux_data["n_distractors"]
 
     dm = MOT.load(InertiaModel, args["dm"])
-    @set dm.vel = aux_data[:vel]
+    dm = @set dm.vel = aux_data["vel"]
 
     graphics = MOT.load(Graphics, args["graphics"])
 
     query = query_from_params(gt_cgs,
+                              dgp,
                               gm_inertia_mask,
                               gm,
                               dm,
                               graphics,
                               length(gt_cgs))
-    
+
     att_mode = "target_designation"
     att = MOT.load(MapSensitivity, args[att_mode]["params"],
-                   objective = MOT.target_designation_receptive_fields,
+                   objective = MOT.td_flat,
                    )
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
                     rejuv_args = (att,))
 
-    path = "/experiments/$(experiment_name)"
+    path = "/spaths/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
     try
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
     end
 
-    Profile.init(delay = 0.001,
-                 n = 10^6)
-    #@profilehtml results = run_inference(query, proc)
-    #@profilehtml results = run_inference(query, proc)
-    results = run_inference(query, proc)
+    c = 1
+    chain_path = joinpath(path, "$(c).jld2")
+    # Profile.init(delay = 0.001,
+    #              n = 10^6)
+    # #@profilehtml results = run_inference(query, proc)
+    # #@profilehtml results = run_inference(query, proc)
+    isfile(chain_path) && !args["resume"] && rm(chain_path)
+    if isfile(chain_path) && args["resume"]
+        chain  = resume_chain(chain_path, args["step_size"])
+    else
+        chain = sequential_monte_carlo(proc, query, chain_path,
+                                    args["step_size"])
+        # chain = sequential_monte_carlo(proc, query, nothing,
+        #                             args["step_size"])
+    end
 
-    df = MOT.analyze_chain_receptive_fields(results,
-                                            n_trackers = gm.n_trackers,
-                                            n_dots = gm.n_trackers + gm.distractor_rate,
-                                            gt_cg_end = gt_cgs[end])
+    df = MOT.chain_performance(chain, chain_path,
+                               n_targets = gm.n_targets)
+    display(df)
 
     if (args["viz"])
-        visualize_inference(results, gt_cgs, gm,
+        visualize_inference(chain, chain_path, gt_cgs, gm,
                             graphics, att, path)
     end
 
-    return results
+    # return results
 end
 
 results = main();

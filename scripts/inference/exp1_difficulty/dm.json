@@ -1,8 +1,12 @@
 {
     "vel": 6.0,
-    "bern": 0.75,
+    "bern": 0.85,
     "k_min": 1.0,
-    "k_max": 250.0,
-    "w_min": 0.001,
-    "w_max": 0.02
+    "k_max": 230.0,
+    "w_min": 0.15,
+    "w_max": 3.0,
+
+    "wall_rep_m": 0.1,
+    "wall_rep_a": 0.2,
+    "wall_rep_x0": 47.0
 }
