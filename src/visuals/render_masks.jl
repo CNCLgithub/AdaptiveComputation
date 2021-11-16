@@ -20,16 +20,10 @@ function get_img(aggregated_masks::Vector{Matrix{Float64}})::Matrix{Float64}
 end
 
 function get_masks(cgs::Vector{CausalGraph}, t::Int64)::Vector{Matrix{Float64}}
-    vs = get_prop(cgs[t], :graphics_vs)
-    rf_masks = @>> vs begin
+    vs = get_object_verts(cgs[t], Dot)
+    @>> vs begin
         map(v -> get_prop(cgs[t], v, :space))
-        cropfilter(receptive_fields[rf])
     end
-    # println("predicted masks")
-    # for v in vs
-    #     display(get_prop(cgs[t], v, :space))
-    # end
-    return rf_masks
 end
 
 function get_masks(choices::ChoiceMap, t::Int64)

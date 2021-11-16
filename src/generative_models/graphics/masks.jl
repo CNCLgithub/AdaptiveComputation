@@ -33,9 +33,8 @@ function draw_dot_mask(pos::Vector{T},
 end
 
 # 2d gaussian function
-function two_dimensional_gaussian(x::I, y::I, x_0::T, y_0::T, A::T,
-                                  sigma_x::T, sigma_y::T) where
-    {I<:Int64,T<:Float64}
+function two_dimensional_gaussian(x::Int64, y::Int64, x_0::Float64, y_0::Float64, A::Float64,
+                                  sigma_x::Float64, sigma_y::Float64)
     A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
 
@@ -45,10 +44,11 @@ drawing a gaussian dot with two components:
 2) spread out gaussian modelling where the dot is likely to be in some sense
     and giving some gradient if the tracker is completely off
 """
-function draw_gaussian_dot_mask(center::Vector{T},
-                                r::T, w::Int64, h::Int64,
-                                gauss_r_multiple::T,
-                                gauss_amp::T, gauss_std::T) where {T<:Float64}
+function draw_gaussian_dot_mask(center::Vector{Float64},
+                                r::Float64, w::Int64, h::Int64,
+                                gauss_r_multiple::Float64,
+                                gauss_amp::Float64,
+                                gauss_std::Float64)
     scaled_sd = r * gauss_std
     threshold = r * gauss_r_multiple
     # mask = zeros(h, w) # mask is initially zero to take advantage of sparsity
@@ -61,7 +61,7 @@ function draw_gaussian_dot_mask(center::Vector{T},
     Js = Int64[]
     Vs = Float64[]
     for idx in CartesianIndices((xbounds[1]:xbounds[2],
-                                    ybounds[1]:ybounds[2]))
+                                 ybounds[1]:ybounds[2]))
         i,j = Tuple(idx)
         (sqrt((i - x0)^2 + (j - y0)^2) > threshold) && continue
         v = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)

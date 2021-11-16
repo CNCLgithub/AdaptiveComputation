@@ -60,15 +60,9 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
 
 
     # # rendering predicted distribution flow masks from receptive fields
-    # states = causal_graphs[1, :]
-    # for t=1:k
-    #     render_rf_masks(states, t, gm, graphics,
-    #                     joinpath(path, "pred_dist_rf_masks"))
-    # end
-end
-
-function get_n_back_cgs(trace::Trace, n_back_cgs::Int64)::Vector{CausalGraph}
-    t, dm, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    @>> 0:n_back_cgs-1 reverse map(i -> ret[2][max(1, t-i)])
+    states = map(world, pf_st[1, :])
+    for t=1:k
+        render_masks(states, t, gm, graphics,
+                     joinpath(path, "pred_dist_rf_masks"))
+    end
 end

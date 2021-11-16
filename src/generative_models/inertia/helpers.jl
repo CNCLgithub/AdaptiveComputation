@@ -6,6 +6,10 @@ struct InertiaKernelState
     pls::Vector{Float64}
 end
 
+function world(s::InertiaKernelState)::CausalGraph
+    s.world
+end
+
 function InertiaKernelState(world::CausalGraph,
                             es::RFSElements{T},
                             xs::Vector) where {T}

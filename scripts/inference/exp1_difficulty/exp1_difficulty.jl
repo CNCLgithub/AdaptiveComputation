@@ -118,7 +118,7 @@ function default_args()
         "proc" => "$(@__DIR__)/proc.json",
         "graphics" => "$(@__DIR__)/graphics.json",
         "dataset" => "/spaths/datasets/exp1_difficulty.json",
-        "scene" => 24,
+        "scene" => 25,
         "chain" => 1,
         "time" => 240,
         "step_size" => 60,

@@ -39,9 +39,9 @@ function Gen.logpdf(::Mask, image::BitMatrix, ps::SubArray)
 end
 function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
     @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
-    mag = sum(image)
+    ni = sum(image)
     # number of heads is impossible given number of non-zero weights
-    nnz(ps) < mag && return -Inf
+    nnz(ps) < ni && return -Inf
     xs, ys, vs = findnz(ps)
     lpdf = 0.
     count = 0
@@ -50,8 +50,9 @@ function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
         lpdf += Gen.logpdf(bernoulli, x, vs[i])
         count += x
     end
+    # lpdf += (abs(ni - count) * log(0.01))
     # some zero-weight cells contained heads
-    count != mag && return -Inf
+    count != ni && return -Inf
     lpdf # + (length(ps) - nnz(ps)) * log(1))
 end
 function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})

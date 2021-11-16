@@ -7,27 +7,21 @@ using Setfield
 using UnicodePlots: heatmap
 
 function main()
-    gm = GMParams(;n_trackers = 1,
-                  distractor_rate = 1.)
-    dm = InertiaModel(;w_min = 0.2,
-                      w_max = 0.2)
-    rf_dims = (4,4)
-    # rf_dims = (1,1)
-    img_dims = (200, 200)
+    gm = GMParams()
+    dm = InertiaModel()
+    rf_dims = (1,1)
+    img_dims = (100, 100)
     receptive_fields = get_rectangle_receptive_fields(rf_dims,
                                                       img_dims,
                                                       1E-10, # threshold
                                                       0.0,   # overlap
                                                       )
     graphics = Graphics(;
-                        bern_existence_prob = 0.9,
-                        flow_decay_rate = -0.3,
-                        gauss_amp = 0.95,
-                        gauss_std = 0.7,
-                        gauss_r_multiple = 4.5,
+                        flow_decay_rate = -0.45,
                         rf_dims = rf_dims,
                         img_dims = img_dims,
-                        receptive_fields = receptive_fields)
+                        receptive_fields = receptive_fields,
+                        bern_existence_prob = 1.0)
     args = (7, gm, dm, graphics)
 
     generate(gm_inertia_mask, args);
@@ -37,8 +31,7 @@ function main()
     _, cgs = get_retval(trace)
 
     att = MapSensitivity(
-        ancestral_steps = 3,
-        objective = MOT.target_designation_receptive_fields,
+        objective = MOT.td_flat,
     )
     constraints = MOT.get_init_constraints(cgs[1])
     masks = MOT.get_bit_masks_rf(collect(MOT.CausalGraph, cgs),

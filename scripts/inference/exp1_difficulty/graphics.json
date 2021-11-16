@@ -13,5 +13,5 @@
     "rf_threshold" : 0.005,
     "rf_overlap": 0.5,
 
-    "bern_existence_prob": 0.99
+    "bern_existence_prob": 1.0
 }

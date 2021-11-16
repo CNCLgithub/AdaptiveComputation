@@ -6,6 +6,6 @@
     "area_width": 800,
     "area_height": 800,
 
-    "dot_radius": 20.0,
+    "dot_radius": 30.0,
     "init_pos_spread": 400.0
 }
