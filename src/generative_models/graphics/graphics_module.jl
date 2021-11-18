@@ -98,11 +98,10 @@ function render_elem!(ch::ChangeDict,
     scaled_r = d.radius/area_width*img_dims[1]
 
     #TODO: refactor and make pretty
-    # space = mixture_dot_mask(x, y, scaled_r, ih, iw,
     space = triangular_dot_mask(x, y, scaled_r, ih, iw,
                              gauss_r_multiple,
                              gauss_std,
-                             0.25 * gauss_amp,
+                             0.05 * gauss_amp,
                              gauss_amp)
 
 

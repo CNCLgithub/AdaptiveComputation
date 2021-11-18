@@ -55,11 +55,6 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         end
     end
     seeds = Gen.sample_unweighted_traces(state, samples)
-    seed_ls = get_score.(seeds)
-    seed_ls .-= maximum(seed_ls)
-    # seed_obj = map(objective, seeds)
-    # tracker_addrs = map(trackers, seeds)
-    # n_latents = map(count_trackers, seeds)
 
     sensitivities = @>> seeds first n_obs zeros
     @inbounds for i = 1:samples
@@ -84,7 +79,10 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     end
     # think about normalizing wrt to |xs|
     sensitivities = log.(sensitivities) .- log(samples)
-    @show sensitivities
+
+    println(UnicodePlots.histogram(filter(!isinf, sensitivities);
+                                   title = "Sensitivity"))
+
     @pack! auxillary = sensitivities
     return nothing
 end
@@ -93,10 +91,13 @@ end
 function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    weights = att.smoothness * sensitivities
-    # weights = weights ./ sum(weights)
-    weights = softmax(weights)
-    @show weights
+    weights = softmax(sensitivities .+ att.smoothness)
+    # weights .*= att.smoothness
+    # weights ./= sum(weights)
+
+    println(UnicodePlots.barplot(1:length(sensitivities),
+                                 weights;
+                                 title = "Weights"))
     @pack! auxillary = weights
 end
 
@@ -117,7 +118,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
         floor
         Int64
     end
-    # println("cycles: $cycles")
+    println("cycles: $cycles")
     @pack! auxillary = cycles
     return nothing
 end

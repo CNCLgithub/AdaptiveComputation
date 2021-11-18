@@ -5,9 +5,8 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
-using Random
-
-Random.seed!(1234);
+# using Random
+# Random.seed!(1234);
 
 # using Profile
 # using StatProfilerHTML
@@ -122,7 +121,7 @@ function default_args()
         "proc" => "$(@__DIR__)/proc.json",
         "graphics" => "$(@__DIR__)/graphics.json",
         "dataset" => "/spaths/datasets/exp1_difficulty.json",
-        "scene" => 8,
+        "scene" => 26,
         "chain" => 1,
         "time" => 240,
         "step_size" => 60,

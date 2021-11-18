@@ -1,6 +1,6 @@
 {
     "n_trackers": 4,
-    "death_rate": 0.00,
+    "death_rate": 0.01,
     "max_things": 8,
 
     "area_width": 800,
