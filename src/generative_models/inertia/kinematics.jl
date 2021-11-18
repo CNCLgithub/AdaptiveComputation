@@ -50,17 +50,17 @@ function update(dm::InertiaModel,
                 rep::Vector{Float64})
     @unpack pos, vel = dot
     # undo vel step
-    pos[1:2] -= vel
+    # pos[1:2] -= vel
 
-    # change direction without changing magnitude
-    m = norm(vel)
+    # m = norm(vel)
+    # ang = vel ./ m
+    # ang = m == 0. ? 0. : atan(ang[2], ang[1])
+
     vel += rep
-    m /= norm(vel)
-    if !(isinf(m) || isnan(m))
-        vel *= m
-    end
+    # vel[1] *= cos(ang)
+    # vel[2] *= sin(ang)
 
-    pos[1:2] += vel
+    # pos[1:2] += vel
     Dot(pos = pos, vel = vel, radius = dot.radius,
         target = dot.target)
 end

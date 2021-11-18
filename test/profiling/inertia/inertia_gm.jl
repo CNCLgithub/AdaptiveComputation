@@ -15,12 +15,15 @@ function main()
                                                       0.0,   # overlap
                                                       )
     graphics = Graphics(;
-                        flow_decay_rate = -0.45,
+                        flow_decay_rate = -0.15,
+                        gauss_r_multiple = 3.5,
+                        gauss_std = 1.0,
+                        gauss_amp = 0.4,
                         rf_dims = rf_dims,
                         img_dims = img_dims,
                         receptive_fields = receptive_fields,
                         bern_existence_prob = 1.0)
-    args = (10, gm, dm, graphics)
+    args = (100, gm, dm, graphics)
 
     cm = choicemap()
     cm[:init_state => :n_trackers] = 4
@@ -37,7 +40,7 @@ function main()
     Profile.clear()
     # Profile.clear_malloc_data()
     println("profiling")
-    @profilehtml for _ = 1:100
+    @profilehtml for _ = 1:1
         generate(gm_inertia_mask, args)
     end
 end

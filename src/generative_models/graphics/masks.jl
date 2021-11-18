@@ -32,11 +32,17 @@ function draw_dot_mask(pos::Vector{T},
     return mask
 end
 
+const two_pi_sqr = 4.0 * pi * pi
+
 # 2d gaussian function
 function two_dimensional_gaussian(x::Int64, y::Int64, x_0::Float64, y_0::Float64, A::Float64,
                                   sigma_x::Float64, sigma_y::Float64)
-    A * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
+    d = sigma_x * sigma_y
+    nc = 1.0 / sqrt(two_pi_sqr * d)
+    nc * exp(-( (x-x_0)^2/(2*sigma_x^2) + (y-y_0)^2/(2*sigma_y^2)))
 end
+
+
 
 """
 drawing a gaussian dot with two components:
@@ -63,8 +69,70 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
     for idx in CartesianIndices((xbounds[1]:xbounds[2],
                                  ybounds[1]:ybounds[2]))
         i,j = Tuple(idx)
-        (sqrt((i - x0)^2 + (j - y0)^2) > threshold) && continue
-        v = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)
+        dst = sqrt((i - x0)^2 + (j - y0)^2)
+        (dst > threshold) && continue
+        # v = two_dimensional_gaussian(i, j, x0, y0, gauss_amp, scaled_sd, scaled_sd)
+        v = (dst <= scaled_sd ) ? gauss_amp : 0.01
+        # flip i and j in mask
+        push!(Is, j)
+        push!(Js, i)
+        push!(Vs, v)
+    end
+    sparse(Is, Js, Vs, h, w)
+end
+
+function triangular_dot_mask(x0::Float64, y0::Float64,
+                             r::Float64, w::Int64, h::Int64,
+                             outer_f::Float64,
+                             inner_f::Float64,
+                             outer_p::Float64,
+                             max_p::Float64)
+
+    outer_r = r  * outer_f
+    inner_r = r  * inner_f
+
+    slope = outer_p  / abs(outer_r - inner_r)
+
+    xlow = clamp_and_round(x0 - outer_r, w)
+    xhigh = clamp_and_round(x0 + outer_r, w)
+    ylow = clamp_and_round(y0 - outer_r, h)
+    yhigh = clamp_and_round(y0 + outer_r, h)
+    Is = Int64[]
+    Js = Int64[]
+    Vs = Float64[]
+    for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
+        dst = sqrt((i - x0)^2 + (j - y0)^2)
+        (dst > outer_r) && continue
+        v = (dst <= inner_r ) ? max_p : clamp(outer_p - slope * dst, 0., 1.0)
+        # flip i and j in mask
+        push!(Is, j)
+        push!(Js, i)
+        push!(Vs, v)
+    end
+    sparse(Is, Js, Vs, h, w)
+
+end
+
+function mixture_dot_mask(x0::Float64, y0::Float64,
+                          r::Float64, w::Int64, h::Int64,
+                          outer_f::Float64,
+                          inner_f::Float64,
+                          outer_p::Float64,
+                          inner_p::Float64)
+    outer_r = r  * outer_f
+    inner_r = r  * inner_f
+
+    xlow = clamp_and_round(x0 - outer_r, w)
+    xhigh = clamp_and_round(x0 + outer_r, w)
+    ylow = clamp_and_round(y0 - outer_r, h)
+    yhigh = clamp_and_round(y0 + outer_r, h)
+    Is = Int64[]
+    Js = Int64[]
+    Vs = Float64[]
+    for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
+        dst = sqrt((i - x0)^2 + (j - y0)^2)
+        (dst > outer_r) && continue
+        v = (dst <= inner_r ) ? inner_p : outer_p
         # flip i and j in mask
         push!(Is, j)
         push!(Js, i)
@@ -107,3 +175,9 @@ function get_bit_masks(cgs::Vector{CausalGraph},
     return masks
 end
 
+function clamp_and_round(v::Float64, c::Int64)::Int64
+    @> v begin
+        clamp(1., c)
+        (@>> round(Int64))
+    end
+end

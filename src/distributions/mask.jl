@@ -37,27 +37,39 @@ end
 function Gen.logpdf(::Mask, image::BitMatrix, ps::SubArray)
     Gen.logpdf(mask, image, sparse(ps))
 end
+
 function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
     @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
     ni = sum(image)
+    nz = nnz(ps)
     # number of heads is impossible given number of non-zero weights
-    nnz(ps) < ni && return -Inf
+    nz < ni && return -Inf
     xs, ys, vs = findnz(ps)
     lpdf = 0.
+    # count = floor(Int64, 0.05*nz) # adding one pixel for numerical buffer
     count = 0
-    @inbounds for i = 1:nnz(ps)
+    @views @inbounds for i = 1:nz
         x = image[xs[i], ys[i]]
         lpdf += Gen.logpdf(bernoulli, x, vs[i])
         count += x
     end
     # lpdf += (abs(ni - count) * log(0.01))
     # some zero-weight cells contained heads
-    count != ni && return -Inf
-    lpdf # + (length(ps) - nnz(ps)) * log(1))
+    lpdf = count < ni ? -Inf : lpdf
+
+    # if lpdf != -Inf
+    # if lpdf == -Inf
+    #     @show ni
+    #     @show count
+    #     println(UnicodePlots.spy(ps))
+    #     println(UnicodePlots.spy(image))
+    #     # error()
+    # end
+    # lpdf
 end
 function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})
     lpdf = 0.
-    for i in eachindex(ps)
+    @inbounds for i in eachindex(ps)
         lpdf += Gen.logpdf(bernoulli, image[i], ps[i])
     end
     return lpdf

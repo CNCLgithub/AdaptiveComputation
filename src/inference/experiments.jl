@@ -63,7 +63,7 @@ function get_init_constraints(cg::CausalGraph, n::Int64)
         cm[addr] = dot.pos[2]
 
         # TODO: add vel to `cg_from_positions`
-        # vel = init_dots[i].vel
+        # vel = dot.vel
         # normv = norm(vel)
         # ang = vel ./ normv
         # ang = normv == 0. ? 0. : atan(ang[2], ang[1])
@@ -97,9 +97,10 @@ function query_from_params(gt_causal_graphs,
                                             gm_params.n_trackers)
 
     display(init_constraints)
-
     # ensure that all obs are present
     gr = @set graphics_params.bern_existence_prob = 1.0
+    gr = @set gr.gauss_r_multiple = 1.0
+    gr = @set gr.gauss_std = 1.0
     masks = render_from_cgs(gr,
                             gm_params,
                             gt_causal_graphs)

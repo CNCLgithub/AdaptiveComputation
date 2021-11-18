@@ -52,7 +52,7 @@ function _state_proposal(trace::Gen.Trace, tracker::Tuple,
     iaddr = foldr(Pair, (tracker..., :inertia))
     inertia = tracker[3] == :dynamics ? trace[iaddr] : false
     @unpack k_min, k_max = dm
-    k = inertia ? k_max : k_min
+    k = 100. # inertia ? k_max : k_min
     (aaddr, k)
 end
 
@@ -89,10 +89,11 @@ end
 function tracker_kernel(trace::Gen.Trace, tracker::Tuple,
                         att::MapSensitivity)
     # first update inertia
-    new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
-    new_tr, w2 = apply_random_walk(new_tr, state_proposal,
+    # new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
+    new_tr, w2 = apply_random_walk(trace, state_proposal,
                                    (tracker, att))
-    (new_tr, w1 + w2)
+    # (new_tr, w1 + w2)
+    (new_tr, w2)
 end
 
 # rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
@@ -113,9 +114,11 @@ end
     probs are softmaxed in the process so no need to normalize.
 """
 function perturb_state!(chain::SeqPFChain,
-                        att::AbstractAttentionModel)
+                        att::MapSensitivity)
     @unpack state, auxillary = chain
     @unpack weights, cycles = auxillary
+    # TODO: refactor to have `base_steps` in `att`
+    base_steps = 8
     allocated = zeros(size(weights))
     num_particles = length(state.traces)
     @inbounds for i=1:num_particles
@@ -129,14 +132,16 @@ function perturb_state!(chain::SeqPFChain,
         sum(tweights) == 0. && continue # no goal-relevance
         tweights ./= sum(tweights)
         tracker_addrs = trackers(state.traces[i])
-        for _ = 1:cycles
-            # sample a tracker
-            ti = Gen.categorical(tweights)
-            allocated += c[:, ti]
-            # perform an mh move
-            new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
-            if log(rand()) < ls
-                state.traces[i] = new_tr
+        p_base_steps = floor(Int64, base_steps / length(tweights))
+        for ti = eachindex(tweights)
+            steps = p_base_steps + round(Int64, tweights[ti] * cycles)
+            for _ = 1:steps
+                allocated += c[:, ti]
+                # perform an mh move
+                new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
+                if log(rand()) < ls
+                    state.traces[i] = new_tr
+                end
             end
         end
     end

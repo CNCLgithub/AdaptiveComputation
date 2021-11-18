@@ -1,3 +1,4 @@
+using UnicodePlots
 export Graphics
 
 ################################################################################
@@ -90,14 +91,20 @@ function render_elem!(ch::ChangeDict,
     @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = gr
     @unpack area_width, area_height = (get_prop(cg, :gm))
 
+    ih, iw = img_dims
     # going from area dims to img dims
     x, y = translate_area_to_img(d.pos[1:2]...,
-                                 img_dims..., area_width, area_height)
+                                 ih, iw, area_width, area_height)
     scaled_r = d.radius/area_width*img_dims[1]
 
-    space = draw_gaussian_dot_mask([x,y], scaled_r, img_dims...,
-                                   gauss_r_multiple,
-                                   gauss_amp, gauss_std)
+    #TODO: refactor and make pretty
+    # space = mixture_dot_mask(x, y, scaled_r, ih, iw,
+    space = triangular_dot_mask(x, y, scaled_r, ih, iw,
+                             gauss_r_multiple,
+                             gauss_std,
+                             0.25 * gauss_amp,
+                             gauss_amp)
+
 
     if has_prop(cg, v, :flow)
         flow = evolve(get_prop(cg, v, :flow), space)

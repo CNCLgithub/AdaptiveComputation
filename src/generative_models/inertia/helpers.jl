@@ -1,9 +1,38 @@
+import Base.show
+
 struct InertiaKernelState
     world::CausalGraph
     es::RFSElements
     xs::AbstractArray
     pt::BitArray{3}
     pls::Vector{Float64}
+end
+
+uheatmap = UnicodePlots.heatmap
+uspy = UnicodePlots.spy
+rargs = GenRFS.args
+
+function Base.show(io::IO, ::MIME"text/plain", v::InertiaKernelState)
+    println(io, "Elements")
+    for i in eachindex(v.es)
+        @>> (v.es[i]) begin
+            rargs
+            first
+            (x -> x .> 0.)
+            (x -> v.xs[i] .& (.!(x)))
+            uspy
+            println(io)
+        end
+
+    end
+    # println(io, "Observations")
+    # for i in eachindex(v.xs)
+    #     @>> (v.xs[i]) begin
+    #         uspy
+    #         println(io)
+    #     end
+    # end
+    return nothing
 end
 
 function world(s::InertiaKernelState)::CausalGraph
@@ -197,9 +226,10 @@ function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
     # n_receptive_fields = length(gr.receptive_fields)
     # rate_per_field = rate / n_receptive_fields
 
-    r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
+    @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = gr
+    r = ceil(gm.dot_radius * gauss_std * gr.img_dims[1] / gm.area_width)
     n_pixels = prod(gr.img_dims)
-    pixel_prob = (2 * pi * r^2 * gr.gauss_amp) / n_pixels
+    pixel_prob = (pi * r^2 * gr.gauss_amp) / n_pixels
 
     UniformEnsemble(rate, pixel_prob, targets)
 end

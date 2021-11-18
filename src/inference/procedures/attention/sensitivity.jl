@@ -41,6 +41,19 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @unpack objective, scale, samples, jitter = att
 
     # @show state.log_weights
+
+    anyinf = @>> (state.traces) begin
+            map(get_score)
+            findfirst(isinf)
+    end
+    if !isnothing(anyinf)
+        @>> (state.traces[anyinf]) begin
+                get_retval
+                last
+                last
+                display
+        end
+    end
     seeds = Gen.sample_unweighted_traces(state, samples)
     seed_ls = get_score.(seeds)
     seed_ls .-= maximum(seed_ls)
@@ -60,8 +73,8 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
                 objective
                 x -> sinkhorn_div(seed_obj, x; scale = scale)
                 log
-                x -> x - step_size
             end
+            div -= step_size
             cs = correspondence(jittered)
             # marginal of assignment for latent to xs
             c = cs[:, j]
@@ -70,7 +83,7 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
         end
     end
     # think about normalizing wrt to |xs|
-    sensitivities = log.(sensitivities)
+    sensitivities = log.(sensitivities) .- log(samples)
     @show sensitivities
     @pack! auxillary = sensitivities
     return nothing
@@ -93,8 +106,7 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities, cycles = auxillary
     @unpack sweeps, k, x0 = att
-    # x = log(sum(sensitivities)) - log(length(sensitivities))
-    x = logsumexp(sensitivities) - log(length(sensitivities))
+    x = logsumexp(sensitivities)
     amp = exp(-k * (x - x0))
     # amp = k * (x - x0)
 

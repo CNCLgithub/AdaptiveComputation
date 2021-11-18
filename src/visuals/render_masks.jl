@@ -1,10 +1,10 @@
 export render_masks
 
-#using PaddedViews
+using Colors
 using ImageTransformations
 
 # this takes masks within one receptive field and superimposes them
-aggregate_masks(masks::Vector{Matrix{Float64}}) = sum(masks)
+aggregate_masks(masks::Vector{Matrix{Float64}}) = clamp.(sum(masks), 0., 1.0)
 _or = (x, y) -> x .| y
 aggregate_masks(masks::Vector{BitMatrix}) = reduce(_or, masks)
 
@@ -35,9 +35,9 @@ function render_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
                          gm::AbstractGMParams,
                          graphics::AbstractGraphics)
     masks = get_masks(data, t)
-    img = aggregate_masks(masks)
+    img = Gray.(aggregate_masks(masks))
     # img = get_img(aggregated)
-    imresize(img, ratio=gm.area_width/size(img, 1))
+    # imresize(img, ratio=gm.area_width/size(img, 1))
 end
 function render_masks(data::Union{Vector{CausalGraph}, ChoiceMap}, t::Int64,
                          gm::AbstractGMParams,
