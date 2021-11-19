@@ -8,6 +8,7 @@ export IDPainter
 end
 
 function remap(p::IDPainter, vmap::Vector{Int64})::IDPainter
+    isempty(p.colors) && return p
     IDPainter(p.colors[sortperm(vmap)], p.label, p.label_size, p.alpha)
 end
 

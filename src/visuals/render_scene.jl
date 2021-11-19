@@ -17,8 +17,8 @@ function render_scene(gm::GMParams,
     np, nt = size(pf_st)
 
     alpha = 3.0 * 1.0 / np
-    att_rings = AttentionRingsPainter(max_attention = max_attention)
-
+    attended = attended ./ (nx * np)
+    att_rings = AttentionRingsPainter(max_attention = 1.0)
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
 
@@ -32,8 +32,9 @@ function render_scene(gm::GMParams,
         MOT.paint(p, gt_cgs[i])
 
         p = SubsetPainter(cg -> only_targets(gt_cgs[i]),
-                          IDPainter(colors = fill(red, nx)))
-
+                          IDPainter(colors = [],
+                                    label = true))
+        MOT.paint(p, gt_cgs[i])
         # then render each particle's state
         for j = 1:np
             p = SubsetPainter(cg -> only_targets(cg),
@@ -42,11 +43,10 @@ function render_scene(gm::GMParams,
             MOT.paint(p, world)
 
 
-            c = correspondence(pf_st[j, i])
-            tweights = vec(sum(attended[:, i] .* c, dims = 1))
-            MOT.paint(att_rings, world, tweights)
+            tw = target_weights(pf_st[j, i], attended[:, i])
+            MOT.paint(att_rings, world, tw)
 
-            nt = length(tweights)
+            nt = length(tw)
             # @show nt
             nt === 0 && continue
             p = SubsetPainter(cg -> only_targets(cg),

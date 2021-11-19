@@ -91,9 +91,7 @@ end
 function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    weights = softmax(sensitivities .+ att.smoothness)
-    # weights .*= att.smoothness
-    # weights ./= sum(weights)
+    weights = softmax(sensitivities .* att.smoothness)
 
     println(UnicodePlots.barplot(1:length(sensitivities),
                                  weights;
@@ -109,16 +107,13 @@ function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sweeps, k, x0 = att
     x = logsumexp(sensitivities)
     amp = exp(-k * (x - x0))
-    # amp = k * (x - x0)
 
     println("x: $(x), amp: $(amp)")
     cycles = @> amp begin
-        # x -> 0.5 * (x + cycles)
         clamp(0., sweeps)
         floor
         Int64
     end
-    println("cycles: $cycles")
     @pack! auxillary = cycles
     return nothing
 end

@@ -83,6 +83,17 @@ function td_full(st::InertiaKernelState)
     td_full(pt, pls) # P({x...} are targets)
 end
 
+
+function target_weights(st::InertiaKernelState, wv::Vector{Float64})
+    c = correspondence(st)
+    ne = size(c, 2)
+    tws = zeros(ne)
+    @inbounds for ti = 1:ne
+        tws[ti] = sum(c[:, ti] .* wv)
+    end
+    return tws
+end
+
 function trackers(dm::InertiaModel, tr::Trace)
     t = first(get_args(tr))
     st = tr[:kernel => t]

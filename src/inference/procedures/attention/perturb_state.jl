@@ -121,22 +121,21 @@ function perturb_state!(chain::SeqPFChain,
     base_steps = 8
     allocated = zeros(size(weights))
     num_particles = length(state.traces)
-    @inbounds for i=1:num_particles
+    @views @inbounds for i=1:num_particles
         # skip if -Inf
         get_score(state.traces[i]) === -Inf && continue
         # map obs weights back to target centric weights
         c = correspondence(state.traces[i])
-        # TODO: this is ugly
-        tweights = vec(sum(weights .* c, dims = 1))
-        isempty(tweights) && continue # no trackers
-        sum(tweights) == 0. && continue # no goal-relevance
-        tweights ./= sum(tweights)
-        tracker_addrs = trackers(state.traces[i])
-        p_base_steps = floor(Int64, base_steps / length(tweights))
-        for ti = eachindex(tweights)
-            steps = p_base_steps + round(Int64, tweights[ti] * cycles)
-            for _ = 1:steps
-                allocated += c[:, ti]
+        ne = size(c, 2)
+        tracker_addrs = trackers(state.traces[i]) # address for each tracker
+        p_base_steps = floor(Int64, base_steps / ne) # base steps per tracker
+        for ti = 1:ne
+            tw = sum(c[:, ti] .* weights) # tracker goal relevance
+            steps = p_base_steps + floor(Int64, tw * cycles)
+            for s = 1:steps
+                if s > p_base_steps
+                    allocated += c[:, ti]
+                end
                 # perform an mh move
                 new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
                 if log(rand()) < ls
