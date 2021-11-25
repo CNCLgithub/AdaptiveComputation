@@ -49,18 +49,21 @@ function _state_proposal(trace::Gen.Trace, tracker::Tuple,
 
     @unpack ancestral_steps = att
     aaddr = foldr(Pair, (tracker..., :ang))
+    maddr = foldr(Pair, (tracker..., :mag))
     iaddr = foldr(Pair, (tracker..., :inertia))
     inertia = tracker[3] == :dynamics ? trace[iaddr] : false
     @unpack k_min, k_max = dm
     k = 100. # inertia ? k_max : k_min
-    (aaddr, k)
+    (aaddr, maddr, k)
 end
 
 @gen  function state_proposal(trace::Gen.Trace, tracker::Tuple,
                               att::MapSensitivity)
-    (aaddr, k) = _state_proposal(trace, tracker, att)
+    (aaddr, maddr, k) = _state_proposal(trace, tracker, att)
     ang = trace[aaddr]
     {aaddr} ~ von_mises(ang, k)
+    mag = trace[maddr]
+    {maddr} ~ normal(mag, 1.0)
     return nothing
 end
 
@@ -118,7 +121,7 @@ function perturb_state!(chain::SeqPFChain,
     @unpack state, auxillary = chain
     @unpack weights, cycles = auxillary
     # TODO: refactor to have `base_steps` in `att`
-    base_steps = 8
+    base_steps = 16
     allocated = zeros(size(weights))
     num_particles = length(state.traces)
     @views @inbounds for i=1:num_particles

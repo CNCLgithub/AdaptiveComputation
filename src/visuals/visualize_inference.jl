@@ -60,9 +60,9 @@ function visualize_inference(chain, chain_path, gt_causal_graphs, gm,
 
 
     # # rendering predicted distribution flow masks from receptive fields
-    # states = map(world, pf_st[1, :])
-    # for t=1:k
-    #     render_masks(states, t, gm, graphics,
-    #                  joinpath(path, "pred_dist_rf_masks"))
-    # end
+    states = map(world, pf_st[1, :])
+    for t=1:k
+        render_masks(states, t, gm, graphics,
+                     joinpath(path, "pred_dist_rf_masks"))
+    end
 end

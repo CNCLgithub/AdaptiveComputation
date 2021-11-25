@@ -121,17 +121,17 @@ function default_args()
         "proc" => "$(@__DIR__)/proc.json",
         "graphics" => "$(@__DIR__)/graphics.json",
         "dataset" => "/spaths/datasets/exp1_difficulty.json",
-        "scene" => 50,
+        "scene" => 5,
         "chain" => 1,
-        "time" => 240,
+        "time" => 10,
         "step_size" => 60,
         "restart" => true,
         "viz" => true)
 end
 
 function main()
-    args = parse_commandline()
-    # args = default_args()
+    # args = parse_commandline()
+    args = default_args()
 
 
     # loading scene data

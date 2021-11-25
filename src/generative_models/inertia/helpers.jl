@@ -234,13 +234,11 @@ end
 
 function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
                          targets)
-    # n_receptive_fields = length(gr.receptive_fields)
-    # rate_per_field = rate / n_receptive_fields
-
-    @unpack img_dims, gauss_r_multiple, gauss_amp, gauss_std = gr
-    r = ceil(gm.dot_radius * gauss_std * gr.img_dims[1] / gm.area_width)
+    @unpack img_width, outer_f, inner_p, inner_f = gr
+    # assuming square
+    r = ceil(gm.dot_radius * inner_f * img_width / gm.area_width)
     n_pixels = prod(gr.img_dims)
-    pixel_prob = (pi * r^2 * gr.gauss_amp) / n_pixels
+    pixel_prob = (pi * r^2 * inner_p) / n_pixels
 
     UniformEnsemble(rate, pixel_prob, targets)
 end

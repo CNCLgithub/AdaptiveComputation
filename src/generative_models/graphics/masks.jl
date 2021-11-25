@@ -82,11 +82,12 @@ function draw_gaussian_dot_mask(center::Vector{Float64},
 end
 
 function triangular_dot_mask(x0::Float64, y0::Float64,
-                             r::Float64, w::Int64, h::Int64,
+                             r::Float64,
+                             w::Int64, h::Int64,
                              outer_f::Float64,
                              inner_f::Float64,
                              outer_p::Float64,
-                             max_p::Float64)
+                             inner_p::Float64)
 
     outer_r = r  * outer_f
     inner_r = r  * inner_f
@@ -103,7 +104,7 @@ function triangular_dot_mask(x0::Float64, y0::Float64,
     for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
         dst = sqrt((i - x0)^2 + (j - y0)^2)
         (dst > outer_r) && continue
-        v = (dst <= inner_r ) ? max_p : clamp(outer_p - slope * dst, 0., 1.0)
+        v = (dst <= inner_r ) ? inner_p : clamp(outer_p - slope * dst, 0., 1.0)
         # flip i and j in mask
         push!(Is, j)
         push!(Js, i)

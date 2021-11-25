@@ -80,8 +80,9 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     # think about normalizing wrt to |xs|
     sensitivities = log.(sensitivities) .- log(samples)
 
-    println(UnicodePlots.histogram(filter(!isinf, sensitivities);
-                                   title = "Sensitivity"))
+    noninf = filter(!isinf, sensitivities)
+    !isempty(noninf) && println(UnicodePlots.histogram(noninf;
+                                                       title = "Sensitivity"))
 
     @pack! auxillary = sensitivities
     return nothing

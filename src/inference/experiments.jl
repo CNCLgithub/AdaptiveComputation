@@ -10,39 +10,39 @@ function get_observations(graphics::Graphics, masks)
 end
 
 # TODO: depricate? only used in a test
-function constraints_from_cgs(cgs::Vector{CausalGraph},
-                              gm::Gen.GenerativeFunction,
-                              args::Tuple)
-    t = length(cgs)
-    # first simulate trace using gm
-    cm = get_init_constraints(cgs[1])
-    prev_objects = get_objects(cgs[1], Dot)
-    for i = 2:t
-        objects = MOT.get_objects(cgs[i], Dot)
-        for j = 1:length(objects)
-            pos = objects[j].pos[1:2]
-            delta = pos - prev_objects[j].pos[1:2]
-            nd = norm(delta)
-            ang = delta ./ nd
-            ang = nd == 0. ? 0. : atan(ang[2], ang[1])
-            cm[:kernel => i-1 => :dynamics => :brownian => j => :mag] = nd
-            cm[:kernel => i-1 => :dynamics => :brownian => j => :ang] = ang
-        end
-        prev_objects = objects
-    end
+# function constraints_from_cgs(cgs::Vector{CausalGraph},
+#                               gm::Gen.GenerativeFunction,
+#                               args::Tuple)
+#     t = length(cgs)
+#     # first simulate trace using gm
+#     cm = get_init_constraints(cgs[1])
+#     prev_objects = get_objects(cgs[1], Dot)
+#     for i = 2:t
+#         objects = MOT.get_objects(cgs[i], Dot)
+#         for j = 1:length(objects)
+#             pos = objects[j].pos[1:2]
+#             delta = pos - prev_objects[j].pos[1:2]
+#             nd = norm(delta)
+#             ang = delta ./ nd
+#             ang = nd == 0. ? 0. : atan(ang[2], ang[1])
+#             cm[:kernel => i-1 => :dynamics => :brownian => j => :mag] = nd
+#             cm[:kernel => i-1 => :dynamics => :brownian => j => :ang] = ang
+#         end
+#         prev_objects = objects
+#     end
 
-    trace, _ = generate(gm, args, cm)
-    choices = get_choices(trace)
+#     trace, _ = generate(gm, args, cm)
+#     choices = get_choices(trace)
 
-    constraints = Vector{Gen.ChoiceMap}(undef, t)
-    for i = 1:t
-        observations = choicemap()
-        addr = :kernel => i => :receptive_fields
-        set_submap!(observations, addr, get_submap(choices, addr))
-        constraints[i] = observations
-    end
-    return constraints
-end
+#     constraints = Vector{Gen.ChoiceMap}(undef, t)
+#     for i = 1:t
+#         observations = choicemap()
+#         addr = :kernel => i => :receptive_fields
+#         set_submap!(observations, addr, get_submap(choices, addr))
+#         constraints[i] = observations
+#     end
+#     return constraints
+# end
 
 function get_init_constraints(cg::CausalGraph)
     init_dots = get_objects(cg, Dot)
@@ -99,8 +99,8 @@ function query_from_params(gt_causal_graphs,
     display(init_constraints)
     # ensure that all obs are present
     gr = @set graphics_params.bern_existence_prob = 1.0
-    gr = @set gr.gauss_r_multiple = 1.0
-    gr = @set gr.gauss_std = 1.0
+    gr = @set gr.outer_f = 1.0
+    gr = @set gr.inner_f = 1.0
     masks = render_from_cgs(gr,
                             gm_params,
                             gt_causal_graphs)
