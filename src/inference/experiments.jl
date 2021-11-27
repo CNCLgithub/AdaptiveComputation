@@ -87,7 +87,8 @@ function query_from_params(gt_causal_graphs,
                            vis::Bool = false)
     
     latent_map = LatentMap(
-        :auxillary => digest_auxillary
+        :auxillary => digest_auxillary,
+        :parents => extract_parents
     )
 
     init_gt_cg = gt_causal_graphs[1]

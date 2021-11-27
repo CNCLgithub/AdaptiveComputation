@@ -5,20 +5,16 @@ red = Colors.color_names["red"]
 function render_scene(gm::GMParams,
                       gt_cgs::Vector{CausalGraph},
                       pf_st::Matrix{InertiaKernelState},
-                      attended::Matrix{Float64};
+                      attended::Dict;
                       base = "/renders/render_scene",
                       max_attention = 600.)
     @unpack area_width, area_height = gm
-
-    nx = size(attended, 1)
 
     isdir(base) && rm(base, recursive=true)
     mkpath(base)
     np, nt = size(pf_st)
 
     alpha = 3.0 * 1.0 / np
-    attended = attended ./ (nx * np)
-    att_rings = AttentionRingsPainter(max_attention = 1.0)
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
 
@@ -31,9 +27,10 @@ function render_scene(gm::GMParams,
         p = PsiturkPainter(dot_color = "black")
         MOT.paint(p, gt_cgs[i])
 
-        p = SubsetPainter(cg -> only_targets(gt_cgs[i]),
-                          IDPainter(colors = [],
-                                    label = true))
+        # p = SubsetPainter(cg -> only_targets(gt_cgs[i]),
+        #                   IDPainter(colors = [],
+        #                             label = true))
+        p = IDPainter(colors = [], label = true)
         MOT.paint(p, gt_cgs[i])
         # then render each particle's state
         for j = 1:np
@@ -43,14 +40,17 @@ function render_scene(gm::GMParams,
             MOT.paint(p, world)
 
 
-            tw = target_weights(pf_st[j, i], attended[:, i])
-            MOT.paint(att_rings, world, tw)
+            # tw = target_weights(pf_st[j, i], attended[:, i])
+            att = attended[i => j]
+            att_rings = AttentionRingsPainter(max_attention = sum(att),
+                                              opacity = 0.5)
+            MOT.paint(att_rings, world, att)
 
-            nt = length(tw)
+            nt = length(att)
             # @show nt
             nt === 0 && continue
             p = SubsetPainter(cg -> only_targets(cg),
-                              IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, nx)],
+                              IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, 15)],
                               # IDPainter(colors = fill(red, nx),
                               # IDPainter(colors = TRACKER_COLORSCHEME[:],
                                         label = false,

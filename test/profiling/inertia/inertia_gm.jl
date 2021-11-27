@@ -9,20 +9,6 @@ function main()
     dm = InertiaModel()
     rf_dims = (1,1)
     img_dims = (100, 100)
-    receptive_fields = get_rectangle_receptive_fields(rf_dims,
-                                                      img_dims,
-                                                      1E-10, # threshold
-                                                      0.0,   # overlap
-                                                      )
-    graphics = Graphics(;
-                        flow_decay_rate = -0.15,
-                        gauss_r_multiple = 3.5,
-                        gauss_std = 1.0,
-                        gauss_amp = 0.4,
-                        rf_dims = rf_dims,
-                        img_dims = img_dims,
-                        receptive_fields = receptive_fields,
-                        bern_existence_prob = 1.0)
     args = (100, gm, dm, graphics)
 
     cm = choicemap()

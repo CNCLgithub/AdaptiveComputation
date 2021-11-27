@@ -8,10 +8,9 @@ export AttentionRingsPainter
     linewidth::Float64 = 7.0
 end
 
-function paint(p::AttentionRingsPainter, cg::CausalGraph, attention_weights::Vector{Float64})
+function paint(p::AttentionRingsPainter, cg::CausalGraph, attention_weights::Vector)
     points = @>> get_objects(cg, Dot) map(x -> x.pos[1:2])
-    norm_weights = attention_weights/p.max_attention
-
+    norm_weights = attention_weights ./ p.max_attention
     for (i, point) in enumerate(points)
         _draw_circle(point, p.radius, p.attention_color;
                      opacity=p.opacity*norm_weights[i],

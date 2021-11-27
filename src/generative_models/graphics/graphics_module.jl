@@ -14,7 +14,8 @@ export Graphics
     inner_p::Float64
     outer_f::Float64
     outer_p::Float64
-    bern_existence_prob::Float64 = 0.99
+    nlog_bernoulli::Float64 = -100
+    bern_existence_prob::Float64 = -expm1(nlog_bernoulli)
 end
 
 """
@@ -81,7 +82,7 @@ function render_elem!(ch::ChangeDict,
                                  img_height, img_width,
                                  area_width, area_height)
     scaled_r = d.radius/area_width*img_width # assuming square
-    space = triangular_dot_mask(x, y, scaled_r, gr)
+    space = exp_dot_mask(x, y, scaled_r, gr)
 
     if has_prop(cg, v, :flow)
         flow = evolve(get_prop(cg, v, :flow), space)
@@ -116,9 +117,9 @@ end
 # Prediction
 ################################################################################
 function predict(gr::Graphics, cg::CausalGraph, v::Int64, e::Dot)
-    ep = gr.bern_existence_prob
+    @unpack nlog_bernoulli = gr
     space = get_prop(cg, v, :space)
-    BernoulliElement{BitMatrix}(ep, mask, (space,))
+    LogBernoulliElement{BitMatrix}(nlog_bernoulli, mask, (space,))
 end
 
 function predict(gr::Graphics, cg::CausalGraph, v::Int64, e::UniformEnsemble)
@@ -163,5 +164,13 @@ function triangular_dot_mask(x0::Float64, y0::Float64,
     @unpack img_width, img_height = gr
     @unpack inner_p, inner_f, outer_p, outer_f = gr
     triangular_dot_mask(x0, y0, r, img_width, img_height,
+                        outer_f, inner_f, outer_p, inner_p)
+end
+
+function exp_dot_mask(x0::Float64, y0::Float64,
+                      r::Float64, gr::Graphics)
+    @unpack img_width, img_height = gr
+    @unpack inner_p, inner_f, outer_p, outer_f = gr
+    exp_dot_mask(x0, y0, r, img_width, img_height,
                         outer_f, inner_f, outer_p, inner_p)
 end

@@ -54,37 +54,58 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
                 display
         end
     end
-    seeds = Gen.sample_unweighted_traces(state, samples)
 
-    sensitivities = @>> seeds first n_obs zeros
-    @inbounds for i = 1:samples
-        latents = trackers(seeds[i])
-        step_size = log(length(latents))
-        seed_obj = objective(seeds[i])
-        for j = 1:length(latents)
+    # sensitivities = @>> (state.traces) first n_obs zeros
+    np = length(state.traces)
+    arrousal = Vector{Float64}(undef, np)
+    sensitivities = Dict{Int64, Vector{Float64}}()
+    accepted = 0
+    @inbounds for i = 1:np
+        latents = trackers(state.traces[i])
+        nl = length(latents)
+        p_base_steps = floor(Int64, samples / nl) # base steps per tracker
+        seed_obj = objective(state.traces[i])
+        # scs = correspondence(state.traces[i])
+        psense = fill(-Inf, nl)
+        for j = 1:nl, _ = 1:p_base_steps
             # println("Working on sample $(i), latent $(j)")
-            jittered, ls = jitter(seeds[i], latents[j] , att)
-            div = @>> jittered begin
-                objective
+            jittered, ls = jitter(state.traces[i], latents[j] , att)
+            jobj = objective(jittered)
+            # jcs = correspondence(jittered)
+            # jc = jcs[:, j]
+            # compute sensitivity
+            div = @>> jobj begin
                 x -> sinkhorn_div(seed_obj, x; scale = scale)
-                log
+                # log
             end
-            div -= step_size
-            cs = correspondence(jittered)
+            psense[j] = logsumexp(psense[j], div)
             # marginal of assignment for latent to xs
-            c = cs[:, j]
-            c .*= exp(div)
-            sensitivities += c
+            # c = jc .+ scs[:, j]
+            # c .*= 0.5 * exp(div)
+            # sensitivities += c
+
+            # accept traces
+            if log(rand()) < ls
+                accepted +=1
+                state.traces[i] = jittered
+                seed_obj = jobj
+                # scs = jcs
+            end
+
         end
+        sensitivities[i] = psense .- log(p_base_steps)
+        arrousal[i] = logsumexp(sensitivities[i]) #.- log(nl)
     end
+    println("acceptance ratio $(accepted / (np * samples))")
     # think about normalizing wrt to |xs|
-    sensitivities = log.(sensitivities) .- log(samples)
+    # sensitivities = log.(sensitivities) .- log(np * samples)
 
-    noninf = filter(!isinf, sensitivities)
-    !isempty(noninf) && println(UnicodePlots.histogram(noninf;
-                                                       title = "Sensitivity"))
-
+    # noninf = filter(!isinf, sensitivities)
+    # !isempty(noninf) && println(UnicodePlots.histogram(noninf;
+    #                                                    title = "Sensitivity"))
+    # display(sensitivities)
     @pack! auxillary = sensitivities
+    @pack! auxillary = arrousal
     return nothing
 end
 
@@ -92,11 +113,14 @@ end
 function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    weights = softmax(sensitivities .* att.smoothness)
+    weights = Dict{Int64, Vector{Float64}}()
+    @inbounds for i = 1:length(sensitivities)
+        weights[i] = softmax(sensitivities[i] .* att.smoothness)
+    end
 
-    println(UnicodePlots.barplot(1:length(sensitivities),
-                                 weights;
-                                 title = "Weights"))
+    # println(UnicodePlots.barplot(1:length(sensitivities),
+    #                              weights;
+    #                              title = "Weights"))
     @pack! auxillary = weights
 end
 
@@ -104,17 +128,29 @@ end
 # by the sensitivity weights using an exponential function
 function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
     @unpack auxillary = chain
-    @unpack sensitivities, cycles = auxillary
+    @unpack arrousal, cycles = auxillary
     @unpack sweeps, k, x0 = att
-    x = logsumexp(sensitivities)
-    amp = exp(-k * (x - x0))
-
-    println("x: $(x), amp: $(amp)")
-    cycles = @> amp begin
-        clamp(0., sweeps)
-        floor
-        Int64
+    m = sweeps / x0
+    np = length(arrousal)
+    cycles = Vector{Int64}(undef, np)
+    @inbounds for i = 1:np
+        amp = m * (arrousal[i] + x0)
+        cycles[i] = @> amp begin
+            clamp(0., sweeps)
+            floor
+            Int64
+        end
     end
+    println("avg cycles: $(mean(cycles))")
+    # x = logsumexp(arrousal) - log(length(arrousal))
+    # amp = k * (x + x0)
+
+    # println("x: $(x), amp: $(amp)")
+    # cycles = @> amp begin
+    #     clamp(0., sweeps)
+    #     floor
+    #     Int64
+    # end
     @pack! auxillary = cycles
     return nothing
 end

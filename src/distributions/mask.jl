@@ -18,7 +18,7 @@ end
 function Gen.random(::Mask, ps::AbstractSparseMatrix{Float64})
     result = falses(size(ps))
     xs, ys, vs = findnz(ps)
-    for i = 1:nnz(ps)
+    @inbounds for i = eachindex(vs)
         result[xs[i], ys[i]] = bernoulli(vs[i])
     end
     return result
@@ -53,20 +53,10 @@ function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
         lpdf += Gen.logpdf(bernoulli, x, vs[i])
         count += x
     end
-    # lpdf += (abs(ni - count) * log(0.01))
     # some zero-weight cells contained heads
     lpdf = count < ni ? -Inf : lpdf
-
-    # if lpdf != -Inf
-    # if lpdf == -Inf
-    #     @show ni
-    #     @show count
-    #     println(UnicodePlots.spy(ps))
-    #     println(UnicodePlots.spy(image))
-    #     # error()
-    # end
-    # lpdf
 end
+
 function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})
     lpdf = 0.
     @inbounds for i in eachindex(ps)

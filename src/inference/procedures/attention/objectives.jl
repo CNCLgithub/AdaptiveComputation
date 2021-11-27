@@ -32,17 +32,17 @@ function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
     @inbounds for p = 1:np
         c += ptensor[:, :, p] * exp(ls[p])
     end
-    # fill_p = 1.0 / nx
-    # # normalize each column to sum to 1
-    # @inbounds for e = 1:ne
-    #     ce = @view c[:, e]
-    #     sce = sum(ce)
-    #     if sce == 0.
-    #         ce[:] .= fill_p
-    #     else
-    #         ce ./= sce
-    #     end
-    # end
+    fill_p = 1.0 / nx
+    # normalize each column to sum to 1
+    @inbounds for e = 1:ne
+        ce = @view c[:, e]
+        sce = sum(ce)
+        if sce == 0.
+            ce[:] .= fill_p
+        else
+            ce ./= sce
+        end
+    end
     c
 end
 

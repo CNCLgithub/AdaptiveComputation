@@ -85,7 +85,8 @@ function chain_performance(chain, path;
 
     cycles = 0
     for frame = 1:length(aux_state)
-        cycles += sum(aux_state[frame].allocated)
+        _cycles = collect(values(aux_state[frame].allocated))
+        cycles += sum(sum.(_cycles))
     end
 
     df = DataFrame(id = ones(n_targets),

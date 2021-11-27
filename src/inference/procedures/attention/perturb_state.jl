@@ -45,25 +45,21 @@ end
 
 function _state_proposal(trace::Gen.Trace, tracker::Tuple,
                          att::MapSensitivity)
-    t, gm, dm, gr = Gen.get_args(trace)
-
-    @unpack ancestral_steps = att
     aaddr = foldr(Pair, (tracker..., :ang))
     maddr = foldr(Pair, (tracker..., :mag))
     iaddr = foldr(Pair, (tracker..., :inertia))
-    inertia = tracker[3] == :dynamics ? trace[iaddr] : false
-    @unpack k_min, k_max = dm
-    k = 100. # inertia ? k_max : k_min
-    (aaddr, maddr, k)
+    (aaddr, maddr, iaddr)
 end
 
+# TODO: perturb initial state
 @gen  function state_proposal(trace::Gen.Trace, tracker::Tuple,
                               att::MapSensitivity)
-    (aaddr, maddr, k) = _state_proposal(trace, tracker, att)
+    (aaddr, maddr, iaddr) = _state_proposal(trace, tracker, att)
+    {iaddr} ~ bernoulli(0.50)
     ang = trace[aaddr]
-    {aaddr} ~ von_mises(ang, k)
+    {aaddr} ~ von_mises(ang, 150.0)
     mag = trace[maddr]
-    {maddr} ~ normal(mag, 1.0)
+    {maddr} ~ normal(mag, 0.1)
     return nothing
 end
 
@@ -120,32 +116,39 @@ function perturb_state!(chain::SeqPFChain,
                         att::MapSensitivity)
     @unpack state, auxillary = chain
     @unpack weights, cycles = auxillary
-    # TODO: refactor to have `base_steps` in `att`
-    base_steps = 16
-    allocated = zeros(size(weights))
+    allocated = Dict{Int64, Vector{Int64}}()
+    if sum(cycles) == 0.
+        @pack! auxillary = allocated
+        return nothing
+    end
     num_particles = length(state.traces)
     @views @inbounds for i=1:num_particles
         # skip if -Inf
         get_score(state.traces[i]) === -Inf && continue
+        cycles[i] == 0 && continue
         # map obs weights back to target centric weights
-        c = correspondence(state.traces[i])
-        ne = size(c, 2)
+        # c = correspondence(state.traces[i])
+        # ne = size(c, 2)
+        pweights = weights[i]
+        nes = length(pweights)
         tracker_addrs = trackers(state.traces[i]) # address for each tracker
-        p_base_steps = floor(Int64, base_steps / ne) # base steps per tracker
-        for ti = 1:ne
-            tw = sum(c[:, ti] .* weights) # tracker goal relevance
-            steps = p_base_steps + floor(Int64, tw * cycles)
+        palloc = zeros(Int64, length(pweights))
+        for ti = 1:nes
+            # tw = sum(c[:, ti] .* weights) # tracker goal relevance
+            tw = pweights[ti] # tracker goal relevance
+            steps = round(Int64, tw * cycles[i])
+            palloc[ti] += steps
             for s = 1:steps
-                if s > p_base_steps
-                    allocated += c[:, ti]
-                end
                 # perform an mh move
                 new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
                 if log(rand()) < ls
+                    # c = correspondence(state.traces[i])
+                    # tw = sum(c[:, ti] .* weights)
                     state.traces[i] = new_tr
                 end
             end
         end
+        allocated[i] = palloc
     end
     @pack! auxillary = allocated
     @pack! chain = state
