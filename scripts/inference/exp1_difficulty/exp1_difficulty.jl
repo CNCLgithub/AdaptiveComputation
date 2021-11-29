@@ -123,15 +123,15 @@ function default_args()
         "dataset" => "/spaths/datasets/exp1_difficulty.json",
         "scene" => 6,
         "chain" => 1,
-        "time" => 121,
+        "time" => 20,
         "step_size" => 60,
         "restart" => true,
         "viz" => true)
 end
 
 function main()
-    args = parse_commandline()
-    # args = default_args()
+    # args = parse_commandline()
+    args = default_args()
 
 
     # loading scene data
