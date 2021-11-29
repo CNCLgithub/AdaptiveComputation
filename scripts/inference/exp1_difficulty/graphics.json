@@ -2,7 +2,7 @@
     "img_width": 100,
     "img_height": 100,
     "flow_decay_rate": -0.8,
-    "outer_f": 6.0,
+    "outer_f": 5.0,
     "inner_f": 0.75,
     "inner_p": 0.99,
     "outer_p": 0.9,
