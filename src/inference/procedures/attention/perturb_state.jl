@@ -57,7 +57,7 @@ end
     (aaddr, maddr, iaddr) = _state_proposal(trace, tracker, att)
     {iaddr} ~ bernoulli(0.50)
     ang = trace[aaddr]
-    {aaddr} ~ von_mises(ang, 150.0)
+    {aaddr} ~ von_mises(ang, 125.0)
     mag = trace[maddr]
     {maddr} ~ normal(mag, 0.1)
     return nothing
@@ -89,9 +89,9 @@ function tracker_kernel(trace::Gen.Trace, tracker::Tuple,
                         att::MapSensitivity)
     # first update inertia
     # new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
+    # (new_tr, w1 + w2)
     new_tr, w2 = apply_random_walk(trace, state_proposal,
                                    (tracker, att))
-    # (new_tr, w1 + w2)
     (new_tr, w2)
 end
 
