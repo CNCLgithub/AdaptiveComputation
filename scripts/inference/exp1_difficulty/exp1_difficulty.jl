@@ -40,7 +40,7 @@ function parse_commandline()
         "--dataset"
         help = "jld2 dataset path"
         arg_type = String
-        default = "/spaths/datasets/$(experiment_name).jld2"
+        default = "/spaths/datasets/$(experiment_name).json"
 
         "--time", "-t"
         help = "How many frames"
