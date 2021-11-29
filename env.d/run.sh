@@ -54,10 +54,11 @@ printf "(\xE2\x9C\x94) Adding mount points\n"
 #################################################################################
 # Bind project SPATHS
 #################################################################################
+proj_path="$(dirname "$sconfig_dir")"
 base_path="${SENV[spath]}"
-BS="${BS} -B ${PWD}:/project"
+BS="${BS} -B ${proj_path}:/project"
 echo "( ) Binding project paths"
-printf "\t%s \u2190 %s\n" "/project" "${PWD}"
+printf "\t%s \u2190 %s\n" "/project" "${proj_path}"
 for i in "${!SPATHS[@]}"
 do
     printf "\t%s \u2190 %s\n" "${base_path}/$i" "${SPATHS[$i]}"
@@ -71,7 +72,7 @@ printf "(\xE2\x9C\x94) Binding project paths\n"
 echo "( ) Executing ${COMMAND}"
 printf "=%.0s"  $(seq 1 63)
 printf "\n"
-$SING $BS $CONT bash -c "source /project/${SENV[pyenv]}/bin/activate \
+$SING $BS $CONT bash -c "source ${SENV[pyenv]}/bin/activate \
     cd /project && \
     exec $COMMAND && \
     cd - && \
