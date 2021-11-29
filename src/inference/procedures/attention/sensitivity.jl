@@ -63,7 +63,8 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
     @inbounds for i = 1:np
         latents = trackers(state.traces[i])
         nl = length(latents)
-        p_base_steps = floor(Int64, samples / nl) # base steps per tracker
+        # base steps per tracker
+        p_base_steps = nl == 0 ? 0 : floor(Int64, samples / nl) 
         seed_obj = objective(state.traces[i])
         # scs = correspondence(state.traces[i])
         psense = fill(-Inf, nl)
@@ -94,16 +95,12 @@ function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
 
         end
         sensitivities[i] = psense .- log(p_base_steps)
-        arrousal[i] = logsumexp(sensitivities[i]) #.- log(nl)
+        arrousal[i] = nl == 0 ? -Inf : logsumexp(sensitivities[i]) 
     end
     println("acceptance ratio $(accepted / (np * samples))")
     # think about normalizing wrt to |xs|
     # sensitivities = log.(sensitivities) .- log(np * samples)
 
-    # noninf = filter(!isinf, sensitivities)
-    # !isempty(noninf) && println(UnicodePlots.histogram(noninf;
-    #                                                    title = "Sensitivity"))
-    # display(sensitivities)
     @pack! auxillary = sensitivities
     @pack! auxillary = arrousal
     return nothing
@@ -115,12 +112,10 @@ function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
     @unpack sensitivities = auxillary
     weights = Dict{Int64, Vector{Float64}}()
     @inbounds for i = 1:length(sensitivities)
-        weights[i] = softmax(sensitivities[i] .* att.smoothness)
+        nl = length(sensitivities[i])
+        weights[i] = nl == 0 ? Float64[] : softmax(sensitivities[i] .* att.smoothness)
     end
 
-    # println(UnicodePlots.barplot(1:length(sensitivities),
-    #                              weights;
-    #                              title = "Weights"))
     @pack! auxillary = weights
 end
 

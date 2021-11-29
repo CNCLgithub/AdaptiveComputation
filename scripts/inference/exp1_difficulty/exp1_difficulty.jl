@@ -5,8 +5,8 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
-using Random
-Random.seed!(1234);
+# using Random
+# Random.seed!(1234);
 
 # using Profile
 # using StatProfilerHTML
@@ -130,8 +130,8 @@ function default_args()
 end
 
 function main()
-    # args = parse_commandline()
-    args = default_args()
+    args = parse_commandline()
+    # args = default_args()
 
 
     # loading scene data
