@@ -57,9 +57,9 @@ end
     (aaddr, maddr, iaddr) = _state_proposal(trace, tracker, att)
     {iaddr} ~ bernoulli(0.50)
     ang = trace[aaddr]
-    {aaddr} ~ von_mises(ang, 125.0)
+    {aaddr} ~ von_mises(ang, 10.0)
     mag = trace[maddr]
-    {maddr} ~ normal(mag, 0.1)
+    {maddr} ~ normal(mag, 0.5)
     return nothing
 end
 

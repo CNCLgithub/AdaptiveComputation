@@ -123,7 +123,7 @@ function default_args()
         "dataset" => "/spaths/datasets/exp1_difficulty.json",
         "scene" => 6,
         "chain" => 1,
-        "time" => 20,
+        "time" => 240,
         "step_size" => 60,
         "restart" => true,
         "viz" => true)

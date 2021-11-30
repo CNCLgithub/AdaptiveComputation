@@ -29,9 +29,9 @@ function main()
     gr = Graphics(;
                   img_width = 100,
                   img_height = 100,
-                  inner_f = 0.5,
+                  inner_f = 0.75,
                   inner_p = 0.99,
-                  outer_f = 7.0,
+                  outer_f = 5.0,
                   outer_p = 0.9,
                   flow_decay_rate = -1.0,
                   nlog_bernoulli = -200)

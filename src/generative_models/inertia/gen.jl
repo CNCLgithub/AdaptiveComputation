@@ -71,11 +71,12 @@ end
     # sample inertia
     inertia = @trace(bernoulli(dm.bern), :inertia)
 
-    # sample new angle & magnitude
+    # sampl new angle & magnitude
 
     #- if high inertia, then flat von_mises
     k = inertia ? dm.k_max : dm.k_min
-    ang = @trace(von_mises(ang, k), :ang)
+    ang_mu = !inertia * pi # approximate collisions
+    ang = @trace(von_mises(ang + ang_mu, k), :ang)
 
     #- mixture of previous velocity & base
     mu = inertia ? mag : dm.vel
