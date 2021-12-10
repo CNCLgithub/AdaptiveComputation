@@ -22,7 +22,7 @@ def main():
 
     parser.add_argument('--scenes', type = int, default = 65,
                         help = 'number of scenes')
-    parser.add_argument('--chains', type = int, default = 20,
+    parser.add_argument('--chains', type = int, default = 30,
                         help = 'number of chains')
     parser.add_argument('--duration', type = int, default = 25,
                         help = 'job duration (min)')

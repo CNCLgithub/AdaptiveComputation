@@ -130,8 +130,8 @@ function default_args()
 end
 
 function main()
-    # args = parse_commandline()
-    args = default_args()
+    args = parse_commandline()
+    # args = default_args()
 
 
     # loading scene data
