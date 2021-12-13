@@ -80,7 +80,9 @@ cont_dest="${SENV[envd]}/${SENV[cont]}"
     # wget "https://yale.box.com/shared/static/y064orseciieeada3jbsb73zrwr7qeqj.jld2" \
     # -O "${SPATHS[datasets]}/exp1_difficulty.jld2" && \
     wget "https://yale.box.com/shared/static/a8lnpspo2bt6fj6dcd006bl67ftzulsh.json" \
-    -O "${SPATHS[datasets]}/exp1_difficulty.json"
+    -O "${SPATHS[datasets]}/exp1_difficulty.json" && \
+    wget "https://yale.box.com/shared/static/cvk1wlh429kapdaclngrdel8z6ec6dip.json" \
+    -O "${SPATHS[datasets]}/exp2_probes.json"
 
 [[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || \
     echo "Not touching checkpoints"

@@ -82,20 +82,31 @@ function chain_performance(chain, path;
     aux_state = dg[:, :auxillary]
     # causal graphs at the end of inference
     td_acc = extract_td_accuracy(chain, n_targets)
-
-    cycles = 0
-    for frame = 1:length(aux_state)
-        _cycles = collect(values(aux_state[frame].allocated))
-        cycles += sum(sum.(_cycles))
-    end
-
-    df = DataFrame(id = ones(n_targets),
+    df = DataFrame(
                    tracker = 1:n_targets,
-                   # variable = fill(:td_acc, n_targets),
                    td_acc = td_acc)
+    return df
+end
 
-    df = unstack(df, :id, :tracker, :td_acc;
-                 renamecols=x->Symbol(:tracker_, x))
-    df[!, :cycles] .= cycles
+function chain_attention(chain, path;
+                         n_targets = 4,
+                         n_objects = 8)
+    dg = extract_digest(path)
+    aux_state = dg[:, :auxillary]
+
+    steps = length(aux_state)
+    # cycles = 0
+    df = DataFrame(
+                   frame = Int64[],
+                   tracker = Int64[],
+                   cycles = Int64[])
+    for frame = 1:steps
+        cycles_per_part = collect(values(aux_state[frame].allocated))
+        # assuming all particles are aligned wrt tracker ids for now
+        cpt = isempty(cycles_per_part) ? zeros(n_targets) : sum(cycles_per_part)
+        for i = 1:n_targets
+            push!(df, (frame, i, cpt[i]))
+        end
+    end
     return df
 end
