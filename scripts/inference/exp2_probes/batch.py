@@ -20,7 +20,7 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--scenes', type = int, default = 65,
+    parser.add_argument('--scenes', type = int, default = 40,
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 30,
                         help = 'number of chains')
@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
 
     n = args.scenes * args.chains
-    tasks, kwargs, extras = args.func(args)
+    tasks, kwargs, extras = att_tasks(args)
 
     interpreter = '#!/bin/bash'
     resources = {
@@ -40,7 +40,7 @@ def main():
         'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
-        'output' : os.path.join(os.getcwd(), '/spaths/slurm/%A_%a.out')
+        'output' : os.path.join(os.getcwd(), 'env.d/spaths/slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,

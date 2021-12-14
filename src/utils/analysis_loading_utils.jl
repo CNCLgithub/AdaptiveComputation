@@ -25,28 +25,25 @@ function read_json(path)
 end
 
 
-function merge_trial(trial_dir::String)::DataFrame
+function merge_trial(trial_dir::String, report::String)::DataFrame
     @>> trial_dir begin
         readdir(; join = true)
-        filter(x -> occursin("csv", x))
+        filter(x -> occursin(report, x))
         map(DataFrame ∘ CSV.File)
         x -> vcat(x...)
     end
 end
 
-function merge_experiment(exp_path::String)
+function merge_experiment(exp_path::String;
+                          report::String = "")
     @>> exp_path begin
         readdir(;join = true)
         filter(isdir)
-        map(merge_trial)
+        map(x -> merge_trial(x, report))
         x -> vcat(x...)
-        write("$(exp_path).csv")
+        write("$(exp_path)_$(report).csv")
     end
     return nothing
-    # trials = filter(isdir, readdir(exp_path, join = true))
-    # df = vcat(map(merge_trial, trials)...)
-    # CSV.write("$(exp_path).csv", df)
-    # return nothing
 end
 
 """
@@ -96,16 +93,37 @@ function chain_attention(chain, path;
 
     steps = length(aux_state)
     # cycles = 0
+
+    traces = chain.state.traces
+    # TODO: generalize across kernel states
+    pf_st = Matrix{CausalGraph}(undef, np, k)
+    for i = 1:np
+        # pf_st[i, :] = map(world, last(get_retval((traces[i]))))
+        pf_st[i, :] = @>> get_retval(traces[i]) last map(world)
+    end
+
     df = DataFrame(
                    frame = Int64[],
                    tracker = Int64[],
-                   cycles = Int64[])
+                   cycles = Int64[],
+                   pred_x = Float64[],
+                   pred_y = Float64[])
+    cgs = map(world, chain.
     for frame = 1:steps
         cycles_per_part = collect(values(aux_state[frame].allocated))
         # assuming all particles are aligned wrt tracker ids for now
         cpt = isempty(cycles_per_part) ? zeros(n_targets) : sum(cycles_per_part)
+        np = size(pf_st, 1)
+        positions = Matrix{Float64}(undef, 3, n_targets, np)
+        for p = 1:np
+            trackers = get_objects(pf_st[p, frame], Dot)
+            for i = 1:n_targets 
+                positions[:, i, p] = trackers[i].pos
+            end
+        end
         for i = 1:n_targets
-            push!(df, (frame, i, cpt[i]))
+            px, py, _ = mean(positions[:, i, :], dims = 1)
+            push!(df, (frame, i, cpt[i], px, py))
         end
     end
     return df
