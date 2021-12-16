@@ -5,8 +5,8 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
-# using Random
-# Random.seed!(1234);
+using Random
+Random.seed!(1235);
 
 # using Profile
 # using StatProfilerHTML
@@ -199,8 +199,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    # cmd = ["$(i)", "$c", "--time=30", "T"]
-    cmd = ["$(i)", "$c", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=10", "T"]
+    # cmd = ["$(i)", "$c", "T"]
     run(cmd);
 end
 
@@ -223,22 +223,3 @@ function parse_outer()
 end
 
 main();
-
-
-
-# function default_args()
-#     args = Dict(
-#         "target_designation" => Dict(["params" => "$(@__DIR__)/td.json",
-#                                       "objective" => td_flat]),
-#         "dm" => "$(@__DIR__)/dm.json",
-#         "gm" => "$(@__DIR__)/gm.json",
-#         "proc" => "$(@__DIR__)/proc.json",
-#         "graphics" => "$(@__DIR__)/graphics.json",
-#         "dataset" => "/spaths/datasets/exp2_probes.json",
-#         "scene" => 6,
-#         "chain" => 1,
-#         "time" => 240,
-#         "step_size" => 60,
-#         "restart" => true,
-#         "viz" => true)
-# end

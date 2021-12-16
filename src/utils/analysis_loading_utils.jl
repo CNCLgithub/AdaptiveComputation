@@ -103,26 +103,32 @@ function chain_attention(chain, path;
         pf_st[i, :] = @>> get_retval(traces[i]) last map(world)
     end
     df = DataFrame(
-                   frame = Int64[],
-                   tracker = Int64[],
-                   cycles = Int64[],
-                   pred_x = Float64[],
-                   pred_y = Float64[])
+        frame = Int64[],
+        tracker = Int64[],
+        attention = Float64[],
+        cycles = Float64[],
+        pred_x = Float64[],
+        pred_y = Float64[])
     for frame = 1:steps
         cycles_per_part = collect(values(aux_state[frame].allocated))
         # assuming all particles are aligned wrt tracker ids for now
-        cpt = isempty(cycles_per_part) ? zeros(n_targets) : sum(cycles_per_part)
+        cpt = isempty(cycles_per_part) ? zeros(n_targets) : mean(cycles_per_part)
         np = size(pf_st, 1)
-        positions = Array{Float64, 3}(undef, 3, n_targets, np)
+        # positions = Array{Float64, 3}(undef, 3, n_targets, np)
+        attention = fill(-Inf, n_targets)
         for p = 1:np
-            trackers = get_objects(pf_st[p, frame], Dot)
+            # trackers = get_objects(pf_st[p, frame], Dot)
+            t_att = aux_state[frame].sensitivities[p]
             for i = 1:n_targets 
-                positions[:, i, p] = trackers[i].pos
+                # positions[:, i, p] = trackers[i].pos
+                attention[i] = logsumexp(attention[i], t_att[i])
             end
         end
+        attention .-= log(np)
+        positions = dg[frame, :positions]
         for i = 1:n_targets
-            px, py, _ = mean(positions[:, i, :], dims = 2)
-            push!(df, (frame, i, cpt[i], px, py))
+            px, py, _ = positions[1, i, :]
+            push!(df, (frame, i, attention[i], cpt[i], px, py))
         end
     end
     return df

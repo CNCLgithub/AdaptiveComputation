@@ -27,6 +27,21 @@ function extract_digest(f::String)
     return df
 end
 
+function digest_tracker_positions(c::SeqPFChain; nt::Int64 = 4)
+    np = length(c.state.traces)
+    pos = Array{Float64, 3}(undef, np, nt, 3)
+    for i = 1:np
+        (_, states) = Gen.get_retval(c.state.traces[i])
+        trackers = @> states last world get_objects(Dot)
+        for j = 1:nt
+            pos[i, j, :] = trackers[j].pos
+        end
+    end
+    mean(pos, dims = 1) # avg position for each tracker
+end
+
+
+
 function td_accuracy(td::Dict{Int64, Float64}; nt::Int64 = 4)
     ws = Vector{Float64}(undef, nt)
     @inbounds for k = 1:nt
@@ -55,19 +70,6 @@ function extract_td_accuracy(c::SeqPFChain, ntargets::Int64)
     end
 end
 
-function extract_tracker_positions(trace::Gen.Trace)
-    (init_state, states) = Gen.get_retval(trace)
-
-    trackers = get_objects(states[end], Dot)
-
-    tracker_positions = Array{Float64}(undef, length(trackers), 3)
-    for i=1:length(trackers)
-        tracker_positions[i,:] = trackers[i].pos
-    end
-
-    tracker_positions = reshape(tracker_positions, (1,1,size(tracker_positions)...))
-    return tracker_positions
-end
 
 function extract_tracker_velocities(trace::Gen.Trace)
     (init_state, states) = Gen.get_retval(trace)

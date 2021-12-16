@@ -88,7 +88,8 @@ function query_from_params(gt_causal_graphs,
     
     latent_map = LatentMap(
         :auxillary => digest_auxillary,
-        :parents => extract_parents
+        :parents => extract_parents,
+        :positions => digest_tracker_positions
     )
 
     init_gt_cg = gt_causal_graphs[1]
