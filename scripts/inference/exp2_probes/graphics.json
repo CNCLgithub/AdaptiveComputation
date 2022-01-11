@@ -5,6 +5,6 @@
     "outer_f": 4.5,
     "inner_f": 1.00,
     "inner_p": 0.99,
-    "outer_p": 0.65,
+    "outer_p": 0.35,
     "nlog_bernoulli": -200
 }

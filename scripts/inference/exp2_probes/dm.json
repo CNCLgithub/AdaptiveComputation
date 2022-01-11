@@ -3,8 +3,8 @@
     "bern": 0.90,
     "k_min": 5.0,
     "k_max": 5.0,
-    "w_min": 0.25,
-    "w_max": 0.25,
+    "w_min": 0.5,
+    "w_max": 0.5,
 
     "wall_rep_m": 0.1,
     "wall_rep_a": 0.1,
