@@ -27,8 +27,17 @@ function extract_digest(f::String)
     return df
 end
 
-function digest_tracker_positions(c::SeqPFChain; nt::Int64 = 4)
+function digest_tracker_positions(c::SeqPFChain)
     np = length(c.state.traces)
+    nt = @> (c.state.traces) begin
+        first
+        get_retval
+        last
+        last
+        world
+        get_objects(Dot)
+        length # nt
+    end
     pos = Array{Float64, 3}(undef, np, nt, 3)
     for i = 1:np
         (_, states) = Gen.get_retval(c.state.traces[i])
