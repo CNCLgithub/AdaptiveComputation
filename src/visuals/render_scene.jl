@@ -50,9 +50,9 @@ function render_scene(gm::GMParams,
             # @show nt
             nt === 0 && continue
             p = SubsetPainter(cg -> only_targets(cg),
-                              IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, 15)],
+                              # IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, 15)],
                               # IDPainter(colors = fill(red, nx),
-                              # IDPainter(colors = TRACKER_COLORSCHEME[:],
+                              IDPainter(colors = TRACKER_COLORSCHEME[:],
                                         label = false,
                                         alpha = 0.5))
             MOT.paint(p, world)
