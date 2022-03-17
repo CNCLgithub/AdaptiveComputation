@@ -2,7 +2,7 @@ export AttentionRingsPainter
 
 @with_kw struct AttentionRingsPainter <: Painter
     radius::Float64 = 40.0
-    attention_color::String = "red"
+    attention_color = "red"
     opacity::Float64 = 1.0
     max_attention::Float64 = 4.0
     linewidth::Float64 = 7.0

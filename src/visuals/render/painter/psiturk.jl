@@ -5,10 +5,12 @@ export PsiturkPainter
     # highlight = "#ea3433"
     probe_color = "#a0a0a0"
     wall_color = "black"
+    alpha::Float64 = 1.0
 end
 
 function paint(p::PsiturkPainter, cg::CausalGraph, v::Int64, dot::Dot)
-    _draw_circle(dot.pos[1:2], dot.radius, p.dot_color)
+    _draw_circle(dot.pos[1:2], dot.radius, p.dot_color,
+                 opacity = p.alpha)
     return nothing
 end
 
