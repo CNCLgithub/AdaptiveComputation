@@ -174,3 +174,14 @@ function exp_dot_mask(x0::Float64, y0::Float64,
     exp_dot_mask(x0, y0, r, img_width, img_height,
                         outer_f, inner_f, outer_p, inner_p)
 end
+
+function exp_dot_mask(space::SparseMatrixCSC{Float64},
+                       x0::Float64, y0::Float64,
+                       r::Float64, gr::Graphics)
+    @unpack img_width, img_height = gr
+    @unpack inner_p, inner_f, outer_p, outer_f = gr
+    dspace = Array(space)
+    exp_dot_mask!(dspace, x0, y0, r, img_width, img_height,
+                  outer_f, inner_f, outer_p, inner_p)
+    sparse(dspace)
+end

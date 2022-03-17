@@ -49,7 +49,7 @@ function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
     # # number of heads is impossible given number of non-zero weights
     # nz < ni && return -Inf
     xs, ys, vs = findnz(ps)
-    minw = log(minimum(vs))
+    minw = isempty(vs) ? -Inf : log(minimum(vs))
     ab = 0.
     c = 0
     @views @inbounds for i = 1:nz

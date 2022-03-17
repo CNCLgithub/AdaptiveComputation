@@ -5,8 +5,8 @@ using Gen_Compose
 using ArgParse
 using Setfield
 
-using Random
-Random.seed!(1235);
+# using Random
+# Random.seed!(1235);
 
 # using Profile
 # using StatProfilerHTML
@@ -199,9 +199,9 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    cmd = ["$(i)", "$c", "-r", "--time=10", "T"]
+    # cmd = ["$(i)", "$c", "-r", "--time=10", "T"]
     # cmd = ["$(i)", "$c", "-v", "-r", "--time=10", "T"]
-    # cmd = ["$(i)", "$c", "T"]
+    cmd = ["$(i)", "$c", "T"]
     run(cmd);
 end
 
@@ -212,7 +212,7 @@ function parse_outer()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 1
+        default = 34
 
         "chain"
         help = "chain id"

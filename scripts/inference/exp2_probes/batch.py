@@ -24,7 +24,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 30,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 45,
+    parser.add_argument('--duration', type = int, default = 30,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
@@ -40,14 +40,16 @@ def main():
         'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
+        'exclude' : 'c02n06,c01n06,c01n07', # TODO Remove when nodes are fixed
         'output' : os.path.join(os.getcwd(), 'env.d/spaths/slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
                          kwargs, extras, resources)
+    bscript = '\n'.join(batch.job_file(chunk=n, tmp_dir = 'env.d/spaths/slurm'))
     print("Template Job:")
-    print('\n'.join(batch.job_file(chunk=n)))
-    batch.run(n = n, check_submission = False)
+    print(bscript)
+    batch.run(n = n, check_submission = False, script = bscript)
 
 if __name__ == '__main__':
     main()
