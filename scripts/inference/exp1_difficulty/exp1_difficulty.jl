@@ -12,6 +12,9 @@ using Setfield
 # using StatProfilerHTML
 
 experiment_name = "exp1_difficulty"
+att_mode = "target_designation"
+att_params = "$(@__DIR__)/td.json"
+objective = td_flat
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -60,73 +63,20 @@ function parse_commandline()
         help = "Whether to render masks"
         action = :store_true
 
-        "scene"
+        "--scene"
         help = "Which scene to run"
         arg_type = Int
-        required = true
+        default = 1
 
-        "chain"
+        "--chain"
         help = "The number of chains to run"
         arg_type = Int
-        required = true
-
-        "target_designation", "T"
-        help = "Using target designation"
-        action = :command
-
-        "data_correspondence", "D"
-        help = "Using data correspondence"
-        action = :command
-
-        "scene_avg", "A"
-        help = "Using scene avg"
-        action = :command
+        default = 1
 
     end
 
-    @add_arg_table! s["target_designation"] begin
-        "--params"
-        help = "Attention params"
-        arg_type = String
-        default = "$(@__DIR__)/td.json"
-
-        "--objective"
-        help = "Attention objective"
-        arg_type = Function
-        default = td_flat
-    end
-    @add_arg_table! s["data_correspondence"] begin
-        "--params"
-        help = "Attention params"
-        arg_type = String
-        default = "$(@__DIR__)/dc.json"
-    end
-    @add_arg_table! s["scene_avg"] begin
-        "model_path"
-        help = "path containing compute allocations"
-        arg_type = String
-        required = true
-
-    end
 
     return parse_args(s)
-end
-
-function default_args()
-    args = Dict(
-        "target_designation" => Dict(["params" => "$(@__DIR__)/td.json",
-                                      "objective" => td_flat]),
-        "dm" => "$(@__DIR__)/dm.json",
-        "gm" => "$(@__DIR__)/gm.json",
-        "proc" => "$(@__DIR__)/proc.json",
-        "graphics" => "$(@__DIR__)/graphics.json",
-        "dataset" => "/spaths/datasets/exp1_difficulty.json",
-        "scene" => 6,
-        "chain" => 1,
-        "time" => 240,
-        "step_size" => 60,
-        "restart" => true,
-        "viz" => true)
 end
 
 function main()
@@ -157,11 +107,9 @@ function main()
                               graphics,
                               length(gt_cgs))
 
-    att_mode = "target_designation"
     att = MOT.load(MapSensitivity,
-                   args[att_mode]["params"],
-                   objective = args[att_mode]["objective"],
-                   )
+                   att_params,
+                   objective = objective)
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,

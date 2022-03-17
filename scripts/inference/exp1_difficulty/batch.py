@@ -10,10 +10,16 @@ script = 'bash {0!s}/env.d/run.sh julia ' + \
          '/project/scripts/inference/exp1_difficulty/exp1_difficulty.jl'
 
 def att_tasks(args):
-    tasks = [(t,c,args.att_key) for c in range(1, args.chains + 1) 
+    tasks = [('--scene {0:d}'.format(t),
+              '--chain {0:d}'.format(c)) for c in range(1, args.chains + 1)
              for t in range(1, args.scenes+1)]
     return (tasks, [], [])
-    
+
+def fig4_tasks(args):
+    tasks = [('--scene {0:d}'.format(t),
+              '--chain {0:d}'.format(c)) for c in range(1, args.chains + 1)
+             for t in [1,11,45,65]]
+    return (tasks, [], [])
 def main():
     parser = argparse.ArgumentParser(
         description = 'Submits batch jobs for Exp1 (Difficulty)',
@@ -24,25 +30,13 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 30,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 25,
+    parser.add_argument('--duration', type = int, default = 35,
                         help = 'job duration (min)')
-
-    subparsers = parser.add_subparsers(title='Attention models')
-
-    parser_td = subparsers.add_parser('td', help='Using target designation')
-    parser_td.set_defaults(func=att_tasks, att_key = 'T')
-
-    parser_dc = subparsers.add_parser('dc', help='Using data correspondence')
-    parser_dc.set_defaults(func=att_tasks, att_key = 'D')
-
-    parser_ta = subparsers.add_parser('ta', help='Using trial avg')
-    parser_ta.add_argument('model', type = str, help='Exp run for compute')
-    parser_ta.set_defaults(func=att_tasks, att_key = 'A')
 
     args = parser.parse_args()
 
     n = args.scenes * args.chains
-    tasks, kwargs, extras = args.func(args)
+    tasks, kwargs, extras = att_tasks(args)
 
     interpreter = '#!/bin/bash'
     resources = {
@@ -52,7 +46,7 @@ def main():
         'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
-        'output' : os.path.join(os.getcwd(), 'output/slurm/%A_%a.out')
+        'output' : os.path.join(os.getcwd(), 'env.d/spaths/slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
