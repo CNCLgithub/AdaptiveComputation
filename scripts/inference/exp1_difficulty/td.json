@@ -1,7 +1,7 @@
 {
-    "scale": 0.5,
-    "smoothness": 1.0,
-    "x0": 45.0,
+    "scale": 0.15,
+    "smoothness": 0.15,
+    "x0": 37.5,
     "samples": 20,
-    "sweeps": 20
+    "sweeps": 30
 }

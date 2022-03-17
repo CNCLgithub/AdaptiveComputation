@@ -14,6 +14,7 @@ function render_scene(gm::GMParams,
     mkpath(base)
     np, nt = size(pf_st)
 
+    maxatt = @>> attended values collect(Vector{Int64}) mapreduce(maximum, max)
     alpha = 3.0 * 1.0 / np
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
@@ -23,14 +24,22 @@ function render_scene(gm::GMParams,
                         dimensions = (area_height, area_width),
                         background = "white")
         MOT.paint(p, gt_cgs[i])
-        
-        p = PsiturkPainter(dot_color = "black")
-        MOT.paint(p, gt_cgs[i])
+
+
+        step = 1
+        steps = max(1, i-7):i
+        for k = steps
+            alpha = exp(0.5 * (k - i))
+            p = SubsetPainter(cg -> only_targets(cg, BitVector([0,0,0,0,1,1,1,1])),
+                              PsiturkPainter(dot_color = "black",
+                                             alpha = alpha))
+            MOT.paint(p, gt_cgs[k])
+        end
 
         # p = SubsetPainter(cg -> only_targets(gt_cgs[i]),
         #                   IDPainter(colors = [],
         #                             label = true))
-        p = IDPainter(colors = [], label = true)
+        # p = IDPainter(colors = [], label = true)
         MOT.paint(p, gt_cgs[i])
         # then render each particle's state
         for j = 1:np
@@ -42,20 +51,29 @@ function render_scene(gm::GMParams,
 
             # tw = target_weights(pf_st[j, i], attended[:, i])
             att = attended[i => j]
-            att_rings = AttentionRingsPainter(max_attention = sum(att),
-                                              opacity = 0.5)
-            MOT.paint(att_rings, world, att)
+            # att_rings = AttentionRingsPainter(max_attention = maxatt, # sum(att),
+            #                                   opacity = 0.8,
+            #                                   radius = 40.,
+            #                                   linewidth = 7.0,
+            #                                   attention_color = "red")
+            # MOT.paint(att_rings, world, att)
 
             nt = length(att)
             # @show nt
             nt === 0 && continue
-            p = SubsetPainter(cg -> only_targets(cg),
-                              # IDPainter(colors = TRACKER_COLORSCHEME[fill(nt, 15)],
-                              # IDPainter(colors = fill(red, nx),
-                              IDPainter(colors = TRACKER_COLORSCHEME[:],
-                                        label = false,
-                                        alpha = 0.5))
-            MOT.paint(p, world)
+            step = 1
+            steps = max(1, i-7):i
+            for k = steps
+                @unpack world = (pf_st[j, k])
+                alpha = 0.5 * exp(0.5 * (k - i))
+                p = SubsetPainter(cg -> only_targets(cg),
+                                  IDPainter(colors = map(x -> parse(RGB, x),
+                                                         ["#A3A500","#00BF7D","#00B0F6","#E76BF3"]),
+                                            label = false,
+                                            alpha = alpha))
+                MOT.paint(p, world)
+                step += 1
+            end
         end
         finish()
     end
