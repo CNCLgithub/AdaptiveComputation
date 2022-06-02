@@ -35,8 +35,8 @@ def main():
 
     args = parser.parse_args()
 
-    n = args.scenes * args.chains
-    tasks, kwargs, extras = att_tasks(args)
+    tasks, kwargs, extras = fig4_tasks(args)
+    n = len(tasks)
 
     interpreter = '#!/bin/bash'
     resources = {

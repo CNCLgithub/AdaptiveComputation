@@ -136,12 +136,16 @@ function main()
     end
     # end
 
-    df = MOT.chain_performance(chain, chain_path,
+    pf = MOT.chain_performance(chain, chain_path,
                                n_targets = gm.n_targets)
-    display(df)
-    df[!, :scene] .= args["scene"]
-    df[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c).csv"), df)
+    pf[!, :scene] .= args["scene"]
+    pf[!, :chain] .= c
+    CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
+    af = MOT.chain_attention(chain, chain_path,
+                             n_targets = gm.n_targets)
+    af[!, :scene] .= args["scene"]
+    af[!, :chain] .= c
+    CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
     if (args["viz"])
         visualize_inference(chain, chain_path, gt_cgs, gm,
