@@ -7,7 +7,7 @@ evolve(::Flow, ::Space) = error("not implemented")
     decay_rate::Float64
     exp_dr::Float64 = exp(decay_rate)
     memory::T
-    lower::Float64 = 1E-7
+    lower::Float64 = 1E-3
 end
 
 function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
@@ -21,3 +21,13 @@ function ExponentialFlow(flow::ExponentialFlow{T}, space::T) where {T <: Space}
 end
 
 evolve(flow::ExponentialFlow{T}, space::T) where {T <: Space} = ExponentialFlow(flow, space)
+
+function evolve(flow::ExponentialFlow{T}, writer!::Function) where {T <: Space}
+    # decay memory
+    memory = flow.memory * flow.exp_dr
+    # overlay new render onto memory
+    writer!(memory)
+    droptol!(memory, flow.lower)
+    ExponentialFlow{T}(flow.decay_rate, flow.exp_dr,
+                       memory, flow.lower)
+end

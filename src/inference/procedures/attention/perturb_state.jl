@@ -45,22 +45,21 @@ end
 
 function _state_proposal(trace::Gen.Trace, tracker::Tuple,
                          att::MapSensitivity)
-    t, gm, dm, gr = Gen.get_args(trace)
-
-    @unpack ancestral_steps = att
     aaddr = foldr(Pair, (tracker..., :ang))
+    maddr = foldr(Pair, (tracker..., :mag))
     iaddr = foldr(Pair, (tracker..., :inertia))
-    inertia = tracker[3] == :dynamics ? trace[iaddr] : false
-    @unpack k_min, k_max = dm
-    k = inertia ? k_max : k_min
-    (aaddr, k)
+    (aaddr, maddr, iaddr)
 end
 
+# TODO: perturb initial state
 @gen  function state_proposal(trace::Gen.Trace, tracker::Tuple,
                               att::MapSensitivity)
-    (aaddr, k) = _state_proposal(trace, tracker, att)
+    (aaddr, maddr, iaddr) = _state_proposal(trace, tracker, att)
+    {iaddr} ~ bernoulli(0.50)
     ang = trace[aaddr]
-    {aaddr} ~ von_mises(ang, k)
+    {aaddr} ~ von_mises(ang, 10.0)
+    mag = trace[maddr]
+    {maddr} ~ normal(mag, 0.5)
     return nothing
 end
 
@@ -89,10 +88,11 @@ end
 function tracker_kernel(trace::Gen.Trace, tracker::Tuple,
                         att::MapSensitivity)
     # first update inertia
-    new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
-    new_tr, w2 = apply_random_walk(new_tr, state_proposal,
+    # new_tr, w1 = ancestral_inertia_move(trace, tracker, att)
+    # (new_tr, w1 + w2)
+    new_tr, w2 = apply_random_walk(trace, state_proposal,
                                    (tracker, att))
-    (new_tr, w1 + w2)
+    (new_tr, w2)
 end
 
 # rejuvenate_state!(state, probs) = rejuvenate!(state, probs, state_move)
@@ -113,32 +113,42 @@ end
     probs are softmaxed in the process so no need to normalize.
 """
 function perturb_state!(chain::SeqPFChain,
-                        att::AbstractAttentionModel)
+                        att::MapSensitivity)
     @unpack state, auxillary = chain
     @unpack weights, cycles = auxillary
-    allocated = zeros(size(weights))
+    allocated = Dict{Int64, Vector{Int64}}()
+    if sum(cycles) == 0.
+        @pack! auxillary = allocated
+        return nothing
+    end
     num_particles = length(state.traces)
-    @inbounds for i=1:num_particles
+    @views @inbounds for i=1:num_particles
         # skip if -Inf
         get_score(state.traces[i]) === -Inf && continue
+        cycles[i] == 0 && continue
         # map obs weights back to target centric weights
-        c = correspondence(state.traces[i])
-        # TODO: this is ugly
-        tweights = vec(sum(weights .* c, dims = 1))
-        isempty(tweights) && continue # no trackers
-        sum(tweights) == 0. && continue # no goal-relevance
-        tweights ./= sum(tweights)
-        tracker_addrs = trackers(state.traces[i])
-        for _ = 1:cycles
-            # sample a tracker
-            ti = Gen.categorical(tweights)
-            allocated += c[:, ti]
-            # perform an mh move
-            new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
-            if log(rand()) < ls
-                state.traces[i] = new_tr
+        # c = correspondence(state.traces[i])
+        # ne = size(c, 2)
+        pweights = weights[i]
+        nes = length(pweights)
+        tracker_addrs = trackers(state.traces[i]) # address for each tracker
+        palloc = zeros(Int64, length(pweights))
+        for ti = 1:nes
+            # tw = sum(c[:, ti] .* weights) # tracker goal relevance
+            tw = pweights[ti] # tracker goal relevance
+            steps = round(Int64, tw * cycles[i])
+            palloc[ti] += steps
+            for s = 1:steps
+                # perform an mh move
+                new_tr, ls = att.jitter(state.traces[i], tracker_addrs[ti], att)
+                if log(rand()) < ls
+                    # c = correspondence(state.traces[i])
+                    # tw = sum(c[:, ti] .* weights)
+                    state.traces[i] = new_tr
+                end
             end
         end
+        allocated[i] = palloc
     end
     @pack! auxillary = allocated
     @pack! chain = state

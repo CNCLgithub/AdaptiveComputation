@@ -18,7 +18,7 @@ end
 function Gen.random(::Mask, ps::AbstractSparseMatrix{Float64})
     result = falses(size(ps))
     xs, ys, vs = findnz(ps)
-    for i = 1:nnz(ps)
+    @inbounds for i = eachindex(vs)
         result[xs[i], ys[i]] = bernoulli(vs[i])
     end
     return result
@@ -37,27 +37,37 @@ end
 function Gen.logpdf(::Mask, image::BitMatrix, ps::SubArray)
     Gen.logpdf(mask, image, sparse(ps))
 end
+
 function Gen.logpdf(::Mask, image::BitMatrix, ps::AbstractSparseMatrix{Float64})
+    # PDF regions:
+    #  a - the intersection between `image` and `ps`
+    #  b - the non-zero region of `ps`
+    #  c - the non-zero region of `image`
     @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
     ni = sum(image)
-    # number of heads is impossible given number of non-zero weights
-    nnz(ps) < ni && return -Inf
+    nz = nnz(ps)
+    # # number of heads is impossible given number of non-zero weights
+    # nz < ni && return -Inf
     xs, ys, vs = findnz(ps)
-    lpdf = 0.
-    count = 0
-    @inbounds for i = 1:nnz(ps)
+    minw = isempty(vs) ? -Inf : log(minimum(vs))
+    ab = 0.
+    c = 0
+    @views @inbounds for i = 1:nz
         x = image[xs[i], ys[i]]
-        lpdf += Gen.logpdf(bernoulli, x, vs[i])
-        count += x
+        ab += Gen.logpdf(bernoulli, x, vs[i])
+        c += x
     end
-    # lpdf += (abs(ni - count) * log(0.01))
-    # some zero-weight cells contained heads
-    count != ni && return -Inf
-    lpdf # + (length(ps) - nnz(ps)) * log(1))
+    # penalize for zero-weight pixels in image
+    # but without resulting in -Inf
+
+    lc = abs(ni - c)
+    lc = lc > 10 ? -Inf : lc * minw
+    lpdf = ab + lc
 end
+
 function Gen.logpdf(::Mask, image::BitMatrix, ps::Matrix{Float64})
     lpdf = 0.
-    for i in eachindex(ps)
+    @inbounds for i in eachindex(ps)
         lpdf += Gen.logpdf(bernoulli, image[i], ps[i])
     end
     return lpdf

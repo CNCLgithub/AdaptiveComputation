@@ -40,6 +40,19 @@ function heatmap(df, x, y, z; points=false)
     Gadfly.draw(SVG("heatmap.svg", 6Gadfly.inch, 4Gadfly.inch), p)
 end
 
+function plot_compute_weights(weights::Vector{Float64}, path::String;
+                              tracker_colors = TRACKER_COLORSCHEME)
+    # weights = clamp.(weights, -1E6, 0)
+    k = length(weights)
+    data = zeros(k)
+    plt = plot(
+        x = 1:k,
+        y = weights,
+        Geom.line,
+        Theme(background_color = "white"))
+    out = joinpath(path, "compute_weights.png")
+    plt |> PNG(out, √200Gadfly.cm, 20Gadfly.cm; dpi=96)
+end
 function plot_compute_weights(weights::Matrix{Float64}, path::String;
                               tracker_colors = TRACKER_COLORSCHEME)
     # weights = clamp.(weights, -1E6, 0)

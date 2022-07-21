@@ -1,17 +1,18 @@
 export extract_tracker_positions,
         extract_tracker_velocities,
         extract_assignments,
-        extract_tracker_masks,
-        extract_pmbrfs_params,
         extract_chain
 
 using JLD2
 using DataFrames
 using Gen_Compose:SeqPFChain
-using Combinatorics:combinations
 
 function digest_auxillary(c::SeqPFChain)
     deepcopy(c.auxillary)
+end
+
+function extract_parents(c::SeqPFChain)
+    deepcopy(c.state.parents)
 end
 
 function extract_digest(f::String)
@@ -19,14 +20,36 @@ function extract_digest(f::String)
     jldopen(f, "r") do data
         steps = data["current_idx"]
         steps === 0 && return df
-        df = DataFrame(data["1"])
-        steps === 1 && return df
-        @inbounds for i = 2:steps
-            push!(df, data["$i"])
+        @inbounds for i = 1:steps
+            push!(df, data["$i"]; cols = :union)
         end
     end
     return df
 end
+
+function digest_tracker_positions(c::SeqPFChain)
+    np = length(c.state.traces)
+    nt = @> (c.state.traces) begin
+        first
+        get_retval
+        last
+        last
+        world
+        get_objects(Dot)
+        length # nt
+    end
+    pos = Array{Float64, 3}(undef, np, nt, 3)
+    for i = 1:np
+        (_, states) = Gen.get_retval(c.state.traces[i])
+        trackers = @> states last world get_objects(Dot)
+        for j = 1:nt
+            pos[i, j, :] = trackers[j].pos
+        end
+    end
+    mean(pos, dims = 1) # avg position for each tracker
+end
+
+
 
 function td_accuracy(td::Dict{Int64, Float64}; nt::Int64 = 4)
     ws = Vector{Float64}(undef, nt)
@@ -56,19 +79,6 @@ function extract_td_accuracy(c::SeqPFChain, ntargets::Int64)
     end
 end
 
-function extract_tracker_positions(trace::Gen.Trace)
-    (init_state, states) = Gen.get_retval(trace)
-
-    trackers = get_objects(states[end], Dot)
-
-    tracker_positions = Array{Float64}(undef, length(trackers), 3)
-    for i=1:length(trackers)
-        tracker_positions[i,:] = trackers[i].pos
-    end
-
-    tracker_positions = reshape(tracker_positions, (1,1,size(tracker_positions)...))
-    return tracker_positions
-end
 
 function extract_tracker_velocities(trace::Gen.Trace)
     (init_state, states) = Gen.get_retval(trace)
@@ -94,30 +104,6 @@ function extract_assignments(trace::Gen.Trace)
     (record.table, record.logscores)
 end
 
-
-function extract_tracker_masks(trace::Gen.Trace)
-    t, motion, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    pmbrfs = ret[2][t].rfs
-    
-    tracker_masks = Vector{Array{Float64,2}}(undef, gm.n_trackers)
-
-    for i=1:gm.n_trackers
-        tracker_masks[i] = first(GenRFS.args(pmbrfs[1+i]))
-    end
-
-    tracker_masks = reshape(tracker_masks, (1,1,size(tracker_masks)...))
-
-    return tracker_masks
-end
-
-function extract_causal_graph(trace::Gen.Trace)
-    @>> trace begin
-        get_retval # (init_state, states)
-        last # states
-        last # CausalGraph
-    end
-end
 
 function extract_trace(trace::Gen.Trace)
     reshape([trace], (1,1, size([trace])...))

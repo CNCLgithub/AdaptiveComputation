@@ -65,17 +65,18 @@ end
     _vx, _vy = dot.vel
 
     # transform to angle & magnitude
-    ang = atan(_vy, _vx)
+    ang_mu = atan(_vy, _vx)
     mag = sqrt(_vx^2 + _vy^2)
 
     # sample inertia
     inertia = @trace(bernoulli(dm.bern), :inertia)
 
-    # sample new angle & magnitude
+    # sampl new angle & magnitude
 
-    #- if high inertia, then flat von_mises
+    #- if high inertia, then turn 180 deg
     k = inertia ? dm.k_max : dm.k_min
-    ang = @trace(von_mises(ang, k), :ang)
+    ang_turn = !inertia * pi # approximate collisions
+    ang = @trace(von_mises(ang_mu, k), :ang) + ang_turn
 
     #- mixture of previous velocity & base
     mu = inertia ? mag : dm.vel

@@ -6,17 +6,14 @@ using ArgParse
 using Setfield
 
 # using Random
-# Random.seed!(1234);
+# Random.seed!(1235);
 
 # using Profile
 # using StatProfilerHTML
 
-experiment_name = "exp1_difficulty"
-att_mode = "target_designation"
-att_params = "$(@__DIR__)/td.json"
-objective = td_flat
+experiment_name = "exp2_probes"
 
-function parse_commandline()
+function parse_commandline(vs)
     s = ArgParseSettings()
 
     @add_arg_table! s begin
@@ -48,7 +45,7 @@ function parse_commandline()
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
-        default = 240
+        default = 480
 
         "--step_size", "-s"
         help = "How many steps before saving"
@@ -63,26 +60,61 @@ function parse_commandline()
         help = "Whether to render masks"
         action = :store_true
 
-        "--scene"
+        "scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 1
+        required = true
 
-        "--chain"
+        "chain"
         help = "The number of chains to run"
         arg_type = Int
-        default = 1
+        required = true
+
+        "target_designation", "T"
+        help = "Using target designation"
+        action = :command
+
+        "data_correspondence", "D"
+        help = "Using data correspondence"
+        action = :command
+
+        "scene_avg", "A"
+        help = "Using scene avg"
+        action = :command
 
     end
 
+    @add_arg_table! s["target_designation"] begin
+        "--params"
+        help = "Attention params"
+        arg_type = String
+        default = "$(@__DIR__)/td.json"
 
-    return parse_args(s)
+        "--objective"
+        help = "Attention objective"
+        arg_type = Function
+        default = td_flat
+    end
+    @add_arg_table! s["data_correspondence"] begin
+        "--params"
+        help = "Attention params"
+        arg_type = String
+        default = "$(@__DIR__)/dc.json"
+    end
+    @add_arg_table! s["scene_avg"] begin
+        "model_path"
+        help = "path containing compute allocations"
+        arg_type = String
+        required = true
+
+    end
+
+    return parse_args(vs, s)
 end
 
-function main()
-    args = parse_commandline()
-    # args = default_args()
-
+function run(cmd)
+    args = parse_commandline(cmd)
+    display(args)
 
     # loading scene data
     scene_data = MOT.load_scene(args["dataset"],
@@ -107,9 +139,11 @@ function main()
                               graphics,
                               length(gt_cgs))
 
+    att_mode = "target_designation"
     att = MOT.load(MapSensitivity,
-                   att_params,
-                   objective = objective)
+                   args[att_mode]["params"],
+                   objective = args[att_mode]["objective"],
+                   )
 
     proc = MOT.load(PopParticleFilter, args["proc"];
                     rejuvenation = rejuvenate_attention!,
@@ -153,6 +187,39 @@ function main()
     end
 
     return nothing
+end
+
+
+
+function main()
+    # args = Dict("scene" => 1,
+    #             "chain" => 1)
+    args = parse_outer()
+    i = args["scene"]
+    c = args["chain"]
+    # scene, chain, time
+
+    cmd = ["$(i)", "$c", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=10", "T"]
+    run(cmd);
+end
+
+function parse_outer()
+    s = ArgParseSettings()
+
+    @add_arg_table! s begin
+        "scene"
+        help = "Which scene to run"
+        arg_type = Int64
+        default = 24
+
+        "chain"
+        help = "chain id"
+        arg_type = Int64
+        default = 1
+    end
+
+    return parse_args(s)
 end
 
 main();

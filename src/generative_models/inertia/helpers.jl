@@ -1,9 +1,38 @@
+import Base.show
+
 struct InertiaKernelState
     world::CausalGraph
     es::RFSElements
     xs::AbstractArray
     pt::BitArray{3}
     pls::Vector{Float64}
+end
+
+uheatmap = UnicodePlots.heatmap
+uspy = UnicodePlots.spy
+rargs = GenRFS.args
+
+function Base.show(io::IO, ::MIME"text/plain", v::InertiaKernelState)
+    println(io, "Elements")
+    for i in eachindex(v.es)
+        @>> (v.es[i]) begin
+            rargs
+            first
+            (x -> x .> 0.)
+            (x -> v.xs[i] .& (.!(x)))
+            uspy
+            println(io)
+        end
+
+    end
+    # println(io, "Observations")
+    # for i in eachindex(v.xs)
+    #     @>> (v.xs[i]) begin
+    #         uspy
+    #         println(io)
+    #     end
+    # end
+    return nothing
 end
 
 function world(s::InertiaKernelState)::CausalGraph
@@ -52,6 +81,17 @@ function td_full(st::InertiaKernelState)
     tracker_ids = findall(x -> isa(x, BernoulliElement), es)
     pt = pt[:, tracker_ids, :]
     td_full(pt, pls) # P({x...} are targets)
+end
+
+
+function target_weights(st::InertiaKernelState, wv::Vector{Float64})
+    c = correspondence(st)
+    ne = size(c, 2)
+    tws = zeros(ne)
+    @inbounds for ti = 1:ne
+        tws[ti] = sum(c[:, ti] .* wv)
+    end
+    return tws
 end
 
 function trackers(dm::InertiaModel, tr::Trace)
@@ -194,12 +234,11 @@ end
 
 function UniformEnsemble(gm::GMParams, gr::Graphics, rate,
                          targets)
-    # n_receptive_fields = length(gr.receptive_fields)
-    # rate_per_field = rate / n_receptive_fields
-
-    r = ceil(gm.dot_radius * gr.img_dims[1] / gm.area_width)
+    @unpack img_width, outer_f, inner_p, inner_f = gr
+    # assuming square
+    r = ceil(gm.dot_radius * inner_f * img_width / gm.area_width)
     n_pixels = prod(gr.img_dims)
-    pixel_prob = (2 * pi * r^2 * gr.gauss_amp) / n_pixels
+    pixel_prob = (pi * r^2 * inner_p) / n_pixels
 
     UniformEnsemble(rate, pixel_prob, targets)
 end
