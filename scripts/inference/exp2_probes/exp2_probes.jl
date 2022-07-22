@@ -3,7 +3,7 @@ using GenRFS
 using MOT
 using Gen_Compose
 using ArgParse
-using Setfield
+using Accessors
 
 # using Random
 # Random.seed!(1235);
@@ -122,12 +122,12 @@ function run(cmd)
     gt_cgs = scene_data[:gt_causal_graphs][1:args["time"]]
     aux_data = scene_data[:aux_data]
 
-    gm = MOT.load(GMParams, args["gm"])
-    gm = @set gm.n_targets = sum(aux_data["targets"]) # always 4 targets but whatever
-    gm = @set gm.max_things = gm.n_targets + aux_data["n_distractors"]
+    gm = MOT.load(GMParams, args["gm"],
+                  n_targets = sum(aux_data["targets"]),
+                  max_things = gm.n_targets + aux_data["n_distractors"])
 
-    dm = MOT.load(InertiaModel, args["dm"])
-    dm = @set dm.vel = aux_data["vel"]
+    dm = MOT.load(InertiaModel, args["dm"],
+                  vel = aux_data["vel"])
 
     graphics = MOT.load(Graphics, args["graphics"])
 

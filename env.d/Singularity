@@ -1,8 +1,8 @@
 bootstrap: docker
-from: ubuntu:18.04
+from: ubuntu:22.04
 
 %environment
- export PATH=$PATH:"/usr/local/julia-1.6.2/bin"
+ export PATH=$PATH:"/usr/local/julia-1.7.2/bin"
 
 %runscript
   exec bash "$@"
@@ -15,31 +15,19 @@ from: ubuntu:18.04
                      git \
                      wget \
                      ffmpeg \
-                     libglu1 \
-                     libxi6 \
-                     libc6 \
-                     libsm6 \
-                     libxrender-dev \
-                     libgl1-mesa-dev \
-                     gettext \
-                     gettext-base \
-                     libgtk-3-dev \
-                     libglib2.0-dev \
-                     xdg-utils \
-                     cmake \
-                     python3.8-dev \
-                     python3-pip
+                     cmake
 
  apt-get clean
 
- /usr/bin/python3.8 -m pip install --upgrade pip
- /usr/bin/python3.8 -m pip install pipenv virtualenv
+ /usr/bin/python3 -m pip install --upgrade pip
+ /usr/bin/python3 -m pip install pipenv virtualenv
 
 
  # setup julia
- wget "https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.2-linux-x86_64.tar.gz" \
-     -O "julia.tar.gz"
+ JURL="https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.2-linux-x86_64.tar.gz"
+ wget "$JURL" -O "julia.tar.gz"
  tar -xzf "julia.tar.gz" -C "/usr/local/"
+ chmod +x /usr/local/julia-1.7.2/bin/*
  rm "julia.tar.gz"
 
 

@@ -1,7 +1,7 @@
 export extract_tracker_positions,
-        extract_tracker_velocities,
-        extract_assignments,
-        extract_chain
+    extract_tracker_velocities,
+    extract_assignments,
+    extract_chain
 
 using JLD2
 using DataFrames

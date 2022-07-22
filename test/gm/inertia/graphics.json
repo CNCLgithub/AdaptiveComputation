@@ -1,0 +1,10 @@
+{
+    "img_width": 100,
+    "img_height": 100,
+    "flow_decay_rate": -0.30,
+    "outer_f": 6.5,
+    "inner_f": 1.00,
+    "inner_p": 0.99,
+    "outer_p": 0.15,
+    "nlog_bernoulli": -200
+}
