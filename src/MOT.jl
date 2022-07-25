@@ -3,18 +3,20 @@ module MOT
 using Gen
 using Gen_Compose
 using GenRFS
+using LinearAlgebra
 using FillArrays
 using SparseArrays
 using StaticArrays
-using Accessors: setproperties
+using Accessors: setproperties, @set
 using Parameters: @with_kw, @unpack, @pack!
 using Lazy: @>, @>>
 
 include("utils/utils.jl")
 include("generative_models/generative_models.jl")
 include("inference/inference.jl")
+@load_generated_functions
+
 include("visuals/visuals.jl")
 
-@load_generated_functions
 
 end

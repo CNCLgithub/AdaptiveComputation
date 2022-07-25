@@ -1,5 +1,6 @@
 export Thing, Object, Dot, Wall, UniformEnsemble
 
+abstract type Thing end
 
 abstract type Object <: Thing end
 
@@ -29,7 +30,7 @@ struct Dot <: Object
 
     # Graphics
     target::Float64
-    gstate::Matrix{Float64} # graphics state
+    gstate::SparseMatrixCSC{Float64} # graphics state
 end
 
 target(d::Dot) = d.target
@@ -39,7 +40,7 @@ struct Wall <: Object
     d::Float64 # the distance from the center
     normal::SVector{2, Float64} # normal vector
     nd::SVector{2, Float64}
-    function Wall(d::Float, normal::SVector{2, Float64})
+    function Wall(d::Float64, normal::SVector{2, Float64})
         new(d, normal, d * normal)
     end
     # Kinematics <none>
@@ -55,7 +56,7 @@ function init_walls(width::Float64)
         -width * .5,
         -width * .5]
    @inbounds for (i, theta) in enumerate(WALL_ANGLES)
-        normal = [cos(theta), sin(theta)]
+        normal = SVector{2, Float64}([cos(theta), sin(theta)])
         ws[i] = Wall(d[i], normal)
     end
     return SVector{4, Wall}(ws)

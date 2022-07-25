@@ -1,157 +1,112 @@
-using Base.Iterators: take
-using Distributions
-using LinearAlgebra
+export PopSensitivity
 
-export MapSensitivity
-
-@with_kw struct MapSensitivity <: AbstractAttentionModel
-    objective::Function = target_designation
-    jitter::Function = tracker_kernel
-    samples::Int = 1
-    sweeps::Int = 5
-    smoothness::Float64 = 1.003
-    scale::Float64 = 1.0
-    k::Float64 = 0.5
+@with_kw struct PopSensitivity <: AbstractAttentionModel
+    # number of unique latents to attend to
+    latents::Int = 4
+    plan::Function
+    plan_args::Tuple
+    percept_update::Function
+    percept_args::Tuple
+    # importance
+    importance_tau::Float64 = 1.003
+    # arrousal
+    init_samples::Int = 15
+    min_samples::Int = 5
+    max_arrousal::Int = 30
+    div_scale::Float64 = 1.0
     x0::Float64 = 5.0
-    ancestral_steps::Int = 3
-    uniform_sweeps::Int = 0
-    weights_tau::Float64 = 0.5 # proportion of old weights to keep
 end
 
-function load(::Type{MapSensitivity}, path; kwargs...)
-    MapSensitivity(;read_json(path)..., kwargs...)
+function load(::Type{PopSensitivity}, path; kwargs...)
+    PopSensitivity(;read_json(path)..., kwargs...)
 end
 
-function top_n_traces(state::Gen.ParticleFilterState, n::Int64)
-    @unpack traces, log_weights = state
-    inds = sortperm(log_weights; rev=true)[1:n]
-    traces[inds]
-end
 
-function trackers(tr::Gen.Trace)
-    t, _, dm, _ = get_args(tr)
-    trackers(dm, tr)
+function AdaptiveComputation(att::PopSensitivity)
+    n = att.latents
+    base_arrousal = n * att.init_samples
+    base_importance = fill(1 / n, n)
+    AdaptiveComputation(sensitivities = zeros(n),
+                        importance = base_importance,
+                        arrousal = base_arrousal)
 end
-
 
 # returns the sensitivity of each latent variable
-function hypothesize!(chain::SeqPFChain, att::MapSensitivity)
+function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
 
     @unpack proc, state, auxillary = chain
-    @unpack objective, scale, samples, jitter = att
+    @unpack sensitivities, importance, arrousal = auxillary
 
-    # @show state.log_weights
+    cycles_per_latent = ceil.(Int64, importance .* arrousal)
+    @show cycles_per_latent
 
-    anyinf = @>> (state.traces) begin
-            map(get_score)
-            findfirst(isinf)
-    end
-    if !isnothing(anyinf)
-        @>> (state.traces[anyinf]) begin
-                get_retval
-                last
-                last
-                display
-        end
-    end
-
-    # sensitivities = @>> (state.traces) first n_obs zeros
+    # number of particles
     np = length(state.traces)
-    arrousal = Vector{Float64}(undef, np)
-    sensitivities = Dict{Int64, Vector{Float64}}()
+    # number of latents (usually 4)
+    nl = att.latents
+    log_particles = log(np)
+    # counter for acceptance ratio
     accepted = 0
-    @inbounds for i = 1:np
-        latents = trackers(state.traces[i])
-        nl = length(latents)
-        # base steps per tracker
-        p_base_steps = nl == 0 ? 0 : floor(Int64, samples / nl) 
-        seed_obj = objective(state.traces[i])
-        # scs = correspondence(state.traces[i])
-        psense = fill(-Inf, nl)
-        for j = 1:nl, _ = 1:p_base_steps
-            # println("Working on sample $(i), latent $(j)")
-            jittered, ls = jitter(state.traces[i], latents[j] , att)
-            jobj = objective(jittered)
-            # jcs = correspondence(jittered)
-            # jc = jcs[:, j]
-            # compute sensitivity
-            div = @>> jobj begin
-                x -> sinkhorn_div(seed_obj, x; scale = scale)
-                # log
+    for l = 1:nl # for each latent
+        samples = cycles_per_latent[l] + att.min_samples
+        log_steps = log(samples)
+        # matrix storing estimates of dPdS
+        dPdS = zeros((np, samples))
+        for i = 1:np # for each particle
+            # initialize objective of S -> P
+            s = state.traces[i]
+            p = att.plan(s)
+            for j = 1:samples
+                # perceptual update:: S -> (S', dS)
+                s_prime, ls = att.percept_update(s, l , att.percept_args...)
+                # New objective from planning:: S' -> P'
+                p_prime = att.plan(s_prime, att.plan_args...)
+                # dP
+                dPdS[i, j] = sinkhorn_div(p, p_prime;
+                                              scale = att.div_scale)
+                # dP/dS
+                # dPdS[i, j] -= max(ls, 0.)
+                # accepted a proposal and update references
+                if log(rand()) < ls
+                    accepted += 1
+                    s = s_prime
+                    p = p_prime
+                end
             end
-            psense[j] = logsumexp(psense[j], div)
-            # marginal of assignment for latent to xs
-            # c = jc .+ scs[:, j]
-            # c .*= 0.5 * exp(div)
-            # sensitivities += c
-
-            # accept traces
-            if log(rand()) < ls
-                accepted +=1
-                state.traces[i] = jittered
-                seed_obj = jobj
-                # scs = jcs
-            end
-
+            state.traces[i] = s
         end
-        sensitivities[i] = psense .- log(p_base_steps)
-        arrousal[i] = nl == 0 ? -Inf : logsumexp(sensitivities[i]) 
+        # normalize dPdS across particles and steps
+        sensitivities[l] = logsumexp(dPdS) - log_particles - log_steps
     end
-    println("acceptance ratio $(accepted / (np * samples))")
-    # think about normalizing wrt to |xs|
-    # sensitivities = log.(sensitivities) .- log(np * samples)
-
+    @show sensitivities
+    # update adaptive computation state
     @pack! auxillary = sensitivities
-    @pack! auxillary = arrousal
+    acceptance = accepted / (np * (arrousal + att.min_samples))
+    @pack! auxillary = acceptance
+    println("acceptance ratio $(acceptance)")
     return nothing
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
-function goal_relevance!(chain::SeqPFChain, att::MapSensitivity)
+function update_importance!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    weights = Dict{Int64, Vector{Float64}}()
-    @inbounds for i = 1:length(sensitivities)
-        nl = length(sensitivities[i])
-        weights[i] = nl == 0 ? Float64[] : softmax(sensitivities[i] .* att.smoothness)
-    end
-
-    @pack! auxillary = weights
+    importance = softmax(sensitivities .* att.importance_tau)
+    @pack! auxillary = importance
+    return nothing
 end
 
 # returns number of sweeps (MH moves) to make determined
 # by the sensitivity weights using an exponential function
-function budget_cycles!(chain::SeqPFChain, att::MapSensitivity)
+function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
-    @unpack arrousal, cycles = auxillary
-    @unpack sweeps, k, x0 = att
-    m = sweeps / x0
-    np = length(arrousal)
-    cycles = Vector{Int64}(undef, np)
-    @inbounds for i = 1:np
-        amp = m * (arrousal[i] + x0)
-        cycles[i] = @> amp begin
-            clamp(0., sweeps)
-            floor
-            Int64
-        end
-    end
-    println("avg cycles: $(mean(cycles))")
-    # x = logsumexp(arrousal) - log(length(arrousal))
-    # amp = k * (x + x0)
-
-    # println("x: $(x), amp: $(amp)")
-    # cycles = @> amp begin
-    #     clamp(0., sweeps)
-    #     floor
-    #     Int64
-    # end
-    @pack! auxillary = cycles
+    @unpack sensitivities = auxillary
+    @unpack max_arrousal, x0 = att
+    m = max_arrousal / x0
+    amp = m * (logsumexp(sensitivities) + x0)
+    @show logsumexp(sensitivities)
+    arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
+    println("arrousal: $(arrousal)")
+    @pack! auxillary = arrousal
     return nothing
 end
-
-# no early stopping for sensitivity-based attention
-function early_stopping(att::MapSensitivity, new_stats, prev_stats)
-    false
-end
-

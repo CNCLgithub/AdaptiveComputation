@@ -31,17 +31,16 @@ function digest_tracker_positions(c::SeqPFChain)
     np = length(c.state.traces)
     nt = @> (c.state.traces) begin
         first
-        get_retval
-        last
-        last
-        world
-        get_objects(Dot)
+        get_retval # (init, rest)
+        last # (state1, state2,...)
+        last # state_n
+        get_objects
         length # nt
     end
-    pos = Array{Float64, 3}(undef, np, nt, 3)
+    pos = Array{Float64, 3}(undef, np, nt, 2)
     for i = 1:np
         (_, states) = Gen.get_retval(c.state.traces[i])
-        trackers = @> states last world get_objects(Dot)
+        trackers = @> states last get_objects
         for j = 1:nt
             pos[i, j, :] = trackers[j].pos
         end
@@ -92,19 +91,4 @@ function extract_tracker_velocities(trace::Gen.Trace)
 
     tracker_velocities = reshape(tracker_velocities, (1,1,size(tracker_velocities)...))
     return tracker_velocities
-end
-
-function extract_assignments(trace::Gen.Trace)
-    t, motion, gm = Gen.get_args(trace)
-    ret = Gen.get_retval(trace)
-    pmbrfs = ret[2][t].rfs
-    record = AssociationRecord(5)
-    xs = get_choices(trace)[:kernel => t => :masks]
-    Gen.logpdf(rfs, xs, pmbrfs, record)
-    (record.table, record.logscores)
-end
-
-
-function extract_trace(trace::Gen.Trace)
-    reshape([trace], (1,1, size([trace])...))
 end

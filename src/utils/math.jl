@@ -7,15 +7,38 @@ const ln_hlf = log(0.5)
 const two_pi_sqr = 4.0 * pi * pi
 
 # stable softmax
-function softmax(x::Array{Float64})
-    max_x = maximum(x)
-    if max_x === -Inf
-        nx = length(x)
-        unit = 1.0 / nx
-        return fill(unit, nx)
+# function softmax(x::Array{Float64}; t = 1.0)
+#     max_x = maximum(x)
+#     if max_x === -Inf
+#         nx = length(x)
+#         unit = 1.0 / nx
+#         return fill(unit, nx)
+#     end
+#     x = x .- maximum(x)
+#     exp.(x) / logsumexp(x)
+# end
+function softmax(x::Array{Float64}; t::Float64 = 1.0)
+    out = similar(x)
+    softmax!(out, x; t = t)
+    return out
+end
+
+function softmax!(out::Array{Float64}, x::Array{Float64}; t::Float64 = 1.0)
+    nx = length(x)
+    maxx = maximum(x)
+    sxs = 0.0
+
+    if maxx == -Inf
+        out .= 1.0 / nx
+        return nothing
     end
-    x = x .- maximum(x)
-    exp.(x) / sum(exp.(x))
+
+    @inbounds for i = 1:nx
+        out[i] = @fastmath exp((x[i] - maxx) / t)
+        sxs += out[i]
+    end
+    rmul!(out, 1.0 / sxs)
+    return nothing
 end
 
 function normalize_weights(log_weights::Vector{Float64})

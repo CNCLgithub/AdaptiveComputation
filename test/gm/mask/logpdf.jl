@@ -1,21 +1,22 @@
 using Gen
 using MOT
 using Profile
+using SparseArrays
 using StatProfilerHTML
 
 function main()
-    ws = fill(0.5, 200, 200)
-    xs = rand(200, 200) .> 0.5
-
-
-
-    Profile.init(delay = 1E-5,
-                 n = 10^6)
-    @show typeof(ws)
-    @show typeof(xs)
-    @profilehtml Gen.logpdf(mask, xs, ws)
-    @time Gen.logpdf(mask, xs, ws)
-    @profilehtml Gen.logpdf(mask, xs, ws)
+    ws = zeros((100, 100))
+    xs = rand(100, 100) .> 0.80
+    ws[xs] .= 0.5
+    sws = sparse(ws)
+    Profile.init(delay = 1E-8,
+                 n = 10^8)
+    Profile.clear()
+    Gen.logpdf(mask, xs, sws)
+    display(@benchmark Gen.logpdf(mask, $xs, $sws))
+    @profilehtml for _ = 1:1000
+        Gen.logpdf(mask, xs, sws)
+    end
 end
 
 main();

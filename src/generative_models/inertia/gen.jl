@@ -5,7 +5,7 @@ export gm_inertia
 ################################################################################
 # Initial State
 ################################################################################
-@gen static function inertia_tracker(gm::InertiaGM)::Dot
+@gen static function inertia_tracker(gm::InertiaGM)
 
     xs, ys = tracker_bounds(gm)
     x = @trace(uniform(xs[1], xs[2]), :x)
@@ -22,9 +22,10 @@ export gm_inertia
     return new_dot
 end
 
+
 @gen static function inertia_init(gm::InertiaGM)
     gms = fill(gm, gm.n_targets)
-    trackers::Vector{Dot} = @trace(Gen.Map(inertia_tracker)(gms), :trackers)
+    trackers = @trace(Gen.Map(inertia_tracker)(gms), :init_kernel)
     state::InertiaState = InertiaState(gm, trackers)
     return state
 end
@@ -34,10 +35,10 @@ end
 # Dynamics
 ################################################################################
 
-@gen static function inertial_step(gm::InertiaGM, d::Dot)
+@gen static function inertia_step(gm::InertiaGM, d::Dot)
 
-    _x, _y, z = dot.pos
-    _vx, _vy = dot.vel
+    _x, _y = d.pos
+    _vx, _vy = d.vel
 
     # transform to angle & magnitude
     ang_mu = atan(_vy, _vx)
@@ -66,37 +67,28 @@ end
     return ku
 end
 
-@gen static function inertial_update(st::InertiaState)
-    # only define diff for trackers that did not die in `bddiff`
-    (gms, dots) = inertia_step_args(st)
-    kupdates::Vector{KinematicsUpdate} = @trace(Map(inertial_step)(gms, dots),
-                                                :trackers)
-    return kupdates
-end
-
-# const mask_rfs = RFS{BitMatrix}()
-const mask_mrfs = MRFS{BitMatrix}()
-
 @gen static function inertia_kernel(t::Int64,
                                     prev_st::InertiaState,
                                     gm::InertiaGM)
 
 
     # update kinematic state for representations
-    kupdates = @trace(inertial_update(prev_st), :inertia)
+    (gms, dots) = inertia_step_args(gm, prev_st)
+    kupdates = @trace(Gen.Map(inertia_step)(gms, dots), :trackers)
 
     # advancing causal graph (dynamics -> kinematics -> graphics)
-    new_dots = step(prev_st, kupdates)
+    new_dots = step(gm, prev_st, kupdates)
 
     # predict observations as a random finite set
-    es = predict(gm, new_dots)
-    xs::Vector{BitMatrix} = @trace(mask_mrfs(es), :masks)
+    es = predict(gm, prev_st, new_dots)
+    xs = @trace(mask_mrfs(es, 50, 1.0), :masks)
+    # xs = @trace(mask_rfs(es), :masks)
 
     # store the associations for later use
-    current_state::InertiaKernelState = InertiaState(prev_st,
-                                                     new_dots,
-                                                     es,
-                                                     xs)
+    current_state::InertiaState = InertiaState(prev_st,
+                                 new_dots,
+                                 es,
+                                 xs)
     return current_state
 end
 
@@ -107,6 +99,7 @@ end
 @gen static function gm_inertia(k::Int, gm::InertiaGM)
     init_st = @trace(inertia_init(gm), :init_state)
     states = @trace(Gen.Unfold(inertia_kernel)(k, init_st, gm), :kernel)
-    result::Tuple{InertiaState, Vector{InertiaState}} = (init_st, states)
+    result = (init_st, states)
+    # result::Tuple{InertiaState, Vector{InertiaState}} = (init_st, states)
     return result
 end

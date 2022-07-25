@@ -1,4 +1,4 @@
-export InertiaGM, InertiaState
+export InertiaGM, InertiaState, load
 
 ################################################################################
 # Model definition
@@ -33,7 +33,7 @@ Model that uses inertial change points to "explain" interactions
     img_width::Int64 = 100
     img_height::Int64 = 100
     img_dims::Tuple{Int64, Int64} = (img_width,img_height)
-    decay_rate::Float64 = 0.0
+    decay_rate::Float64 = 0.1
     min_mag::Float64 = 1E-4
     inner_f::Float64 = 1.0
     outer_f::Float64 = 1.0
@@ -52,46 +52,26 @@ end
 struct InertiaState <: GMState
     walls::SVector{4, Wall}
     objects::Vector{Dot}
-    ensemble::UniformEnsemble{Dot}
+    ensemble::UniformEnsemble
     es::RFSElements
     xs::AbstractArray
     pt::BitArray{3}
     pls::Vector{Float64}
 end
 
-function InertiaState(prev_st::InertiaState,
-                      new_dots::Vector{Dot},
-                      es::RFSElements{T},
-                      xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.associations(es, xs)
-    setproperties(prev_st,
-                  (objects = new_dots,
-                   es = es,
-                   xs = xs,
-                   pt = pt,
-                   pls = pls))
+struct KinematicsUpdate
+    p::SVector{2, Float64}
+    v::SVector{2, Float64}
 end
 
-function InertiaState(gm::InertiaGM, dots::Vector{Dot})
-    walls = init_walls(gm)
-    n_ens = gm.n_dots - length(dots)
-    InertiaState(walls, dots, UniformEnsemble(gm, n_ens),
-                 RFSElements{Any}(undef, 0),
-                 [],
-                 falses(0,0,0),
-                 Float64[])
-end
-
-function tracker_bounds(gm::InertiaState)
-    @unpack area_width, area_height, dot_radius = gm
-    xs = (-0.5*area_width + dot_radius, 0.5*area_width - dot_radius)
-    ys = (-0.5*area_height + dot_radius, 0.5*area_height - dot_radius)
-    (xs, ys, dot_radius)
+function step(state::InertiaState, updates)
+    step(state.gm, state, updates)
 end
 
 function step(gm::InertiaGM,
               state::InertiaState,
-              updates::Vector{KinematicsUpdate})
+              updates)
+              # updates::AbstractVector{KinematicsUpdate})
 
     # Dynamics (computing forces)
     # for each dot compute forces
@@ -102,17 +82,13 @@ function step(gm::InertiaGM,
     @inbounds for i in eachindex(objects)
         # force accumalator
         facc = MVector{2, Float64}(zeros(2))
-        dot = objects[i]
+
+        # applyies the spatial jitter from gen
+        dot = apply_update(objects[i], updates[i])
 
         # interactions with walls
         for w in walls
             force!(facc, gm, w, dot)
-        end
-
-        # interactions with other dots
-        for j = 1:n_dots
-            i==j && continue
-            force!(facc, gm, dot, objects[j])
         end
 
         # kinematics: resolve forces to pos vel
@@ -137,7 +113,7 @@ function force!(f::MVector{2, Float64}, dm::InertiaGM, w::Wall, d::Dot)
     @unpack pos = d
     @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
     n = LinearAlgebra.norm(w.normal .* pos + w.nd)
-    f .+= wall_rep_m * exp(-1 * (wall_rep_a * (d - wall_rep_x0))) * w.normal
+    f .+= wall_rep_m * exp(-1 * (wall_rep_a * (n - wall_rep_x0))) * w.normal
     return nothing
 
 end
@@ -150,6 +126,11 @@ end
 #     return nothing
 # end
 
+function apply_update(d::Dot, ku::KinematicsUpdate)
+    setproperties(d,
+                  (pos = ku.p,
+                   vel = ku.v))
+end
 
 function update_kinematics(::InertiaGM, ::Object, ::MVector{2, Float64})
     error("Not implemented")
@@ -159,7 +140,9 @@ function update_kinematics(gm::InertiaGM, d::Dot, f::MVector{2, Float64})
     # treating force directly as velocity; update velocity by x percentage; but f isn't normalized to be similar to v
     a = f/d.mass
     new_vel = d.vel + a
-    new_pos = clamp.(d.pos + new_vel, -gm.area_height, gm.area_height)
+    new_pos = clamp.(d.pos + new_vel,
+                     -gm.area_height * 0.5 + d.radius,
+                     gm.area_height * 0.5  - d.radius)
     return new_pos, new_vel
 end
 
@@ -178,34 +161,50 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
 
     # Mario: trying to deal with segf when dropping
     decayed = deepcopy(d.gstate)
+    dropzeros!(decayed)
     rmul!(decayed, gm.decay_rate)
     droptol!(decayed, gm.min_mag)
 
     # overlay new render onto memory
 
     #without max, tail gets lost; . means broadcast element-wise
-    max.(gstate, decayed)
-    #map!(max, gstate, gstate, decayed)
+    gstate = max.(gstate, decayed)
+    # map!(max, gstate, gstate, decayed)
     return gstate
 end
 
-
-function predict(gm::InertiaGM, st::InertiaState)::RFSElements{BitMatrix}
-    @unpack objects, ensemble = st
-    n = length(st.objects)
+function predict(gm::InertiaGM,
+                 st::InertiaState,
+                 objects::AbstractVector{Dot})::RFSElements{BitMatrix}
+    n = length(objects)
     es = RFSElements{BitMatrix}(undef, n + 1)
+    @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
-        obj = st.objects[i]
-        es[i] = BernoulliElement{BitMatrix}(nlog_bernoulli,
-                                            mask,
-                                            (obj.gstate,))
+        obj = objects[i]
+        es[i] = LogBernoulliElement{BitMatrix}(nlog_bernoulli,
+                                               mask,
+                                               (obj.gstate,))
     end
-    es[n + 1] = PoissonElement{BitMatrix}(ensemble.rate,
+    @unpack rate, pixel_prob = (st.ensemble)
+    es[n + 1] = PoissonElement{BitMatrix}(rate,
                                           mask,
-                                          (ensemble.gstate,))
+                                          (Fill(pixel_prob, img_dims),))
     return es
 end
 
+function observe(gm::InertiaGM,
+                 objects::AbstractVector{Dot})
+    n = length(objects)
+    es = RFSElements{BitMatrix}(undef, n)
+    @unpack nlog_bernoulli, img_dims = gm
+    @inbounds for i in 1:n
+        obj = objects[i]
+        es[i] = LogBernoulliElement{BitMatrix}(nlog_bernoulli,
+                                               mask,
+                                               (obj.gstate,))
+    end
+    (es, mask_mrfs(es, 50, 1.0))
+end
 # function render(gm::RepulsionGM, st::RepulsionState)
 
 #     gstate = zeros(gm.img_dims)

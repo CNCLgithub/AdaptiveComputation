@@ -1,7 +1,9 @@
 {
-    "scale": 0.15,
-    "smoothness": 0.15,
-    "x0": 37.5,
-    "samples": 20,
-    "sweeps": 30
+    "latents": 4,
+    "div_scale": 0.001,
+    "importance_tau": 0.15,
+    "init_samples": 15,
+    "min_samples": 10,
+    "max_arrousal": 1,
+    "x0": 37.5
 }
