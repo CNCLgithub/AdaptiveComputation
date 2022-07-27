@@ -12,10 +12,10 @@
 
     "img_width": 100,
     "img_height": 100,
-    "decay_rate": 0.5,
+    "decay_rate": 0.3,
     "outer_f": 5.5,
     "inner_f": 1.00,
-    "inner_p": 0.95,
-    "outer_p": 0.15,
+    "inner_p": 0.90,
+    "outer_p": 0.35,
     "nlog_bernoulli": -200
 }

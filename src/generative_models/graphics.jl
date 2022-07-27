@@ -32,16 +32,14 @@ function exp_dot_mask(
     Js = zeros(Int64, n)
     Vs = zeros(Float64, n)
     k = 0
-    for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
+    @inbounds @fastmath for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
         k +=1
         dst = sqrt((i - x0)^2 + (j - y0)^2)
         # flip i and j in mask
         Is[k] = j
         Js[k] = i
         (dst > outer_r) && continue
-        v = (dst <= inner_r ) ? inner_p : outer_p * exp(hl * dst)
-        v < 1E-4 && continue
-        Vs[k] = v
+        Vs[k] = (dst <= inner_r ) ? inner_p : outer_p * exp(hl * dst)
     end
     sparse(Is, Js, Vs, h, w)
 end

@@ -165,11 +165,9 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
     droptol!(decayed, gm.min_mag)
 
     # overlay new render onto memory
-
     # exp_dot_mask!(decayed, x, y, scaled_r, img_width, img_height, gm)
-    # without max, tail gets lost; . means broadcast element-wise
-    max.(gstate, decayed)
     # return decayed
+    max.(gstate, decayed)
 end
 
 function predict(gm::InertiaGM,

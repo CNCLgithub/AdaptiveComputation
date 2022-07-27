@@ -50,7 +50,7 @@ function Gen.logpdf(::Mask,
     m, n = size(ps)
     ab = 0.
     c = 0
-    @inbounds @views for j = 1:n
+    @inbounds for j = 1:n
         for i in nzrange(ps, j)
             x = image[rows[i], j]
             v = vs[i]
