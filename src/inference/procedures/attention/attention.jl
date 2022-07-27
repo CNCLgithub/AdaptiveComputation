@@ -21,7 +21,6 @@ end
 function adaptive_compute!(chain::SeqPFChain,
                            attention::AbstractAttentionModel)
     # apply perceptual updates and monitor dP/dS
-    println("hypothesis testing")
     @time hypothesis_testing!(chain, attention)
     update_importance!(chain, attention)
     update_arrousal!(chain, attention)

@@ -33,8 +33,8 @@ function InertiaState(gm::InertiaGM, dots)
     walls = init_walls(gm.area_width)
     n_ens = Float64(gm.n_dots - length(dots)) + 0.01
     InertiaState(walls, dots, UniformEnsemble(gm, n_ens),
-                 RFSElements{Any}(undef, 0),
-                 [],
+                 RFSElements{BitMatrix}(undef, 0),
+                 BitMatrix[],
                  falses(0,0,0),
                  Float64[])
 end
@@ -108,11 +108,20 @@ function td_flat(st::InertiaState)
     nx,ne,np = size(pt)
     amat = zeros(nx, ne)
     ws = exp.(pls .- logsumexp(pls))
-    @inbounds @views for p = 1:np, e = 1:ne, x = 1:nx
-        pt[x, e, p] || continue
-        amat[x, e] += ws[p]
+    x_weights = Vector{Float64}(undef, nx)
+    @inbounds @views for x = 1:nx
+        xw = 0.0
+        for p = 1:np, e = 1:ne
+            pt[x, e, p] || continue
+            xw += ws[p]
+        end
+        x_weights[x] = xw
     end
-    x_weights = sum(eachcol(amat)) # P(x_i = Target)
+    # @inbounds @views for p = 1:np, e = 1:ne, x = 1:nx
+    #     pt[x, e, p] || continue
+    #     amat[x, e] += ws[p]
+    # end
+    # x_weights = sum(eachcol(amat)) # P(x_i = Target)
     # @show np
     # display(amat)
     # display(x_weights)
@@ -170,6 +179,17 @@ end
 ################################################################################
 
 
+function exp_dot_mask!(m,
+                       x0::Float64, y0::Float64,
+                       r::Float64,
+                       w::Int64, h::Int64,
+                       gm::InertiaGM)
+    exp_dot_mask!(m,x0, y0, r, w, h,
+                 gm.outer_f,
+                 gm.inner_f,
+                 gm.outer_p,
+                 gm.inner_p)
+end
 
 function exp_dot_mask( x0::Float64, y0::Float64,
                        r::Float64,

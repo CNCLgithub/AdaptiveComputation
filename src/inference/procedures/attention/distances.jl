@@ -18,12 +18,17 @@ end
 
 function discrete_measure(lws::Vector{Float64},
                           scale::Float64)
-    n = length(lws)
-    (collect(1:n), softmax(lws; t = scale))
+    softmax(lws; t = scale)
 end
 
 function td_cost(x::Int64, y::Int64)::Float64
     x === y ? 0. : 1.
+end
+
+function cost_matrix(n::Int)
+    m = ones((n, n))
+    m[I(n)] .= 0.
+    return m
 end
 
 function td_cost(a::BitVector, b::BitVector)::Float64
@@ -51,21 +56,20 @@ end
 
 
 function sinkhorn_div(p::Vector{V}, q::Vector{V};
-                      λ::Float64 = 1.0,
-                      ε::Float64 = 0.02,
+                      eps::Float64 = 0.1,
                       scale::Float64 = 1.0) where {V}
-    a_k, a_w = discrete_measure(p, scale)
-    b_k, b_w = discrete_measure(q, scale)
-    # @show a_w
-    # @show b_w
-    c = pairwise(td_cost, a_k, b_k)
-    ot = sinkhorn(a_w, b_w, c, ε;
+    u = discrete_measure(p, scale)
+    v = discrete_measure(q, scale)
+    # @show u
+    # @show v
+    c = cost_matrix(length(u))
+    ot = sinkhorn(u, v, c, eps;
                   atol = 1E-3,
                   maxiter=10_000)
-    d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, ε;
+    d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
                                                  regularization=false)
-    d = log(d)
-    isnan(d)  ? -Inf : d
+    # instability could lead to negative values
+    d = log(max(d, 0.))
 end
 
 function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}; kwargs...) where {K,V}

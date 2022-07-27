@@ -27,7 +27,6 @@ function apply_random_walk(trace::Gen.Trace, proposal, proposal_args)
     proposal_args_forward = (trace, proposal_args...,)
     (fwd_choices, fwd_weight, _) = propose(proposal, proposal_args_forward)
     (new_trace, weight, _, discard) = Gen.update(trace,
-                                                 model_args, argdiffs,
                                                  fwd_choices)
     proposal_args_backward = (new_trace, proposal_args...,)
     (bwd_weight, _) = Gen.assess(proposal, proposal_args_backward, discard)

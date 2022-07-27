@@ -1,8 +1,10 @@
-export read_json, merge_trial, merge_experiment
+export read_json, extract_digest, merge_trial, merge_experiment
 
 using CSV
 using CSV: write
 using JSON
+using JLD2
+using DataFrames
 
 """
     read_json(path)
@@ -22,6 +24,18 @@ function read_json(path)
     end
 
     return sym_data
+end
+
+function extract_digest(f::String)
+    df = DataFrame()
+    jldopen(f, "r") do data
+        steps = data["current_idx"]
+        steps === 0 && return df
+        @inbounds for i = 1:steps
+            push!(df, data["$i"]; cols = :union)
+        end
+    end
+    return df
 end
 
 
@@ -73,9 +87,8 @@ function get_simplified_target_designation(cg, gt_cg)
     return td
 end
 
-function chain_performance(chain, path;
+function chain_performance(chain, dg;
                            n_targets = 4)
-    dg = extract_digest(path)
     aux_state = dg[:, :auxillary]
     # causal graphs at the end of inference
     td_acc = extract_td_accuracy(chain, n_targets)
@@ -85,50 +98,34 @@ function chain_performance(chain, path;
     return df
 end
 
-function chain_attention(chain, path;
+function chain_attention(chain, dg;
                          n_targets = 4,
                          n_objects = 8)
-    dg = extract_digest(path)
     aux_state = dg[:, :auxillary]
 
     steps = length(aux_state)
     # cycles = 0
 
     traces = chain.state.traces
-    # TODO: generalize across kernel states
     np = length(traces)
-    pf_st = Matrix{CausalGraph}(undef, np, steps)
-    for i = 1:np
-        # pf_st[i, :] = map(world, last(get_retval((traces[i]))))
-        pf_st[i, :] = @>> get_retval(traces[i]) last map(world)
-    end
     df = DataFrame(
         frame = Int64[],
         tracker = Int64[],
-        attention = Float64[],
+        importance = Float64[],
         cycles = Float64[],
         pred_x = Float64[],
         pred_y = Float64[])
     for frame = 1:steps
-        cycles_per_part = collect(values(aux_state[frame].allocated))
-        # assuming all particles are aligned wrt tracker ids for now
-        cpt = isempty(cycles_per_part) ? zeros(n_targets) : mean(cycles_per_part)
-        np = size(pf_st, 1)
-        # positions = Array{Float64, 3}(undef, 3, n_targets, np)
-        attention = fill(-Inf, n_targets)
-        for p = 1:np
-            # trackers = get_objects(pf_st[p, frame], Dot)
-            t_att = aux_state[frame].sensitivities[p]
-            for i = 1:n_targets 
-                # positions[:, i, p] = trackers[i].pos
-                attention[i] = logsumexp(attention[i], t_att[i])
-            end
-        end
-        attention .-= log(np)
+        arrousal = aux_state[frame].arrousal
+        importance = aux_state[frame].importance
+        cycles_per_latent =  arrousal .* importance
         positions = dg[frame, :positions]
         for i = 1:n_targets
-            px, py, _ = positions[1, i, :]
-            push!(df, (frame, i, attention[i], cpt[i], px, py))
+            px, py = positions[1, i, :]
+            push!(df, (frame, i,
+                       importance[i],
+                       cycles_per_latent[i],
+                       px, py))
         end
     end
     return df

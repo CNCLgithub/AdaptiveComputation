@@ -65,7 +65,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                # dPdS[i, j] -= max(ls, 0.)
+                dPdS[i, j] -= max(ls, 0.)
                 # accepted a proposal and update references
                 if log(rand()) < ls
                     accepted += 1
@@ -91,7 +91,8 @@ end
 function update_importance!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    importance = softmax(sensitivities .* att.importance_tau)
+    importance = softmax(sensitivities; t = att.importance_tau)
+    println("importance: $(importance)")
     @pack! auxillary = importance
     return nothing
 end

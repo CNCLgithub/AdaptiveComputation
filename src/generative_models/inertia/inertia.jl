@@ -159,7 +159,6 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
     scaled_r = d.radius/area_width*img_width # assuming square
     gstate = exp_dot_mask(x, y, scaled_r, img_width, img_height, gm)
 
-    # Mario: trying to deal with segf when dropping
     decayed = deepcopy(d.gstate)
     dropzeros!(decayed)
     rmul!(decayed, gm.decay_rate)
@@ -167,10 +166,10 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
 
     # overlay new render onto memory
 
-    #without max, tail gets lost; . means broadcast element-wise
-    gstate = max.(gstate, decayed)
-    # map!(max, gstate, gstate, decayed)
-    return gstate
+    # exp_dot_mask!(decayed, x, y, scaled_r, img_width, img_height, gm)
+    # without max, tail gets lost; . means broadcast element-wise
+    max.(gstate, decayed)
+    # return decayed
 end
 
 function predict(gm::InertiaGM,

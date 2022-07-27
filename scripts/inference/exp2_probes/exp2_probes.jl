@@ -9,8 +9,8 @@ using Random
 Random.seed!(1234);
 @warn "Seed is set, remove before experiments!"
 
-# using Profile
-# using StatProfilerHTML
+using Profile
+using StatProfilerHTML
 
 experiment_name = "exp2_probes"
 
@@ -144,28 +144,32 @@ function run(cmd)
     println("running chain $c")
 
     isfile(chain_path) && args["restart"] && rm(chain_path)
-    # Profile.init(delay = 1E-4,
-    #              n = 10^6)
-    # Profile.clear()
+    Profile.init(delay = 1E-4,
+                 n = 10^7)
+    Profile.clear()
+    Profile.clear_malloc_data()
+
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
-                                    args["step_size"])
+        args["step_size"])
+        # chain = @profilehtml sequential_monte_carlo(proc, query, chain_path,
+        #                                             args["step_size"])
     end
-
-    # pf = MOT.chain_performance(chain, chain_path,
+    # dg = extract_digest(chain_path)
+    # pf = MOT.chain_performance(chain, dg,
     #                            n_targets = gm.n_targets)
     # pf[!, :scene] .= args["scene"]
     # pf[!, :chain] .= c
     # CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
-    # af = MOT.chain_attention(chain, chain_path,
+    # af = MOT.chain_attention(chain, dg,
     #                          n_targets = gm.n_targets)
     # af[!, :scene] .= args["scene"]
     # af[!, :chain] .= c
     # CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_renders"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_renders"))
 
     return nothing
 end
@@ -181,7 +185,7 @@ function main()
     # scene, chain, time
 
     # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=20", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=2", "T"]
     run(cmd);
 end
 
