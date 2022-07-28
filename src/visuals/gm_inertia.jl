@@ -162,7 +162,7 @@ function render_scene(gm::InertiaGM,
             # attention rings
             # tw = target_weights(pf_st[j, i], attended[:, i])
             att_rings = AttentionRingsPainter(max_attention = 1.0,
-                                              opacity = 0.8,
+                                              opacity = 0.95,
                                               radius = 40.,
                                               linewidth = 7.0,
                                               attention_color = "red")

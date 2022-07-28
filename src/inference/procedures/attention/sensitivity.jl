@@ -65,7 +65,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                dPdS[i, j] -= max(ls, 0.)
+                # dPdS[i, j] += max(ls, 0.)
                 # accepted a proposal and update references
                 if log(rand()) < ls
                     accepted += 1

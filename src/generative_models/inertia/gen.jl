@@ -54,14 +54,15 @@ end
     ang = @trace(von_mises(ang_mu, gm.k), :ang) + ang_turn
 
     #- mixture of previous velocity & base
-    mag = @trace(normal(mag, gm.w), :mag)
+    # mag = @trace(normal(mag, gm.w), :mag)
+    mag = @trace(normal(gm.vel, gm.w), :mag)
 
     # converting back to vector form
-    vx = mag * cos(ang)
-    vy = mag * sin(ang)
-
-    pos = SVector{2, Float64}([_x + vx, _y + vy])
     vel = SVector{2, Float64}([mag * cos(ang), mag * sin(ang)])
+    # vx = mag * cos(ang)
+    # vy = mag * sin(ang)
+
+    pos = d.pos + vel # SVector{2, Float64}([_x + vx, _y + vy])
 
     ku::KinematicsUpdate = KinematicsUpdate(pos, vel)
     return ku
