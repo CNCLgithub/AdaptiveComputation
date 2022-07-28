@@ -91,7 +91,7 @@ function chain_performance(chain, dg;
                            n_targets = 4)
     aux_state = dg[:, :auxillary]
     # causal graphs at the end of inference
-    td_acc = extract_td_accuracy(chain, n_targets)
+    td_acc = extract_td_accuracy(chain)
     df = DataFrame(
                    tracker = 1:n_targets,
                    td_acc = td_acc)

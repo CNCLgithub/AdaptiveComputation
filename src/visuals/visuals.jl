@@ -22,12 +22,11 @@ function render_pf(chain::SeqPFChain, path::String)
 end
 
 
+include("render/render.jl")
 include("gm_inertia.jl")
+include("visualize_inference.jl")
 
-# include("render/renderv2.jl")
 # include("trace_plots.jl")
 # include("render_scene.jl")
-# include("render_masks.jl")
 # #TODO: depricate
 # # include("render_rf_masks.jl")
-# include("visualize_inference.jl")

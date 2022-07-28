@@ -17,7 +17,7 @@ function main()
 
     println("initial run for JIT")
     tr, _ = generate(gm_inertia, args, cm)
-    render_trace(tr, "/spaths/test/gm_inertia_trace")
+    # render_trace(tr, "/spaths/test/gm_inertia_trace")
 
     choices = get_choices(tr)
 
@@ -40,7 +40,9 @@ function main()
     Profile.init(delay = 1E-7,
                  n = 10^7)
     Profile.clear()
+    Profile.clear_malloc_data()
     println("profiling")
+    # generate(gm_inertia, args)
     @profilehtml generate(gm_inertia, args)
 end
 

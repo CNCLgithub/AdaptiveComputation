@@ -25,12 +25,12 @@ function digest_tracker_positions(c::SeqPFChain)
     mean(pos, dims = 1) # avg position for each tracker
 end
 
-function extract_td_accuracy(c::SeqPFChain, ntargets::Int64)
+function extract_td_accuracy(c::SeqPFChain)
     # particles at last frame of inference
     @unpack state = c
     traces = sample_unweighted_traces(state, length(state.traces))
     @>> traces begin
-        map(td_flat) # traces
+        map(td_assocs) # traces
         mean        # average across traces
     end
 end

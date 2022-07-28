@@ -144,10 +144,9 @@ function run(cmd)
     println("running chain $c")
 
     isfile(chain_path) && args["restart"] && rm(chain_path)
-    Profile.init(delay = 1E-4,
-                 n = 10^7)
-    Profile.clear()
-    Profile.clear_malloc_data()
+    # Profile.init(delay = 1E-4,
+    #              n = 10^7)
+    # Profile.clear()
 
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
@@ -157,20 +156,21 @@ function run(cmd)
         # chain = @profilehtml sequential_monte_carlo(proc, query, chain_path,
         #                                             args["step_size"])
     end
-    # dg = extract_digest(chain_path)
-    # pf = MOT.chain_performance(chain, dg,
-    #                            n_targets = gm.n_targets)
-    # pf[!, :scene] .= args["scene"]
-    # pf[!, :chain] .= c
-    # CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
-    # af = MOT.chain_attention(chain, dg,
-    #                          n_targets = gm.n_targets)
-    # af[!, :scene] .= args["scene"]
-    # af[!, :chain] .= c
-    # CSV.write(joinpath(path, "$(c)_att.csv"), af)
+    dg = extract_digest(chain_path)
+    pf = MOT.chain_performance(chain, dg,
+                               n_targets = gm.n_targets)
+    pf[!, :scene] .= args["scene"]
+    pf[!, :chain] .= c
+    CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
+    af = MOT.chain_attention(chain, dg,
+                             n_targets = gm.n_targets)
+    af[!, :scene] .= args["scene"]
+    af[!, :chain] .= c
+    CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_renders"))
-
+    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+                                       joinpath(path, "$(c)_scene"))
     return nothing
 end
 
@@ -185,7 +185,7 @@ function main()
     # scene, chain, time
 
     # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=2", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
     run(cmd);
 end
 

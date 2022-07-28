@@ -10,12 +10,12 @@
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
 
-    "img_width": 100,
-    "img_height": 100,
+    "img_width": 50,
+    "img_height": 50,
     "decay_rate": 0.3,
     "outer_f": 5.5,
     "inner_f": 1.00,
-    "inner_p": 0.90,
+    "inner_p": 0.95,
     "outer_p": 0.35,
     "nlog_bernoulli": -200
 }

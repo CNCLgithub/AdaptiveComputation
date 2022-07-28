@@ -7,9 +7,9 @@ export KinPainter
     alpha::Float64 = 1.0
 end
 
-function paint(p::KinPainter, cg::CausalGraph, v::Int64, d::Dot)
+function paint(p::KinPainter, d::Dot)
     mag = p.vel_scale * d.vel
-    _draw_arrow(d.pos[1:2], d.pos[1:2] .+ mag .+ 1e-3, p.vel_color,
+    _draw_arrow(d.pos, d.pos .+ mag .+ 1e-3, p.vel_color,
                 linewidth = p.linewidth, opacity = p.alpha)
     return nothing
 end

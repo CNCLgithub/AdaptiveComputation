@@ -12,12 +12,12 @@ end
 
 # Objectives
 
-function assocs(tr::Gen.Trace)
+function td_assocs(tr::Gen.Trace)
     @>> tr begin
         get_args
         first
         t -> tr[:kernel => t]
-        assocs
+        td_assocs
     end
 end
 

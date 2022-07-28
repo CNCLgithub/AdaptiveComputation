@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 50, 1.0)
+    (pls, pt) = GenRFS.massociations(es, xs, 20, 1.0)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -101,12 +101,28 @@ function correspondence(st::InertiaState)
     correspondence(pt, pls)
 end
 
+function td_assocs(st::InertiaState)
+    @unpack pt, pls = st
+    ne = 4
+    nx = 4
+    np = size(pt, 3)
+    ws = exp.(pls .- logsumexp(pls))
+    x_weights = Vector{Float64}(undef, 4)
+    @inbounds @views for x = 1:4
+        xw = 0.0
+        for p = 1:np, e = 1:ne
+            pt[x, e, p] || continue
+            xw += ws[p]
+        end
+        x_weights[x] = xw
+    end
+    return x_weights
+end
+
 function td_flat(st::InertiaState)
     @unpack pt, pls = st
-    targets = 1:4
-    pt = pt[:, targets, :]
-    nx,ne,np = size(pt)
-    amat = zeros(nx, ne)
+    ne = 4
+    nx,_,np = size(pt)
     ws = exp.(pls .- logsumexp(pls))
     x_weights = Vector{Float64}(undef, nx)
     @inbounds @views for x = 1:nx
@@ -117,16 +133,9 @@ function td_flat(st::InertiaState)
         end
         x_weights[x] = xw
     end
-    # @inbounds @views for p = 1:np, e = 1:ne, x = 1:nx
-    #     pt[x, e, p] || continue
-    #     amat[x, e] += ws[p]
-    # end
-    # x_weights = sum(eachcol(amat)) # P(x_i = Target)
-    # @show np
-    # display(amat)
     # display(x_weights)
     td_weights = zeros(4)
-    @inbounds @views for i = targets
+    @inbounds @views for i = 1:ne
         for p = 1:np
             kx = 0
             xw = 0

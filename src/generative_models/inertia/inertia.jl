@@ -97,6 +97,7 @@ function step(gm::InertiaGM,
         # also do graphical update
         new_gstate = update_graphics(gm, dot, new_pos)
         new_dots[i] = update(dot, new_pos, new_vel, new_gstate)
+        # new_dots[i] = update(dot, new_pos, new_vel, dot.gstate)
     end
 
     return new_dots
@@ -170,6 +171,27 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
     max.(gstate, decayed)
 end
 
+# function predict(gm::InertiaGM,
+#                  st::InertiaState,
+#                  objects::AbstractVector{Dot})::RFSElements{SVector{2, Float64}}
+#     n = length(objects)
+#     es = RFSElements{SVector{2, Float64}}(undef, n + 1)
+#     @unpack nlog_bernoulli, img_dims = gm
+#     @inbounds for i in 1:n
+#         obj = objects[i]
+#         mus = obj.pos
+#         cov = diagm(abs.(obj.vel))
+#         es[i] = LogBernoulliElement{SVector{2, Float64}}(nlog_bernoulli,
+#                                                     pointmv,
+#                                                     (mus, cov))
+#     end
+#     mus = SVector{2, Float64}([0., 0.])
+#     cov = SMatrix{2,2,Float64}(diagm([gm.area_width, gm.area_width]))
+#     es[n + 1] = PoissonElement{SVector{2, Float64}}(4,
+#                                                     pointmv,
+#                                                     (mus, cov))
+#     return es
+# end
 function predict(gm::InertiaGM,
                  st::InertiaState,
                  objects::AbstractVector{Dot})::RFSElements{BitMatrix}
@@ -189,6 +211,22 @@ function predict(gm::InertiaGM,
     return es
 end
 
+
+# function observe(gm::InertiaGM,
+#                  objects::AbstractVector{Dot})
+#     n = length(objects)
+#     es = RFSElements{SVector{2, Float64}}(undef, n)
+#     @unpack nlog_bernoulli, img_dims = gm
+#     @inbounds for i in 1:n
+#         obj = objects[i]
+#         mus = obj.pos
+#         cov = diagm(abs.(obj.vel))
+#         es[i] = LogBernoulliElement{SVector{2, Float64}}(nlog_bernoulli,
+#                                                     pointmv,
+#                                                     (mus, cov))
+#     end
+#     (es, point_mrfs(es, 50, 1.0))
+# end
 function observe(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)

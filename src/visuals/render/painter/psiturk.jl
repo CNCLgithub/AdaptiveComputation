@@ -8,13 +8,13 @@ export PsiturkPainter
     alpha::Float64 = 1.0
 end
 
-function paint(p::PsiturkPainter, cg::CausalGraph, v::Int64, dot::Dot)
-    _draw_circle(dot.pos[1:2], dot.radius, p.dot_color,
+function paint(p::PsiturkPainter, dot::Dot)
+    _draw_circle(dot.pos, dot.radius, p.dot_color,
                  opacity = p.alpha)
     return nothing
 end
 
-function paint(p::PsiturkPainter, cg::CausalGraph, v::Int64, w::Wall)
+function paint(p::PsiturkPainter, w::Wall)
     _draw_arrow(w.p1, w.p2, p.wall_color, arrowheadlength=0.0)
     return nothing
 end
