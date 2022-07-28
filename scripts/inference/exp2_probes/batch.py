@@ -22,9 +22,9 @@ def main():
 
     parser.add_argument('--scenes', type = int, default = 40,
                         help = 'number of scenes')
-    parser.add_argument('--chains', type = int, default = 30,
+    parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 30,
+    parser.add_argument('--duration', type = int, default = 35,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
@@ -40,7 +40,8 @@ def main():
         'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
-        'exclude' : 'c02n06,c01n06,c01n07', # TODO Remove when nodes are fixed
+        'chdir' : os.getcwd(),
+        # 'exclude' : 'c02n06,c01n06,c01n07', # TODO Remove when nodes are fixed
         'output' : os.path.join(os.getcwd(), 'env.d/spaths/slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
