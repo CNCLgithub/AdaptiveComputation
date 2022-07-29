@@ -51,7 +51,8 @@ end
 
     #- if high inertia, then turn 180 deg
     ang_turn = !inertia * pi # approximate collisions
-    ang = @trace(von_mises(ang_mu, gm.k), :ang) + ang_turn
+    k = inertia * gm.k + !inertia * 5.0 # increase variance
+    ang = @trace(von_mises(ang_mu, k), :ang) + ang_turn
 
     #- mixture of previous velocity & base
     # mag = @trace(normal(mag, gm.w), :mag)
