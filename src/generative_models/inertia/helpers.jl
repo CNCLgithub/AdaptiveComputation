@@ -262,16 +262,19 @@ function state_from_positions(gm::InertiaGM, positions, targets)
         end
 
         prev_state = states[t-1]
-        ni = length(prev_state.objects)
-        kus = Vector{KinematicsUpdate}(undef, ni)
+        @unpack objects = prev_state
+        ni = length(objects)
+        new_dots = Vector{Dot}(undef, ni)
         for i = 1:ni
-        old_pos = Float64.(positions[t-1][i][1:2])
-        new_pos = Float64.(positions[t][i][1:2])
-        new_vel = (new_pos .- old_pos)
-            kus[i] = KinematicsUpdate(SVector{2}(new_pos),
-                                      SVector{2}(new_vel))
+            old_pos = Float64.(positions[t-1][i][1:2])
+            new_pos = SVector{2}(Float64.(positions[t][i][1:2]))
+            new_vel = SVector{2}(new_pos .- old_pos)
+            new_gstate = update_graphics(gm, objects[i], new_pos)
+            new_dots[i] = update(objects[i],
+                                 new_pos,
+                                 new_vel,
+                                 new_gstate)
         end
-        new_dots = step(gm, prev_state, kus)
         es, xs = observe(gm, new_dots)
         states[t] = InertiaState(prev_state,
                                  new_dots,

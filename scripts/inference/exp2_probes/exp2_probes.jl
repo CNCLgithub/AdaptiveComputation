@@ -185,7 +185,7 @@ function main()
     # scene, chain, time
 
     # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=30", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=35", "T"]
     run(cmd);
 end
 
