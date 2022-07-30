@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 20, 0.01)
+    (pls, pt) = GenRFS.massociations(es, xs, 20, 50.0)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -70,6 +70,7 @@ function UniformEnsemble(gm::InertiaGM,
     # assuming square
     r = ceil(gm.dot_radius * inner_f * img_width / gm.area_width)
     n_pixels = prod(gm.img_dims)
+    # pixel_prob = 1.7 * (pi * r^2 * inner_p) / n_pixels
     pixel_prob = 1.7 * (pi * r^2 * inner_p) / n_pixels
     UniformEnsemble(rate, pixel_prob, 0)
 end

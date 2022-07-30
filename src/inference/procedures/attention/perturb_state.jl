@@ -6,12 +6,12 @@ export tracker_kernel
     t = max(1, ct - k)
     # first sample new inertia or collision event
     inr_addr = :kernel => t => :trackers => latent => :inertia
-    inr = {inr_addr} ~ bernoulli(0.50)
+    inr = {inr_addr} ~ bernoulli(0.80)
 
     # then update angle of motion
     ang_addr = :kernel => t => :trackers => latent => :ang
     prev_ang = trace[ang_addr]
-    ang = {ang_addr} ~ von_mises(prev_ang, 150.0)
+    ang = {ang_addr} ~ von_mises(prev_ang, 50.0)
 
     # finally update motion speed
     mag_addr = :kernel => t => :trackers => latent => :mag

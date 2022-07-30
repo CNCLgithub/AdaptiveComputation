@@ -54,7 +54,7 @@ function Gen.logpdf(::Mask,
         for i in nzrange(ps, j)
             x = image[rows[i], j]
             v = vs[i]
-            @fastmath ab += x ? log(v) : log(1.0 - v)
+            ab += x ? log(v) : log(1.0-v)
             # @fastmath ab += abs(v - x)
             c += x
         end
@@ -84,6 +84,7 @@ function Gen.logpdf(::Mask,
     p = first(ps)
     s = sum(image)
     (s * log(p)) + ((length(image) - s) * log(1.0 - p))
+    # (s * p) + ((length(image) - s) * log1mexp(p))
 end
 
 

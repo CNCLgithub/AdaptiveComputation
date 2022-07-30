@@ -5,9 +5,9 @@ using Gen_Compose
 using ArgParse
 using Accessors
 
-# using Random
-# Random.seed!(1234);
-# @warn "Seed is set, remove before experiments!"
+using Random
+Random.seed!(1234);
+@warn "Seed is set, remove before experiments!"
 
 # using Profile
 # using StatProfilerHTML
@@ -144,18 +144,29 @@ function run(cmd)
     println("running chain $c")
 
     isfile(chain_path) && args["restart"] && rm(chain_path)
-    # Profile.init(delay = 1E-4,
-    #              n = 10^7)
-    # Profile.clear()
 
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
         args["step_size"])
-        # chain = @profilehtml sequential_monte_carlo(proc, query, chain_path,
-        #                                             args["step_size"])
     end
+    # Profile.init(delay = 1E-4,
+    #              n = 10^7)
+    # Profile.clear()
+    # Profile.clear_malloc_data()
+    # isfile(chain_path) && args["restart"] && rm(chain_path)
+
+    # if isfile(chain_path)
+    #     chain  = resume_chain(chain_path, args["step_size"])
+    # else
+    #     chain = sequential_monte_carlo(proc, query, chain_path,
+    #     args["step_size"])
+    #     # chain = @profilehtml sequential_monte_carlo(proc, query, chain_path,
+    #     #                                             args["step_size"])
+    # end
+
+
     dg = extract_digest(chain_path)
     pf = MOT.chain_performance(chain, dg,
                                n_targets = gm.n_targets)
@@ -184,8 +195,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    cmd = ["$(i)", "$c", "T"]
-    # cmd = ["$(i)", "$c", "-v", "-r", "--time=35", "T"]
+    # cmd = ["$(i)", "$c", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
     run(cmd);
 end
 

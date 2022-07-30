@@ -160,8 +160,8 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
     scaled_r = d.radius/area_width*img_width # assuming square
     gstate = exp_dot_mask(x, y, scaled_r, img_width, img_height, gm)
 
+    # decayed = dropzeros(d.gstate)
     decayed = deepcopy(d.gstate)
-    dropzeros!(decayed)
     rmul!(decayed, gm.decay_rate)
     droptol!(decayed, gm.min_mag)
 

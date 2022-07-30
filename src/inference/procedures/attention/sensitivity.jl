@@ -65,7 +65,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                # dPdS[i, j] += max(ls, 0.)
+                # dPdS[i, j] += min(ls, 0.)
                 # accepted a proposal and update references
                 if log(rand()) < ls
                     accepted += 1
@@ -103,7 +103,7 @@ function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack max_arrousal, x0 = att
-    m = max_arrousal / x0
+    m = max_arrousal / abs(x0)
     amp = m * (logsumexp(sensitivities) + x0)
     @show logsumexp(sensitivities)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))

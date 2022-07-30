@@ -17,7 +17,7 @@ function main()
 
     println("initial run for JIT")
     tr, _ = generate(gm_inertia, args, cm)
-    # render_trace(tr, "/spaths/test/gm_inertia_trace")
+    render_trace(tr, "/spaths/test/gm_inertia_trace")
 
     choices = get_choices(tr)
 

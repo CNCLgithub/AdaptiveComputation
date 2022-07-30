@@ -11,8 +11,9 @@ function render_gstate!(canvas, d::Dot, c)
         for i in nzrange(gstate, j)
             y = rows[i]
             # canvas[y, j] = RGBA{Float64}(c.r, c.g, c.b, vs[i])
+            v = vs[i]
             canvas[y, j] = ColorBlendModes.blend(canvas[y,j],
-                                 RGBA{Float64}(c.r, c.g, c.b, vs[i]))
+                                 RGBA{Float64}(c.r, c.g, c.b, v))
         end
     end
     return nothing

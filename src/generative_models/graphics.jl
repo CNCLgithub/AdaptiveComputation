@@ -3,6 +3,7 @@
 # Helpers
 ################################################################################
 
+using LoopVectorization: @turbo
 
 
 """
@@ -27,10 +28,12 @@ function exp_dot_mask(
     xhigh = clamp_and_round(x0 + outer_r, w)
     ylow = clamp_and_round(y0 - outer_r, h)
     yhigh = clamp_and_round(y0 + outer_r, h)
-    n = (xhigh - xlow + 1) * (yhigh - ylow + 1)
-    Is = zeros(Int64, n)
-    Js = zeros(Int64, n)
-    Vs = zeros(Float64, n)
+    nx = (xhigh - xlow + 1)
+    ny = (yhigh - ylow + 1)
+    n =  nx * ny
+    Is = Vector{Int64}(undef, n)
+    Js = Vector{Int64}(undef, n)
+    Vs = Vector{Float64}(undef, n)
     k = 0
     @inbounds @fastmath for (i, j) in Iterators.product(xlow:xhigh, ylow:yhigh)
         k +=1
@@ -38,8 +41,8 @@ function exp_dot_mask(
         # flip i and j in mask
         Is[k] = j
         Js[k] = i
-        (dst > outer_r) && continue
-        Vs[k] = (dst <= inner_r ) ? inner_p : outer_p * exp(hl * dst)
+        # Vs[k] = clamp(outer_p * exp(hl * dst), 0., inner_p)
+        Vs[k] = (dst <= inner_r) ? inner_p : outer_p * exp(hl * dst)
     end
     sparse(Is, Js, Vs, h, w)
 end

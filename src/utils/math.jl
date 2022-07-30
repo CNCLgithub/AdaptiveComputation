@@ -6,6 +6,8 @@ export softmax, normalize_weights
 const ln_hlf = log(0.5)
 const two_pi_sqr = 4.0 * pi * pi
 
+log1mexp(a::Float64) = (a < ln_hlf) ? log1p(-exp(a)) : log(-expm1(a))
+
 # stable softmax
 # function softmax(x::Array{Float64}; t = 1.0)
 #     max_x = maximum(x)
