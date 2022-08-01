@@ -46,26 +46,26 @@ function exp_dot_mask(
     sparse(Is, Js, Vs, h, w)
 end
 
-function new_frame_with_decay!(m,
-                               memory,
-                               x0::Float64, y0::Float64,
-                               r::Float64,
-                               outer_f::Float64,
-                               inner_f::Float64,
-                               outer_p::Float64,
-                               inner_p::Float64,
-                               decay_rate::Float64)
-    outer_r = r  * outer_f
-    inner_r = r  * inner_f
-    # half-life is 1/6 outer - inner
-    hl = 10.0 * ln_hlf / abs(outer_r - inner_r)
-    @tturbo for i in indices((m,memory), 2)
-        for j in indices((m,memory), 1)
-            dst = sqrt((i - x0)^2 + (j - y0)^2)
-            v = IfElse.ifelse(dst <= inner_r, inner_p, outer_p * exp(hl * dst))
-            decayed = memory[j, i] * decay_rate
-            m[j,i] = max(v, decayed)
-        end
-    end
-    return nothing
-end
+# function new_frame_with_decay!(m,
+#                                memory,
+#                                x0::Float64, y0::Float64,
+#                                r::Float64,
+#                                outer_f::Float64,
+#                                inner_f::Float64,
+#                                outer_p::Float64,
+#                                inner_p::Float64,
+#                                decay_rate::Float64)
+#     outer_r = r  * outer_f
+#     inner_r = r  * inner_f
+#     # half-life is 1/6 outer - inner
+#     hl = 10.0 * ln_hlf / abs(outer_r - inner_r)
+#     @tturbo for i in indices((m,memory), 2)
+#         for j in indices((m,memory), 1)
+#             dst = sqrt((i - x0)^2 + (j - y0)^2)
+#             v = IfElse.ifelse(dst <= inner_r, inner_p, outer_p * exp(hl * dst))
+#             decayed = memory[j, i] * decay_rate
+#             m[j,i] = max(v, decayed)
+#         end
+#     end
+#     return nothing
+# end

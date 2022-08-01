@@ -50,36 +50,35 @@ const min_mask_ls = log(1E-4)
     #  c - the non-zero region of `image`
     # @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
 
-    # rows = rowvals(ps)
-    # vs = nonzeros(ps)
-    # m, n = size(ps)
-    xs, ys, vs = findnz(ps)
+    rows = rowvals(ps)
+    vs = nonzeros(ps)
+    m, n = size(ps)
+    # xs, ys, vs = findnz(ps)
     ab = 0.
     c = 0
-    # @inbounds @fastmath for j in 1:n
-    #     for i in nzrange(ps, j)
-    #         x = image[rows[i], j]
-    #         v = vs[i]
-    #         ab += IfElse.ifelse(x, log(v), log(1.0-v))
-    #         # @fastmath ab += abs(v - x)
-    #         c += x
-    #     end
-    # end
-    @turbo for k in indices((vs,xs,ys))
-        i = xs[k]
-        j = ys[k]
-        x = image[i, j]
-        v = vs[k]
-        ab += IfElse.ifelse(x, log(v), log(1.0-v))
-        c += x
+    @inbounds @views @fastmath for j in 1:n
+        for i in nzrange(ps, j)
+            x = image[rows[i], j]
+            v = vs[i]
+            ab += IfElse.ifelse(x, log(v), log(1.0-v))
+            # @fastmath ab += abs(v - x)
+            c += x
+        end
     end
+    # @turbo for k in indices((vs,xs,ys))
+    #     i = xs[k]
+    #     j = ys[k]
+    #     x = image[i, j]
+    #     v = vs[k]
+    #     ab += IfElse.ifelse(x, log(v), log(1.0-v))
+    #     c += x
+    # end
 
     ni = sum(image)
     nz = length(vs)
 
     lc = abs(ni - c) * min_mask_ls
     lpdf = ab + lc
-    # lpdf = -log(ab + abs(ni - c) + 1) * 50.0
     return lpdf
 end
 
@@ -88,7 +87,7 @@ function Gen.logpdf(::Mask,
                     ps::Matrix{Float64})
     # vmapreduce(bern_vectorized, +, ps, image)
     lpdf = 0.
-    @tturbo for i in indices((ps, image))
+    @inbounds @views @fastmath for i in indices((ps, image))
         # lpdf += bern_vectorized(ps[i], image[i])
         lpdf += IfElse.ifelse(image[i], log(ps[i]), log(1 - ps[i]))
     end

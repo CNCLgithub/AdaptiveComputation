@@ -161,7 +161,7 @@ function render_scene(gm::InertiaGM,
                                               radius = 40.,
                                               linewidth = 7.0,
                                               attention_color = "red")
-            MOT.paint(att_rings, pf_state, attended[:, i])
+            # MOT.paint(att_rings, pf_state, attended[:, i])
 
             # add tails
             step = 1

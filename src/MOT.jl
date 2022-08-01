@@ -8,7 +8,6 @@ using FillArrays
 using SparseArrays
 using StaticArrays
 using Lazy: @>, @>>
-using LoopVectorization
 using Accessors: setproperties, @set
 using Parameters: @with_kw, @unpack, @pack!
 
