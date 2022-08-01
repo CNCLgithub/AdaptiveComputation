@@ -480,7 +480,9 @@ version = "0.4.5"
 
 [[deps.GenRFS]]
 deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "FunctionalCollections", "Gen", "IterTools", "LRUCache", "Lazy", "LightGraphs", "LinearAlgebra", "Revise", "SHA", "SpecialFunctions", "StatProfilerHTML", "Test", "UnicodePlots"]
-path = "/home/mario/dev/mot/env.d/jenv/dev/GenRFS"
+git-tree-sha1 = "17bfada05fc08a5b55a0ae61c963d8ad32ef6e4a"
+repo-rev = "master"
+repo-url = "https://github.com/CNCLgithub/GenRFS.git"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"
 
