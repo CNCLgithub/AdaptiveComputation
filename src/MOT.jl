@@ -7,9 +7,10 @@ using LinearAlgebra
 using FillArrays
 using SparseArrays
 using StaticArrays
+using Lazy: @>, @>>
+using LoopVectorization
 using Accessors: setproperties, @set
 using Parameters: @with_kw, @unpack, @pack!
-using Lazy: @>, @>>
 
 include("utils/utils.jl")
 include("generative_models/generative_models.jl")

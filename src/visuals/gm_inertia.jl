@@ -4,17 +4,11 @@ color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 
 function render_gstate!(canvas, d::Dot, c)
     @unpack gstate = d
-    rows = rowvals(gstate)
-    vs = nonzeros(gstate)
-    m, n = size(gstate)
-    for j = 1:n
-        for i in nzrange(gstate, j)
-            y = rows[i]
-            # canvas[y, j] = RGBA{Float64}(c.r, c.g, c.b, vs[i])
-            v = vs[i]
-            canvas[y, j] = ColorBlendModes.blend(canvas[y,j],
-                                 RGBA{Float64}(c.r, c.g, c.b, v))
-        end
+    for i = eachindex(gstate)
+        v = gstate[i]
+        canvas[i] = ColorBlendModes.blend(canvas[i],
+                                          RGBA{Float64}(c.r, c.g, c.b, v))
+
     end
     return nothing
 end

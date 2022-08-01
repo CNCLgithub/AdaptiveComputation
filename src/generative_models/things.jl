@@ -30,7 +30,7 @@ struct Dot <: Object
 
     # Graphics
     target::Float64
-    gstate::SparseMatrixCSC{Float64} # graphics state
+    gstate::AbstractMatrix{Float64} # graphics state
 end
 
 target(d::Dot) = d.target

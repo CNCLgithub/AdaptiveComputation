@@ -1,4 +1,5 @@
-
+import IfElse
+using SparseArrays: getcolptr
 
 export mask
 
@@ -7,7 +8,7 @@ Random variable describing a mask prediction.
 A matrix of bernoullis parametrized by ps::Matrix{Float64}.
 Samples a BitMatrix.
 """
-struct Mask <: Gen.Distribution{BitMatrix} end
+struct Mask <: Gen.Distribution{Matrix{Bool}} end
 
 const mask = Mask()
 
@@ -23,41 +24,54 @@ function Gen.random(::Mask, ps::AbstractSparseMatrix{Float64})
     end
     return result
 end
+
+my_bern(w) = rand() < w
+
 function Gen.random(::Mask, ps::Union{Matrix{Float64},
                                       Fill{Float64}})
-    result = falses(size(ps))
-    for i in eachindex(ps)
-        if bernoulli(ps[i])
-            result[i] = true
-        end
+    result = Matrix{Bool}(undef, size(ps))
+    # vmap(bernoulli, ps)
+    # result = BitMatrix(size(ps))
+    @inbounds for i in indices((ps, result))
+        result[i] = bernoulli(ps[i])
     end
-    return sparse(result)
+    return result
 end
 
 const min_mask_ls = log(1E-4)
 
-function Gen.logpdf(::Mask,
-                    image::BitMatrix,
+
+@inline function Gen.logpdf(::Mask,
+                    image::Matrix{Bool},
                     ps::SparseMatrixCSC{Float64})
     # PDF regions:
     #  a - the intersection between `image` and `ps`
     #  b - the non-zero region of `ps`
     #  c - the non-zero region of `image`
-    @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
+    # @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
 
-    rows = rowvals(ps)
-    vs = nonzeros(ps)
-    m, n = size(ps)
+    # rows = rowvals(ps)
+    # vs = nonzeros(ps)
+    # m, n = size(ps)
+    xs, ys, vs = findnz(ps)
     ab = 0.
     c = 0
-    @inbounds for j = 1:n
-        for i in nzrange(ps, j)
-            x = image[rows[i], j]
-            v = vs[i]
-            ab += x ? log(v) : log(1.0-v)
-            # @fastmath ab += abs(v - x)
-            c += x
-        end
+    # @inbounds @fastmath for j in 1:n
+    #     for i in nzrange(ps, j)
+    #         x = image[rows[i], j]
+    #         v = vs[i]
+    #         ab += IfElse.ifelse(x, log(v), log(1.0-v))
+    #         # @fastmath ab += abs(v - x)
+    #         c += x
+    #     end
+    # end
+    @turbo for k in indices((vs,xs,ys))
+        i = xs[k]
+        j = ys[k]
+        x = image[i, j]
+        v = vs[k]
+        ab += IfElse.ifelse(x, log(v), log(1.0-v))
+        c += x
     end
 
     ni = sum(image)
@@ -70,16 +84,18 @@ function Gen.logpdf(::Mask,
 end
 
 function Gen.logpdf(::Mask,
-                    image::BitMatrix,
+                    image::Matrix{Bool},
                     ps::Matrix{Float64})
+    # vmapreduce(bern_vectorized, +, ps, image)
     lpdf = 0.
-    @inbounds for i in eachindex(ps)
-        lpdf += Gen.logpdf(bernoulli, image[i], ps[i])
+    @tturbo for i in indices((ps, image))
+        # lpdf += bern_vectorized(ps[i], image[i])
+        lpdf += IfElse.ifelse(image[i], log(ps[i]), log(1 - ps[i]))
     end
     return lpdf
 end
 function Gen.logpdf(::Mask,
-                    image::BitMatrix,
+                    image::Matrix{Bool},
                     ps::Fill{Float64})
     p = first(ps)
     s = sum(image)

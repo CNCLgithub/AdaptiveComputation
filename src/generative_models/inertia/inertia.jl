@@ -158,6 +158,16 @@ function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
                                  img_height, img_width,
                                  area_width, area_height)
     scaled_r = d.radius/area_width*img_width # assuming square
+
+    # # initialize new array
+    # gstate = similar(d.gstate)
+    # @unpack inner_f, inner_p, outer_f, outer_p, decay_rate = gm
+    # new_frame_with_decay!(gstate, d.gstate,
+    #                      x, y, scaled_r,
+    #                      outer_f, inner_f, outer_p, inner_p,
+    #                      decay_rate)
+
+    # return gstate
     gstate = exp_dot_mask(x, y, scaled_r, img_width, img_height, gm)
 
     # decayed = dropzeros(d.gstate)
@@ -194,18 +204,18 @@ end
 # end
 function predict(gm::InertiaGM,
                  st::InertiaState,
-                 objects::AbstractVector{Dot})::RFSElements{BitMatrix}
+                 objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{BitMatrix}(undef, n + 1)
+    es = RFSElements{Matrix{Bool}}(undef, n + 1)
     @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{BitMatrix}(nlog_bernoulli,
+        es[i] = LogBernoulliElement{Matrix{Bool}}(nlog_bernoulli,
                                                mask,
                                                (obj.gstate,))
     end
     @unpack rate, pixel_prob = (st.ensemble)
-    es[n + 1] = PoissonElement{BitMatrix}(rate,
+    es[n + 1] = PoissonElement{Matrix{Bool}}(rate,
                                           mask,
                                           (Fill(pixel_prob, img_dims),))
     return es
@@ -230,11 +240,11 @@ end
 function observe(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{BitMatrix}(undef, n)
+    es = RFSElements{Matrix{Bool}}(undef, n)
     @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{BitMatrix}(nlog_bernoulli,
+        es[i] = LogBernoulliElement{Matrix{Bool}}(nlog_bernoulli,
                                                mask,
                                                (obj.gstate,))
     end
