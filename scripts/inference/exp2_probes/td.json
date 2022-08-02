@@ -4,6 +4,6 @@
     "importance_tau": 1.50,
     "init_samples": 15,
     "min_samples": 3,
-    "max_arrousal": 35,
-    "x0": 8.5
+    "max_arrousal": 50,
+    "x0": 8.0
 }
