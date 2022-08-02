@@ -196,7 +196,7 @@ function main()
     # scene, chain, time
 
     cmd = ["$(i)", "$c", "T"]
-    # cmd = ["$(i)", "$c", "-v", "-r", "--time=30", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
     run(cmd);
 end
 
@@ -207,7 +207,7 @@ function parse_outer()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24
+        default = 26
 
         "chain"
         help = "chain id"
