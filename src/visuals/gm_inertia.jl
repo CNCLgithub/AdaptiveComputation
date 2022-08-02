@@ -1,4 +1,4 @@
-export render_trace, render_pf
+export render_trace, render_pf, render_scene
 
 color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 
@@ -55,6 +55,26 @@ function render_trace(gm::InertiaGM,
         save("$(path)/$(tk).png", canvas)
     end
 
+    return nothing
+end
+
+
+function render_trial(gm::InertiaGM,
+                      states::Vector{InertiaState},
+                      path::String)
+    @unpack img_dims = gm
+
+    t = length(states)
+    isdir(path) && rm(path, recursive=true)
+    mkdir(path)
+
+    for tk = 1:t
+        st = states[tk]
+        canvas = fill(RGBA{Float64}(0., 0., 0., 1.0), img_dims)
+        render_prediction!(canvas, gm, st)
+        render_observed!(canvas, gm, st)
+        save("$(path)/$(tk).png", canvas)
+    end
     return nothing
 end
 
@@ -177,66 +197,40 @@ function render_scene(gm::InertiaGM,
         end
         finish()
     end
+    return nothing
 end
 
-# """
-#     to render just ground truth elements
-# """
-# function render_scene(dims::Tuple{Float64, Float64}, gt_states::Vector{CausalGraph}, targets;
-#                       padding = 3,
-#                       base = "/renders/render_scene")
+function render_scene(gm::InertiaGM,
+                      gt_states::Vector{InertiaState},
+                      base::String)
+    @unpack area_width, area_height = gm
 
-#     isdir(base) && rm(base, recursive=true)
-#     mkpath(base)
+    isdir(base) && rm(base, recursive=true)
+    mkdir(base)
 
-#     nt = length(gt_states)
+    nt = length(gt_states)
+    for i = 1:nt
+        print("rendering scene... timestep $i / $nt \r")
 
-#     frame = 1
+        # first render gt state of observed objects
+        p = InitPainter(path = "$base/$i.png",
+                        dimensions = (area_height, area_width),
+                        background = "white")
+        MOT.paint(p, gt_states[i])
 
-#     for i = 1:padding
-#         p = InitPainter(path = "$base/$frame.png",
-#                         dimensions = dims)
-#         MOT.paint(p, gt_states[1])
 
-#         p = PsiturkPainter()
-#         MOT.paint(p, gt_states[1])
-
-#         p = IDPainter(colors = [], label = true)
-#         # p = TargetPainter(targets = targets)
-#         MOT.paint(p, gt_states[1])
-
-#         finish()
-
-#         frame += 1
-#     end
-
-#     for i = 1:nt
-#         p = InitPainter(path = "$base/$frame.png",
-#                         dimensions = dims)
-#         MOT.paint(p, gt_states[i])
-
-#         p = PsiturkPainter()
-#         MOT.paint(p, gt_states[i])
-#         p = IDPainter(colors = [], label = true)
-#         MOT.paint(p, gt_states[i])
-
-#         finish()
-#         frame += 1
-#     end
-
-#     for i = 1:padding
-#         p = InitPainter(path = "$base/$frame.png",
-#                         dimensions = dims)
-#         MOT.paint(p, gt_states[nt])
-
-#         p = PsiturkPainter()
-#         MOT.paint(p, gt_states[nt])
-
-#         p = IDPainter(colors = [], label = true)
-#         # p = TargetPainter(targets = targets)
-#         MOT.paint(p, gt_states[nt])
-
-#         finish()
-#         frame += 1
-#     end
-# end
+        # paint gt
+        step = 1
+        steps = max(1, i-7):i
+        for k = steps
+            alpha = exp(0.5 * (k - i))
+            p = PsiturkPainter(dot_color = "black",
+                               alpha = alpha)
+            MOT.paint(p, gt_states[k])
+        end
+        p = IDPainter(colors = [], label = true)
+        MOT.paint(p, gt_states[i])
+        finish()
+    end
+    return nothing
+end
