@@ -149,7 +149,7 @@ function run(cmd)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
-        args["step_size"])
+                                       args["step_size"])
     end
     # Profile.init(delay = 1E-4,
     #              n = 10^7)
@@ -195,8 +195,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    cmd = ["$(i)", "$c", "T"]
-    # cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
+    # cmd = ["$(i)", "$c", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
     run(cmd);
 end
 

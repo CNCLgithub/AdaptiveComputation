@@ -85,35 +85,30 @@ function main()
 
 
     # loading scene data
-    scene_data = MOT.load_scene(args["dataset"],
+    gm = MOT.load(InertiaGM, args["gm"])
+    scene_data = MOT.load_scene(gm,
+                                args["dataset"],
                                 args["scene"])
-    gt_cgs = scene_data[:gt_causal_graphs][1:args["time"]]
+    gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
-
-    gm = MOT.load(GMParams, args["gm"])
-    gm = @set gm.n_targets = sum(aux_data["targets"]) # always 4 targets but whatever
-    gm = @set gm.max_things = gm.n_targets + aux_data["n_distractors"]
-
-    dm = MOT.load(InertiaModel, args["dm"])
-    dm = @set dm.vel = aux_data["vel"]
+    gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
+    gm = @set gm.vel = aux_data["vel"]
 
     graphics = MOT.load(Graphics, args["graphics"])
 
-    query = query_from_params(gt_cgs,
-                              dgp,
-                              gm_inertia_mask,
-                              gm,
-                              dm,
-                              graphics,
-                              length(gt_cgs))
+    query = query_from_params(gm, gt_states, length(gt_states))
 
-    att = MOT.load(MapSensitivity,
-                   att_params,
-                   objective = objective)
+    att = MOT.load(PopSensitivity,
+                   args[att_mode]["params"],
+                   plan = args[att_mode]["objective"],
+                   plan_args = (),
+                   percept_update = tracker_kernel,
+                   percept_args = (4,) # look back steps
+                   )
 
-    proc = MOT.load(PopParticleFilter, args["proc"];
-                    rejuvenation = rejuvenate_attention!,
-                    rejuv_args = (att,))
+    proc = MOT.load(PopParticleFilter,
+                    args["proc"];
+                    attention = att)
 
     path = "/spaths/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
     try
@@ -136,21 +131,21 @@ function main()
     end
     # end
 
-    pf = MOT.chain_performance(chain, chain_path,
+    dg = extract_digest(chain_path)
+    pf = MOT.chain_performance(chain, dg,
                                n_targets = gm.n_targets)
     pf[!, :scene] .= args["scene"]
     pf[!, :chain] .= c
     CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
-    af = MOT.chain_attention(chain, chain_path,
+    af = MOT.chain_attention(chain, dg,
                              n_targets = gm.n_targets)
     af[!, :scene] .= args["scene"]
     af[!, :chain] .= c
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    if (args["viz"])
-        visualize_inference(chain, chain_path, gt_cgs, gm,
-                            graphics, att, path)
-    end
+    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+                                       joinpath(path, "$(c)_scene"))
 
     return nothing
 end
