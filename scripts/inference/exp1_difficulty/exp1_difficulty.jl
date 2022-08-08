@@ -1,9 +1,8 @@
 using CSV
-using GenRFS
 using MOT
 using Gen_Compose
 using ArgParse
-using Setfield
+using Accessors
 
 # using Random
 # Random.seed!(1234);
@@ -30,16 +29,6 @@ function parse_commandline()
         arg_type = String
         default = "$(@__DIR__)/proc.json"
 
-        "--graphics"
-        help = "Graphics params"
-        arg_type = String
-        default = "$(@__DIR__)/graphics.json"
-
-        "--dm"
-        help = "Motion parameters for Inertia model"
-        arg_type = String
-        default = "$(@__DIR__)/dm.json"
-
         "--dataset"
         help = "jld2 dataset path"
         arg_type = String
@@ -53,7 +42,7 @@ function parse_commandline()
         "--step_size", "-s"
         help = "How many steps before saving"
         arg_type = Int64
-        default = 30
+        default = 60
 
         "--restart", "-r"
         help = "Whether to resume inference"
@@ -66,15 +55,13 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 1
+        default = 35
 
         "--chain"
         help = "The number of chains to run"
         arg_type = Int
         default = 1
-
     end
-
 
     return parse_args(s)
 end
@@ -92,15 +79,13 @@ function main()
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"]
-
-    graphics = MOT.load(Graphics, args["graphics"])
+    gm = @set gm.vel = aux_data["vel"] * 0.45
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
     att = MOT.load(PopSensitivity,
-                   args[att_mode]["params"],
-                   plan = args[att_mode]["objective"],
+                   att_params,
+                   plan = td_flat,
                    plan_args = (),
                    percept_update = tracker_kernel,
                    percept_args = (4,) # look back steps
@@ -143,9 +128,12 @@ function main()
     af[!, :chain] .= c
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
-    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+    render_pf(chain, joinpath(path, "$(c)_graphics"))
+    visualize_inference(chain, dg, gt_states, gm,
                                        joinpath(path, "$(c)_scene"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    # args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+    #                                    joinpath(path, "$(c)_scene"))
 
     return nothing
 end
