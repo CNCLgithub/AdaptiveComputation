@@ -21,7 +21,7 @@ function exp_dot_mask(
     inner_r = r  * inner_f
 
     # half-life is 1/6 outer - inner
-    hl = 7.5 * ln_hlf / abs(outer_r - inner_r)
+    hl = 8.5 * ln_hlf / abs(outer_r - inner_r)
 
     xlow = clamp_and_round(x0 - outer_r, w)
     xhigh = clamp_and_round(x0 + outer_r, w)

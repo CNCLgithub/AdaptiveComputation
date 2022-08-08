@@ -3,7 +3,7 @@
     "div_scale": 0.1,
     "importance_tau": 1.50,
     "init_samples": 15,
-    "min_samples": 5,
-    "max_arrousal": 30,
-    "x0": 8.25
+    "min_samples": 3,
+    "max_arrousal": 35,
+    "x0": 8.5
 }
