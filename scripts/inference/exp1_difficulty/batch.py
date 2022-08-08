@@ -28,14 +28,15 @@ def main():
 
     parser.add_argument('--scenes', type = int, default = 65,
                         help = 'number of scenes')
-    parser.add_argument('--chains', type = int, default = 30,
+    parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
     parser.add_argument('--duration', type = int, default = 35,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
 
-    tasks, kwargs, extras = fig4_tasks(args)
+    # tasks, kwargs, extras = fig4_tasks(args)
+    tasks, kwargs, extras = att_tasks(args)
     n = len(tasks)
 
     interpreter = '#!/bin/bash'
@@ -46,6 +47,7 @@ def main():
         'partition' : 'scavenge',
         'requeue' : None,
         'job-name' : 'mot',
+        'chdir' : os.getcwd(),
         'output' : os.path.join(os.getcwd(), 'env.d/spaths/slurm/%A_%a.out')
     }
     func = script.format(os.getcwd())
