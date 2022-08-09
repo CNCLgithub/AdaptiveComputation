@@ -25,28 +25,29 @@ function main()
 
     new_tr, _ = generate(gm_inertia, (0, gm),
                          get_submap(choices, :init_state))
-    # Profile.init(delay = 1E-6,
-    #              n = 10^7)
-    # Profile.clear()
-    @time for t = 1:1
-        obs = choicemap()
-        obs[:kernel => t => :masks] = choices[:kernel => t => :masks]
-        new_tr, _ = update(new_tr, (t, gm), (UnknownChange(), NoChange()), obs)
+    Profile.init(delay = 1E-6,
+                 n = 10^7)
+    Profile.clear()
 
-        display(@benchmark MOT.td_flat($new_tr))
-        # display(@benchmark MOT.tracker_kernel($new_tr, 1, 3))
-        steps = 20
-        accepted = 0
-        for i = 1:steps
-            _tr, w = MOT.tracker_kernel(new_tr, 1, 3)
-            # @show ls
-            if log(rand()) < w
-                new_tr = _tr
-                accepted += 1
-            end
+    t = 5
+
+    obs = choicemap()
+    obs[:kernel => t => :masks] = choices[:kernel => t => :masks]
+    new_tr, _ = update(new_tr, (t, gm), (UnknownChange(), NoChange()), obs)
+
+    # display(@benchmark MOT.td_flat($new_tr))
+    display(@benchmark MOT.tracker_kernel($new_tr, 1, 4))
+    steps = 100
+    accepted = 0
+    @profilehtml for i = 1:steps
+        _tr, w = MOT.tracker_kernel(new_tr, 1, 4)
+        # @show ls
+        if log(rand()) < w
+            new_tr = _tr
+            accepted += 1
         end
-        println("acceptance ratio $(accepted / steps)")
     end
+    println("acceptance ratio $(accepted / steps)")
 end
 
 main();

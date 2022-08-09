@@ -3,30 +3,29 @@
 # Helpers
 ################################################################################
 
-import IfElse
-
 """
 Writes out a dot mask to matrix
 """
-function exp_dot_mask(
-                       x0::Float64, y0::Float64,
-                       r::Float64,
-                       w::Int64, h::Int64,
-                       outer_f::Float64,
-                       inner_f::Float64,
-                       outer_p::Float64,
-                       inner_p::Float64)
+function exp_dot_mask(x0::Float64,
+                      y0::Float64,
+                      r::Float64,
+                      w::Int64,
+                      tail::Float64,
+                      outer_f::Float64,
+                      inner_f::Float64,
+                      outer_p::Float64,
+                      inner_p::Float64)
 
     outer_r = r  * outer_f
     inner_r = r  * inner_f
 
     # half-life is 1/6 outer - inner
-    hl = 8.5 * ln_hlf / abs(outer_r - inner_r)
+    hl = ln_hlf / (tail * abs(outer_r - inner_r))
 
     xlow = clamp_and_round(x0 - outer_r, w)
     xhigh = clamp_and_round(x0 + outer_r, w)
-    ylow = clamp_and_round(y0 - outer_r, h)
-    yhigh = clamp_and_round(y0 + outer_r, h)
+    ylow = clamp_and_round(y0 - outer_r, w)
+    yhigh = clamp_and_round(y0 + outer_r, w)
     nx = (xhigh - xlow + 1)
     ny = (yhigh - ylow + 1)
     n =  nx * ny
@@ -40,10 +39,9 @@ function exp_dot_mask(
         # flip i and j in mask
         Is[k] = j
         Js[k] = i
-        # Vs[k] = clamp(outer_p * exp(hl * dst), 0., inner_p)
         Vs[k] = (dst <= inner_r) ? inner_p : outer_p * exp(hl * dst)
     end
-    sparse(Is, Js, Vs, h, w)
+    sparse(Is, Js, Vs, w, w)
 end
 
 # function new_frame_with_decay!(m,

@@ -30,9 +30,7 @@ my_bern(w) = rand() < w
 function Gen.random(::Mask, ps::Union{Matrix{Float64},
                                       Fill{Float64}})
     result = Matrix{Bool}(undef, size(ps))
-    # vmap(bernoulli, ps)
-    # result = BitMatrix(size(ps))
-    @inbounds for i in indices((ps, result))
+    @inbounds for i in eachindex(ps)
         result[i] = bernoulli(ps[i])
     end
     return result
@@ -41,7 +39,7 @@ end
 const min_mask_ls = log(1E-4)
 
 
-@inline function Gen.logpdf(::Mask,
+function Gen.logpdf(::Mask,
                     image::Matrix{Bool},
                     ps::SparseMatrixCSC{Float64})
     # PDF regions:
@@ -49,34 +47,21 @@ const min_mask_ls = log(1E-4)
     #  b - the non-zero region of `ps`
     #  c - the non-zero region of `image`
     # @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
-
     rows = rowvals(ps)
     vs = nonzeros(ps)
     m, n = size(ps)
-    # xs, ys, vs = findnz(ps)
     ab = 0.
     c = 0
     @inbounds @views @fastmath for j in 1:n
         for i in nzrange(ps, j)
             x = image[rows[i], j]
             v = vs[i]
-            ab += IfElse.ifelse(x, log(v), log(1.0-v))
-            # @fastmath ab += abs(v - x)
+            ab += x ? log(v) : log(1.0-v)
             c += x
         end
     end
-    # @turbo for k in indices((vs,xs,ys))
-    #     i = xs[k]
-    #     j = ys[k]
-    #     x = image[i, j]
-    #     v = vs[k]
-    #     ab += IfElse.ifelse(x, log(v), log(1.0-v))
-    #     c += x
-    # end
-
     ni = sum(image)
     nz = length(vs)
-
     lc = abs(ni - c) * min_mask_ls
     lpdf = ab + lc
     return lpdf

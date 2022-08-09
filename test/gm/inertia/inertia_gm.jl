@@ -19,10 +19,10 @@ function main()
     tr, _ = generate(gm_inertia, args, cm)
     render_trace(tr, "/spaths/test/gm_inertia_trace")
 
-    choices = get_choices(tr)
+    # choices = get_choices(tr)
 
-    new_tr, _ = generate(gm_inertia, (0, gm),
-                         get_submap(choices, :init_state))
+    # new_tr, _ = generate(gm_inertia, (0, gm),
+    #                      get_submap(choices, :init_state))
     # for t = 1:10
     #     obs = choicemap()
     #     obs[:kernel => t => :masks] = choices[:kernel => t => :masks]
@@ -44,6 +44,7 @@ function main()
     println("profiling")
     # generate(gm_inertia, args)
     @profilehtml generate(gm_inertia, args)
+    # @profilehtml generate(gm_inertia, args)
 end
 
 main();

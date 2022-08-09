@@ -39,6 +39,7 @@ Model that uses inertial change points to "explain" interactions
     outer_f::Float64 = 1.0
     inner_p::Float64 = 0.95
     outer_p::Float64 = 0.3
+    mask_tail::Float64 = 6.5
     nlog_bernoulli::Float64 = -100
     bern_existence_prob::Float64 = -expm1(nlog_bernoulli)
 end
