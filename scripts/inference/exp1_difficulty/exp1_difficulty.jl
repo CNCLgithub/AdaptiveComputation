@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 35
+        default = 50
 
         "--chain"
         help = "The number of chains to run"
@@ -80,6 +80,7 @@ function main()
     aux_data = scene_data[:aux_data]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
     gm = @set gm.vel = aux_data["vel"] * 0.45
+    gm = @set gm.w = gm.w * gm.vel
 
     query = query_from_params(gm, gt_states, length(gt_states))
 

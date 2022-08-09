@@ -18,7 +18,8 @@ def att_tasks(args):
 def fig4_tasks(args):
     tasks = [('--scene {0:d}'.format(t),
               '--chain {0:d}'.format(c)) for c in range(1, args.chains + 1)
-             for t in [1,11,45,65]]
+             # for t in [1,11,45,65]]
+             for t in [14,29,39,34,50,60]]
     return (tasks, [], [])
 def main():
     parser = argparse.ArgumentParser(
@@ -35,8 +36,8 @@ def main():
 
     args = parser.parse_args()
 
-    # tasks, kwargs, extras = fig4_tasks(args)
-    tasks, kwargs, extras = att_tasks(args)
+    tasks, kwargs, extras = fig4_tasks(args)
+    # tasks, kwargs, extras = att_tasks(args)
     n = len(tasks)
 
     interpreter = '#!/bin/bash'
