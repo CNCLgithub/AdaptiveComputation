@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 20, 10.0)
+    (pls, pt) = GenRFS.massociations(es, xs, 50, 10.0)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -124,33 +124,49 @@ function td_flat(st::InertiaState)
     @unpack pt, pls = st
     ne = 4
     nx,_,np = size(pt)
-    ws = exp.(pls .- logsumexp(pls))
+    # @show pls
+    # pls  = softmax(pls; t = 0.01)
+    # @show pls
+    t = 10.0
+    ls = logsumexp(pls)
     x_weights = Vector{Float64}(undef, nx)
-    @inbounds @views for x = 1:nx
-        xw = 0.0
-        for p = 1:np, e = 1:ne
+    @inbounds for x = 1:nx
+        xw = -Inf
+        @views for p = 1:np, e = 1:ne
             pt[x, e, p] || continue
-            xw += ws[p]
+            xw = logsumexp(xw, pls[p])
         end
-        x_weights[x] = xw
+        x_weights[x] = xw/t - ls/t
     end
-    # display(x_weights)
-    td_weights = zeros(4)
-    @inbounds @views for i = 1:ne
+    # for p = 1:np
+    #     @show pls[p]
+    #     display(pt[:, :, p])
+    # end
+    td_weights = fill(-Inf, ne)
+    @inbounds for i = 1:ne
         for p = 1:np
             kx = 0
-            xw = 0
-            for x = 1:nx
+            xw = -Inf
+            # @show i
+            @views for x = 1:nx
                 pt[x, i, p] || continue
-                xw += x_weights[x]
+                # @show x => x_weights[x]
+                xw = logsumexp(xw, x_weights[x])
                 kx += 1
             end
             kx == 0 && continue
             # P(e -> x) where x is associated with any other targets
-            td_weights[i] += (xw / kx) * ws[p]
+            xw += - log(kx) + (pls[p]/t  - ls/t)
+            # @show xw
+            # @show td_weights[i]
+            td_weights[i] = logsumexp(td_weights[i], xw)
+            # @show td_weights[i]
         end
+        td_weights[i] = exp(td_weights[i])
     end
+    # @show x_weights
     # @show td_weights
+    # error()
     return td_weights
 end
 

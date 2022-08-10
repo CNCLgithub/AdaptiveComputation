@@ -43,6 +43,22 @@ function softmax!(out::Array{Float64}, x::Array{Float64}; t::Float64 = 1.0)
     return nothing
 end
 
+# based of numpys implementation
+# https://github.com/numpy/numpy/blob/c900978d5e572d96ccacaa97af28e2c5f4a0b137/numpy/core/src/npymath/npy_math_internal.h.src#L642
+function logaddexp(a::Real, b::Real)
+    if (a == b)
+        return a + log(2)
+    else
+        tmp = a - b
+        if tmp > 0
+            return a + log1p(exp(-tmp))
+        else
+            return b + log1p(exp(tmp))
+        end
+    end
+end
+
+
 function normalize_weights(log_weights::Vector{Float64})
     log_total_weight = logsumexp(log_weights)
     log_normalized_weights = log_weights .- log_total_weight

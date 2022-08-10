@@ -83,7 +83,7 @@ end
 
     # predict observations as a random finite set
     es = predict(gm, prev_st, new_dots)
-    xs = @trace(mask_mrfs(es, 20, 10.0), :masks)
+    xs = @trace(mask_mrfs(es, 20, 1.0), :masks)
     # xs = @trace(mask_rfs(es), :masks)
 
     # store the associations for later use
