@@ -15,6 +15,7 @@ export PopSensitivity
     max_arrousal::Int = 30
     div_scale::Float64 = 1.0
     x0::Float64 = 5.0
+    m::Float64 = 1.0
 end
 
 function load(::Type{PopSensitivity}, path; kwargs...)
@@ -102,9 +103,8 @@ end
 function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    @unpack max_arrousal, x0 = att
-    m = max_arrousal / abs(x0)
-    amp = m * (logsumexp(sensitivities) + x0)
+    @unpack m, max_arrousal, x0 = att
+    amp = exp(m * (logsumexp(sensitivities) + x0))
     @show logsumexp(sensitivities)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
     println("arrousal: $(arrousal)")

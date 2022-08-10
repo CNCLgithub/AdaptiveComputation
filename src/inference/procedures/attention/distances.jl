@@ -60,8 +60,8 @@ function sinkhorn_div(p::Vector{V}, q::Vector{V};
                       scale::Float64 = 1.0) where {V}
     u = discrete_measure(p, scale)
     v = discrete_measure(q, scale)
-    # @show u
-    # @show v
+    # @show p
+    # @show q
     c = cost_matrix(length(u))
     ot = sinkhorn(u, v, c, eps;
                   atol = 1E-3,

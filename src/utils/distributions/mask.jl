@@ -37,6 +37,7 @@ function Gen.random(::Mask, ps::Union{Matrix{Float64},
 end
 
 const min_mask_ls = log(1E-4)
+const comp_mmls = log(1.0 - 1E-4)
 
 
 function Gen.logpdf(::Mask,
@@ -49,21 +50,29 @@ function Gen.logpdf(::Mask,
     # @assert size(image) == size(ps) "weights have size $(size(ps)) but mask has size $(size(image))"
     rows = rowvals(ps)
     vs = nonzeros(ps)
-    m, n = size(ps)
-    ab = 0.
-    c = 0
-    @inbounds @views @fastmath for j in 1:n
+    ncol = size(ps, 2)
+    a = 0.
+    k = 0 # number of `on` pixels encountered in `vs`
+    @inbounds @views @fastmath for j in 1:ncol
         for i in nzrange(ps, j)
             x = image[rows[i], j]
             v = vs[i]
-            ab += x ? log(v) : log(1.0-v)
-            c += x
+            a += x ? log(v) : log(1.0-v)
+            k += x
         end
     end
-    ni = sum(image)
-    nz = length(vs)
-    lc = abs(ni - c) * min_mask_ls
-    lpdf = ab + lc
+    s = sum(image) # total number of on pixels
+    # some `on` pixels were not covered by `vs`
+    b = s == k ? 0.0 : (s - k) * min_mask_ls
+    n = length(image)
+    z = length(vs)
+    # account for `off` pixels outside of `vs`
+    c = n == s ? 0.0 : (n - s - (z - k)) * comp_mmls
+    # @show a
+    # @show b
+    # @show c
+    lpdf = a + b + c
+    # @show lpdf
     return lpdf
 end
 
@@ -83,8 +92,9 @@ function Gen.logpdf(::Mask,
                     ps::Fill{Float64})
     p = first(ps)
     s = sum(image)
-    (s * log(p)) + ((length(image) - s) * log(1.0 - p))
-    # (s * p) + ((length(image) - s) * log1mexp(p))
+    li = length(image)
+    (s * log(p)) + ((li - s) * log(1.0 - p))
+    # logsumexp(log(s) + log(p), log(li - s) + log(1.0 - p)) - log(li)
 end
 
 
