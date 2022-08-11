@@ -162,7 +162,7 @@ function td_flat(st::InertiaState)
             td_weights[i] = logsumexp(td_weights[i], xw)
             # @show td_weights[i]
         end
-        td_weights[i] = exp(td_weights[i])
+        # td_weights[i] = exp(td_weights[i])
     end
     # @show x_weights
     # @show td_weights
