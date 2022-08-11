@@ -138,10 +138,6 @@ function td_flat(st::InertiaState)
         end
         x_weights[x] = xw/t - ls/t
     end
-    # for p = 1:np
-    #     @show pls[p]
-    #     display(pt[:, :, p])
-    # end
     td_weights = fill(-Inf, ne)
     @inbounds for i = 1:ne
         for p = 1:np
