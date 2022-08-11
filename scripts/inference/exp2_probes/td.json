@@ -1,9 +1,10 @@
 {
     "latents": 4,
-    "div_scale": 0.1,
-    "importance_tau": 1.50,
+    "div_scale": 0.55,
+    "importance_tau": 1.0,
     "init_samples": 15,
     "min_samples": 3,
     "max_arrousal": 35,
-    "x0": 8.5
+    "x0": 11.0,
+    "m": 0.3
 }
