@@ -17,7 +17,7 @@ function exp_dot_mask(x0::Float64,
                       inner_p::Float64)
 
     outer_r = r  * outer_f
-    inner_r = r  * inner_f
+    inner_r = 0.0 # r  * inner_f
 
     # half-life is 1/6 outer - inner
     hl = ln_hlf / (tail * abs(outer_r - inner_r))
@@ -39,7 +39,8 @@ function exp_dot_mask(x0::Float64,
         # flip i and j in mask
         Is[k] = j
         Js[k] = i
-        Vs[k] = (dst <= inner_r) ? inner_p : outer_p * exp(hl * dst)
+        # Vs[k] = (dst <= inner_r) ? inner_p : outer_p * exp(hl * dst)
+        Vs[k] = outer_p * exp(hl * dst)
     end
     sparse(Is, Js, Vs, w, w)
 end
