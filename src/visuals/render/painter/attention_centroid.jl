@@ -10,7 +10,7 @@ end
 
 function paint(p::AttentionCentroidPainter, cg::CausalGraph, attention_weights::Vector{Float64})
     points = @>> get_objects(cg, Dot) begin
-        map(x -> x.pos[1:2])
+        map(get_pos)
         x -> (hcat(x...)')
         x -> Matrix{Float64}(x)
     end

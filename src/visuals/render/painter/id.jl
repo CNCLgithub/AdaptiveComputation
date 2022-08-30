@@ -14,12 +14,13 @@ end
 
 
 function paint(p::IDPainter, d::Dot, v::Int64)
+    pos = get_pos(d)
     if !isempty(p.colors)
         c = p.colors[v]
-        _draw_circle(d.pos[1:2], d.radius, c,
+        _draw_circle(pos, d.radius, c,
                      opacity = p.alpha)
     end
-    p.label && _draw_text("$v", d.pos[1:2] .+ [d.radius, d.radius],
+    p.label && _draw_text("$v", pos .+ [d.radius, d.radius],
                           size = p.label_size)
     return nothing
 end

@@ -40,7 +40,7 @@ function main()
     Profile.init(delay = 1E-7,
                  n = 10^7)
     Profile.clear()
-    Profile.clear_malloc_data()
+    # Profile.clear_malloc_data()
     println("profiling")
     # generate(gm_inertia, args)
     @profilehtml generate(gm_inertia, args)

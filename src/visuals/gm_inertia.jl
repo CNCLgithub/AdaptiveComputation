@@ -2,13 +2,20 @@ export render_trace, render_pf, render_scene
 
 color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 
-function render_gstate!(canvas, d::Dot, c)
+function render_gstate!(canvas, d::Dot, c, aw)
     @unpack gstate = d
-    for i = eachindex(gstate)
-        v = gstate[i]
-        canvas[i] = ColorBlendModes.blend(canvas[i],
-                                          RGBA{Float64}(c.r, c.g, c.b, v))
-
+    iw,ih = size(canvas)
+    nt = length(d.tail)
+    for t = 1:nt
+        gc = gstate[t]
+        @inbounds for i = 1:iw, j = 1:ih
+            x = SVector{2, Float64}([(i - 0.5*iw) *  aw / iw,
+                                    (j - 0.5*ih) * -aw / ih])
+            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 12.)
+            v = min(1.0, v)
+            rgbc = RGBA{Float64}(c.r, c.g, c.b, v)
+            canvas[i, j] = ColorBlendModes.blend(canvas[i, j], rgbc)
+        end
     end
     return nothing
 end
@@ -18,18 +25,24 @@ function render_prediction!(canvas, gm::InertiaGM, st::InertiaState)
     ne = length(objects)
     for i = 1:ne
         color_code = RGB{Float64}(color_codes[i])
-        render_gstate!(canvas, objects[i], color_code)
+        render_gstate!(canvas, objects[i], color_code, gm.area_width)
     end
     return nothing
 end
 
 function render_observed!(canvas, gm::InertiaGM, st::InertiaState;
-                          alpha::Float64 = 0.6)
+                          alpha::Float64 = 1.0)
     @unpack xs = st
     nx = length(xs)
     color_code = RGBA{Float64}(1., 1., 1., alpha)
-    for i = 1:nx
-        canvas[xs[i]] .= ColorBlendModes.blend.(canvas[xs[i]], color_code)
+    @inbounds for i = 1:nx
+        xt = xs[i]
+        nt = length(xt)
+        for j = 1:nt
+            a,b = xt[j]
+            x,y = translate_area_to_img(a,b,gm.img_width, gm.area_height)
+            canvas[x,y] = ColorBlendModes.blend(canvas[x,y], color_code)
+        end
     end
     return nothing
 end
@@ -37,8 +50,6 @@ end
 function render_trace(gm::InertiaGM,
                       tr::Gen.Trace,
                       path::String)
-
-
     @unpack img_dims = gm
 
     (init_state, states) = get_retval(tr)

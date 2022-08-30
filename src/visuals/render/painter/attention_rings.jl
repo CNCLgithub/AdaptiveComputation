@@ -10,7 +10,7 @@ end
 
 function paint(p::AttentionRingsPainter, d::Dot, attention_weight::Float64)
     norm_weight = attention_weight ./ p.max_attention
-    _draw_circle(d.pos, p.radius, p.attention_color;
+    _draw_circle(get_pos(d), p.radius, p.attention_color;
                  opacity=p.opacity*norm_weight,
                  style=:stroke, pattern="longdashed", line=p.linewidth)
 end

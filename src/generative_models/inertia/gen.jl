@@ -37,33 +37,25 @@ end
 
 @gen static function inertia_step(gm::InertiaGM, d::Dot)
 
-    _x, _y = d.pos
-    _vx, _vy = d.vel
+    _x, _y = get_pos(d)
+    _vx, _vy = get_vel(d)
 
     # transform to angle & magnitude
     ang_mu = atan(_vy, _vx)
     mag = sqrt(_vx^2 + _vy^2)
 
-    # sample inertia
     inertia = @trace(bernoulli(gm.bern), :inertia)
-
-    # sampl new angle & magnitude
 
     #- if high inertia, then turn 180 deg
     ang_turn = !inertia * pi # approximate collisions
     k = inertia * gm.k + !inertia * 5.0 # increase variance
     ang = @trace(von_mises(ang_mu, k), :ang) + ang_turn
 
-    #- mixture of previous velocity & base
-    # mag = @trace(normal(mag, gm.w), :mag)
     mag = @trace(normal(gm.vel, gm.w), :mag)
 
     # converting back to vector form
     vel = SVector{2, Float64}([mag * cos(ang), mag * sin(ang)])
-    # vx = mag * cos(ang)
-    # vy = mag * sin(ang)
-
-    pos = d.pos + vel # SVector{2, Float64}([_x + vx, _y + vy])
+    pos = get_pos(d) + vel # SVector{2, Float64}([_x + vx, _y + vy])
 
     ku::KinematicsUpdate = KinematicsUpdate(pos, vel)
     return ku
@@ -82,15 +74,15 @@ end
     new_dots = step(gm, prev_st, kupdates)
 
     # predict observations as a random finite set
-    es = predict(gm, prev_st, new_dots)
-    xs = @trace(mask_mrfs(es, 20, 1.0), :masks)
+    es = predict(gm, t, prev_st, new_dots)
+    xs = @trace(gpp_mrfs(es, 20, 1.0), :masks)
     # xs = @trace(mask_rfs(es), :masks)
 
     # store the associations for later use
     current_state::InertiaState = InertiaState(prev_st,
-                                 new_dots,
-                                 es,
-                                 xs)
+                                               new_dots,
+                                               es,
+                                               xs)
     return current_state
 end
 

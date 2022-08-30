@@ -19,7 +19,7 @@ function digest_tracker_positions(c::SeqPFChain)
         (_, states) = Gen.get_retval(c.state.traces[i])
         trackers = @> states last get_objects
         for j = 1:nt
-            pos[i, j, :] = trackers[j].pos
+            pos[i, j, :] = get_pos(trackers[j])
         end
     end
     mean(pos, dims = 1) # avg position for each tracker
