@@ -59,6 +59,13 @@ function sync_update(d::Dot,
                      ku::KinematicsUpdate)
     cb = deepcopy(d.tail)
     pushfirst!(cb, ku.p)
+    t = length(cb)
+    if (t > 3) # & isfull(cb)
+        @inbounds for i = 2:t
+            w = 1.0 - exp(-0.69 * (i-1))
+            cb[i] = w*cb[i] + ((1.0-w)*cb[i-1])
+        end
+    end
     setproperties(d, (vel = ku.v, tail = cb))
 end
 

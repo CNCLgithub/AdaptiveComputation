@@ -5,6 +5,7 @@ color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 function render_gstate!(canvas, d::Dot, c, aw)
     @unpack gstate = d
     iw,ih = size(canvas)
+    m = zeros(iw, ih)
     nt = length(d.tail)
     for t = 1:nt
         gc = gstate[t]
@@ -13,10 +14,13 @@ function render_gstate!(canvas, d::Dot, c, aw)
                                     (j - 0.5*ih) * -aw / ih])
             v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 12.)
             v = min(1.0, v)
-            rgbc = RGBA{Float64}(c.r, c.g, c.b, v)
-            canvas[i, j] = ColorBlendModes.blend(canvas[i, j], rgbc)
+            m[i, j] += v
         end
     end
+    m .*= 1.0/nt
+    sc = Matrix{RGBA{Float64}}(undef, iw, ih)
+    @inbounds for i = each
+    @. canvas = ColorBlendModes.blend(canvas, m)
     return nothing
 end
 
@@ -41,7 +45,7 @@ function render_observed!(canvas, gm::InertiaGM, st::InertiaState;
         for j = 1:nt
             a,b = xt[j]
             x,y = translate_area_to_img(a,b,gm.img_width, gm.area_height)
-            canvas[x,y] = ColorBlendModes.blend(canvas[x,y], color_code)
+            canvas[x,y] = color_code
         end
     end
     return nothing
