@@ -5,22 +5,23 @@ color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 function render_gstate!(canvas, d::Dot, c, aw)
     @unpack gstate = d
     iw,ih = size(canvas)
-    m = zeros(iw, ih)
-    nt = length(d.tail)
+    m = zeros(ih, iw)
+    nt = length(d.gstate)
     for t = 1:nt
         gc = gstate[t]
         @inbounds for i = 1:iw, j = 1:ih
             x = SVector{2, Float64}([(i - 0.5*iw) *  aw / iw,
                                     (j - 0.5*ih) * -aw / ih])
-            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 12.)
+            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 14.)
             v = min(1.0, v)
-            m[i, j] += v
+            m[j, i] = max(m[j,i], v)
         end
     end
-    m .*= 1.0/nt
-    sc = Matrix{RGBA{Float64}}(undef, iw, ih)
-    @inbounds for i = each
-    @. canvas = ColorBlendModes.blend(canvas, m)
+    # m .*= 1.0/nt
+    @inbounds for i = eachindex(canvas)
+        c = RGBA{Float64}(c.r, c.g, c.b, m[i])
+        canvas[i] = ColorBlendModes.blend(canvas[i], c)
+    end
     return nothing
 end
 
@@ -45,7 +46,7 @@ function render_observed!(canvas, gm::InertiaGM, st::InertiaState;
         for j = 1:nt
             a,b = xt[j]
             x,y = translate_area_to_img(a,b,gm.img_width, gm.area_height)
-            canvas[x,y] = color_code
+            canvas[y,x] = color_code
         end
     end
     return nothing

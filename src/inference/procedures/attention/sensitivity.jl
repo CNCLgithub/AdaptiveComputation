@@ -38,7 +38,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack sensitivities, importance, arrousal = auxillary
 
-    cycles_per_latent = ceil.(Int64, importance .* arrousal)
+    cycles_per_latent = floor.(Int64, importance .* arrousal)
     @show cycles_per_latent
 
     # number of particles
@@ -47,8 +47,10 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     nl = att.latents
     log_particles = log(np)
     # counter for acceptance ratio
+    c = 0
     accepted = 0
     for l = 1:nl # for each latent
+        # println("on latent $l")
         samples = cycles_per_latent[l] + att.min_samples
         log_steps = log(samples)
         # matrix storing estimates of dPdS
@@ -68,6 +70,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 # dP/dS
                 # dPdS[i, j] -= 0.01 * abs(ls)
                 # accepted a proposal and update references
+                c +=1
                 if log(rand()) < ls
                     accepted += 1
                     s = s_prime
@@ -82,7 +85,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     @show sensitivities
     # update adaptive computation state
     @pack! auxillary = sensitivities
-    acceptance = accepted / (np * (arrousal + att.min_samples))
+    acceptance = accepted / c
     @pack! auxillary = acceptance
     println("acceptance ratio $(acceptance)")
     return nothing

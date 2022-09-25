@@ -68,6 +68,7 @@ function sinkhorn_div(p::Vector{V}, q::Vector{V};
                   maxiter=10_000)
     d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
                                                  regularization=false)
+    # @show d
     # instability could lead to negative values
     d = log(max(d, 0.))
 end

@@ -39,7 +39,8 @@ Model that uses inertial change points to "explain" interactions
     outer_f::Float64 = 1.0
     inner_p::Float64 = 0.95
     outer_p::Float64 = 0.3
-    k_tail::Int64 = 4
+    k_tail::Int64 = 4 # number of point in tail
+    tail_sample_rate::Int64 = 2
     nlog_bernoulli::Float64 = -100
     bern_existence_prob::Float64 = -expm1(nlog_bernoulli)
 end
@@ -148,20 +149,26 @@ function update_graphics(gm::InertiaGM, d::Dot)
 
     nt = length(d.tail)
 
-    @unpack area_width, img_width, decay_rate = gm
-    @unpack inner_f, outer_f = gm
+    @unpack area_width, decay_rate = gm
+    @unpack inner_f, outer_f, tail_sample_rate = gm
     r = d.radius
     base_sd = r * inner_f
+    nk = ceil(Int64, nt / tail_sample_rate)
+    gpoints = Vector{GaussianComponent{2}}(undef, nk)
     # linearly increase sd
     step_sd = (outer_f - inner_f) * r / nt
-    gpoints = Vector{GaussianComponent{2}}(undef, nt)
-    ws = Vector{Float64}([-i*decay_rate for i = 1:nt])
+    ws = Vector{Float64}([-i*decay_rate for i = 1:nk])
     ws .-= logsumexp(ws)
-    @inbounds for i = 1:nt
-        pos = d.tail[i]
+    c::Int64 = 1
+    i::Int64 = 1
+    @inbounds while c <= nt
+        c_next = min(nt, c + tail_sample_rate - 1)
+        pos = mean(d.tail[c:c_next])
         sd = (i-1) * step_sd + base_sd
         cov = SMatrix{2,2}(spdiagm([sd, sd]))
         gpoints[i] = GaussianComponent{2}(ws[i], pos, cov)
+        c = c_next + 1
+        i += 1
     end
     setproperties(d, (gstate = gpoints))
 end
@@ -173,6 +180,7 @@ function predict(gm::InertiaGM,
     n = length(objects)
     es = RFSElements{GaussObs{2}}(undef, n + 1)
     @unpack nlog_bernoulli, area_width, k_tail = gm
+    @unpack tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
         es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
@@ -180,6 +188,7 @@ function predict(gm::InertiaGM,
                                                  (obj.gstate,))
     end
     nt = t < k_tail ? (t + 1) : k_tail
+    nt = ceil(Int64, nt / tail_sample_rate)
     w = -log(nt)
     @unpack rate = (st.ensemble)
     mu = @SVector zeros(2)

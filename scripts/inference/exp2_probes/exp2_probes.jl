@@ -108,8 +108,11 @@ function run(cmd)
     display(args)
 
     gm = MOT.load(InertiaGM, args["gm"])
+    dgp_gm = setproperties(gm,
+                           (outer_f = 1.0,
+                            inner_f = 0.2))
     # loading scene data
-    scene_data = MOT.load_scene(gm,
+    scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
@@ -179,7 +182,7 @@ function run(cmd)
     af[!, :chain] .= c
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
     args["viz"] && visualize_inference(chain, dg, gt_states, gm,
                                        joinpath(path, "$(c)_scene"))
     return nothing
@@ -196,7 +199,7 @@ function main()
     # scene, chain, time
 
     # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=370", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=400", "T"]
     run(cmd);
 end
 

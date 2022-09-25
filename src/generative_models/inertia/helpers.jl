@@ -59,13 +59,6 @@ function sync_update(d::Dot,
                      ku::KinematicsUpdate)
     cb = deepcopy(d.tail)
     pushfirst!(cb, ku.p)
-    t = length(cb)
-    if (t > 3) # & isfull(cb)
-        @inbounds for i = 2:t
-            w = 1.0 - exp(-0.69 * (i-1))
-            cb[i] = w*cb[i] + ((1.0-w)*cb[i-1])
-        end
-    end
     setproperties(d, (vel = ku.v, tail = cb))
 end
 
@@ -132,7 +125,7 @@ function td_flat(st::InertiaState)
     # @show pls
     # pls  = softmax(pls; t = 0.01)
     # @show pls
-    t = 10.0
+    t = 4.5
     ls = logsumexp(pls)
     x_weights = Vector{Float64}(undef, nx)
     @inbounds for x = 1:nx
@@ -157,7 +150,9 @@ function td_flat(st::InertiaState)
             end
             kx == 0 && continue
             # P(e -> x) where x is associated with any other targets
-            xw += - log(kx) + (pls[p]/t  - ls/t)
+            pw = (pls[p]/t  - ls/t)
+            xw += pw
+            xw += - log(kx) # kx should equal 1
             # @show xw
             # @show td_weights[i]
             td_weights[i] = logsumexp(td_weights[i], xw)
@@ -167,7 +162,6 @@ function td_flat(st::InertiaState)
     end
     # @show x_weights
     # @show td_weights
-    # error()
     return td_weights
 end
 

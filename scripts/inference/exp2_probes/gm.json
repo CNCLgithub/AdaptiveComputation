@@ -14,11 +14,12 @@
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
 
-    "img_width": 200,
-    "img_height": 200,
-    "decay_rate": 0.5,
+    "img_width": 100,
+    "img_height": 100,
+    "decay_rate": 3.0,
     "inner_f": 3.0,
-    "outer_f": 20.0,
-    "k_tail": 10,
+    "outer_f": 10.0,
+    "k_tail": 8,
+    "tail_sample_rate": 2,
     "nlog_bernoulli": -200
 }
