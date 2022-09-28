@@ -24,7 +24,7 @@ function main()
     end
 
     gm = MOT.load(InertiaGM, "$(@__DIR__)/gm.json")
-    render(gm, 26)
+    render(gm, 24)
     # for i = 1:40
     #     render(gm, i)
     # end
