@@ -54,9 +54,6 @@ function regenerate_trajectory(trace::Gen.Trace, tracker::Int, k::Int)
 end
 
 function tracker_kernel(trace::Gen.Trace, tracker::Int, t::Int)
-    # new_tr, w1 = apply_random_walk(trace, state_proposal, (tracker, t))
-    # new_tr, w2 = regenerate_trajectory(new_tr, tracker, t)
-    # (new_tr, w1 + w2)
     new_tr, w = regenerate_trajectory(trace, tracker, t)
     (new_tr, w)
 end

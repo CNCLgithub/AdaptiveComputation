@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 64
+        default = 12
 
         "--chain"
         help = "The number of chains to run"
@@ -73,13 +73,17 @@ function main()
 
     # loading scene data
     gm = MOT.load(InertiaGM, args["gm"])
-    scene_data = MOT.load_scene(gm,
+    dgp_gm = setproperties(gm,
+                           (outer_f = 0.2,
+                            inner_f = 0.2))
+    scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.45
+    gm = @set gm.vel = aux_data["vel"] * 0.55
+    gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
     gm = @set gm.w = gm.w * gm.vel
 
     query = query_from_params(gm, gt_states, length(gt_states))
@@ -130,11 +134,11 @@ function main()
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
     # render_pf(chain, joinpath(path, "$(c)_graphics"))
-    # visualize_inference(chain, dg, gt_states, gm,
-    #                                    joinpath(path, "$(c)_scene"))
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
-    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+    visualize_inference(chain, dg, gt_states, gm,
                                        joinpath(path, "$(c)_scene"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    # args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+    #                                    joinpath(path, "$(c)_scene"))
 
     return nothing
 end

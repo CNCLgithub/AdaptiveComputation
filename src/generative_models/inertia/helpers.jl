@@ -125,7 +125,7 @@ function td_flat(st::InertiaState)
     # @show pls
     # pls  = softmax(pls; t = 0.01)
     # @show pls
-    t = 4.5
+    t::Float64 = 10.0
     ls = logsumexp(pls)
     x_weights = Vector{Float64}(undef, nx)
     @inbounds for x = 1:nx

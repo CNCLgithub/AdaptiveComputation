@@ -30,14 +30,17 @@ function Gen.logpdf(::GaussianPointProcess{N},
                     cs::AbstractVector{GaussianComponent{N}}) where {N}
     @assert length(xs) == length(cs)
     n = length(cs)
-    ls = Vector{Float64}(undef, n)
+    # ls = Vector{Float64}(undef, n)
+    ls::Float64 = 0.
     @views @inbounds for i = 1:n
         x = xs[i]
         c = cs[i]
         @unpack w, mu, cov = c
-        ls[i] = w + Gen.logpdf(mvnormal, x, mu, cov)
+        ls += w
+        ls += Gen.logpdf(mvnormal, x, mu, cov)
     end
-    return logsumexp(ls)
+    # return logsumexp(ls)
+    return ls
 end
 
 (::GaussianPointProcess{N})(ps) where {N} = Gen.random(GaussianPointProcess{N}(), ps)
