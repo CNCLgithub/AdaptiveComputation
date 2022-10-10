@@ -16,7 +16,7 @@ def att_tasks(args):
     
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Submits batch jobs for Exp1 (Difficulty)',
+        description = 'Submits batch jobs for Exp2 (Probes)',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
