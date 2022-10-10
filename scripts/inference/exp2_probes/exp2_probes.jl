@@ -198,8 +198,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=400", "T"]
+    cmd = ["$(i)", "$c", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=10", "T"]
     run(cmd);
 end
 
