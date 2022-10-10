@@ -160,6 +160,13 @@ function render_scene(gm::InertiaGM,
     np, nt = size(pf_st)
 
     alpha = 3.0 * 1.0 / np
+
+
+    att_rings = AttentionRingsPainter(max_attention = 1.0,
+                                        opacity = 1.00,
+                                        radius = 40.,
+                                        linewidth = 15.0,
+                                        attention_color = "red")
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
 
@@ -192,11 +199,6 @@ function render_scene(gm::InertiaGM,
 
             # attention rings
             # tw = target_weights(pf_st[j, i], attended[:, i])
-            att_rings = AttentionRingsPainter(max_attention = 1.0,
-                                              opacity = 0.95,
-                                              radius = 40.,
-                                              linewidth = 7.0,
-                                              attention_color = "red")
             MOT.paint(att_rings, pf_state, attended[:, i])
 
             # add tails

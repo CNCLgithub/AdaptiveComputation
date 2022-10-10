@@ -109,8 +109,8 @@ function run(cmd)
 
     gm = MOT.load(InertiaGM, args["gm"])
     dgp_gm = setproperties(gm,
-                           (outer_f = 1.0,
-                            inner_f = 0.2))
+                           (outer_f = 0.1,
+                            inner_f = 0.1))
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
@@ -119,6 +119,10 @@ function run(cmd)
     aux_data = scene_data[:aux_data]
 
     # gm = @set gm.vel = aux_data["vel"]
+    gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
+    gm = @set gm.vel = aux_data["vel"] * 0.55
+    gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
+    gm = @set gm.w = gm.w * gm.vel
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
@@ -199,7 +203,7 @@ function main()
     # scene, chain, time
 
     cmd = ["$(i)", "$c", "T"]
-    # cmd = ["$(i)", "$c", "-v", "-r", "--time=10", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=100", "T"]
     run(cmd);
 end
 

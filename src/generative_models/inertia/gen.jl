@@ -75,7 +75,7 @@ end
 
     # predict observations as a random finite set
     es = predict(gm, t, prev_st, new_dots)
-    xs = @trace(gpp_mrfs(es, 20, 1.0), :masks)
+    xs = @trace(gpp_mrfs(es, 50, 1.0), :masks)
     # xs = @trace(mask_rfs(es), :masks)
 
     # store the associations for later use
