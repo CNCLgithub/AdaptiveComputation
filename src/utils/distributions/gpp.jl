@@ -36,7 +36,7 @@ function Gen.logpdf(::GaussianPointProcess{N},
         x = xs[i]
         c = cs[i]
         @unpack w, mu, cov = c
-        ls += w
+        # ls += w
         ls += Gen.logpdf(mvnormal, x, mu, cov)
     end
     # return logsumexp(ls)

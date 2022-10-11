@@ -17,9 +17,9 @@
     "img_width": 100,
     "img_height": 100,
     "decay_rate": 2.0,
-    "inner_f": 10.0,
-    "outer_f": 25.0,
-    "k_tail": 8,
+    "inner_f": 40.0,
+    "outer_f": 55.0,
+    "k_tail": 6,
     "tail_sample_rate": 2,
     "nlog_bernoulli": -200
 }
