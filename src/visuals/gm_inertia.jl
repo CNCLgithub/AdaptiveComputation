@@ -12,7 +12,7 @@ function render_gstate!(canvas, d::Dot, c, aw)
         @inbounds for i = 1:iw, j = 1:ih
             x = SVector{2, Float64}([(i - 0.5*iw) *  aw / iw,
                                     (j - 0.5*ih) * -aw / ih])
-            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 14.)
+            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 4.)
             v = min(1.0, v)
             m[j, i] = max(m[j,i], v)
         end

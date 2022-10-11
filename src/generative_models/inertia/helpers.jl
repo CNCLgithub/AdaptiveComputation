@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 50, 10.0)
+    (pls, pt) = GenRFS.massociations(es, xs, 50, 2.0)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -125,7 +125,7 @@ function td_flat(st::InertiaState)
     # @show pls
     # pls  = softmax(pls; t = 0.01)
     # @show pls
-    t::Float64 = 10.0
+    t::Float64 = 2.0
     ls = logsumexp(pls)
     x_weights = Vector{Float64}(undef, nx)
     @inbounds for x = 1:nx
