@@ -16,7 +16,7 @@ function paint(p::KinPainter, d::Dot, v::Int64)
     if p.tail
         t = length(d.gstate)
         for k = 1:t
-            alpha = exp(0.5 * (1.0 - k))
+            alpha = p.alpha * exp(-0.5 * (k - 1))
             c::GaussianComponent{2} = d.gstate[k]
             _draw_circle(c.mu, 0.2 * c.cov[1,1], p.color[v],
                          opacity = alpha)

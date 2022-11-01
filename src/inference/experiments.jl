@@ -34,9 +34,10 @@ function query_from_params(gm::InertiaGM,
                            k::Int64)
 
     # ensure that all obs are present
-    dgp_gm = setproperties(gm,
-                           (outer_f = 1.0,
-                            inner_f = 1.0))
+    dgp_gm = gm
+    # dgp_gm = setproperties(gm,
+    #                        (outer_f = 1.0,
+    #                         inner_f = 1.0))
 
     init_gt = gt_states[1]
     rest_gt = gt_states[2:end]

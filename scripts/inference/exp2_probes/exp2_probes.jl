@@ -132,7 +132,7 @@ function run(cmd)
                    plan = args[att_mode]["objective"],
                    plan_args = (),
                    percept_update = tracker_kernel,
-                   percept_args = (4,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
                     args["proc"];

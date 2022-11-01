@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 50, 10.0)
+    (pls, pt) = GenRFS.massociations(es, xs, 100, 25.)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -103,10 +103,10 @@ end
 function td_assocs(st::InertiaState)
     @unpack pt, pls = st
     ne = 4
-    nx = 4
     np = size(pt, 3)
     ws = exp.(pls .- logsumexp(pls))
     x_weights = Vector{Float64}(undef, 4)
+    # first 4 objects are targets
     @inbounds @views for x = 1:4
         xw = 0.0
         for p = 1:np, e = 1:ne
@@ -122,9 +122,6 @@ function td_flat(st::InertiaState)
     @unpack pt, pls = st
     ne = 4
     nx,_,np = size(pt)
-    # @show pls
-    # pls  = softmax(pls; t = 0.01)
-    # @show pls
     t::Float64 = 5.0
     ls = logsumexp(pls)
     x_weights = Vector{Float64}(undef, nx)
