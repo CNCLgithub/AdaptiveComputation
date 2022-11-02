@@ -214,7 +214,7 @@ function parse_outer()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24
+        default = 27
 
         "chain"
         help = "chain id"

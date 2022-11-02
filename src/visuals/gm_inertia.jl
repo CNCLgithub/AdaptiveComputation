@@ -133,12 +133,14 @@ function MOT.paint(p::Painter, st::InertiaState)
     end
     return nothing
 end
-function MOT.paint(p::IDPainter, st::InertiaState)
+function MOT.paint(p::Union{IDPainter,KinPainter}, st::InertiaState)
     for i in eachindex(st.objects)
         paint(p, st.objects[i], i)
     end
     return nothing
 end
+
+
 function MOT.paint(p::AttentionRingsPainter,
                    st::InertiaState,
                    weights::Vector{Float64})
@@ -193,25 +195,15 @@ function render_scene(gm::InertiaGM,
         for j = 1:np
 
             # paint motion vectors
-            p = KinPainter(alpha = alpha)
+            p = KinPainter(color = color_codes,
+                           alpha = 1.0,
+                           tail = true)
             pf_state = pf_st[j, i]
             MOT.paint(p, pf_state)
 
             # attention rings
-            # tw = target_weights(pf_st[j, i], attended[:, i])
             MOT.paint(att_rings, pf_state, attended[:, i])
 
-            # add tails
-            step = 1
-            steps = max(1, i-7):i
-            for k = steps
-                alpha = 0.5 * exp(0.5 * (k - i))
-                p = IDPainter(colors = color_codes,
-                              label = false,
-                              alpha = alpha)
-                MOT.paint(p, pf_st[j, k])
-                step += 1
-            end
         end
         finish()
     end
