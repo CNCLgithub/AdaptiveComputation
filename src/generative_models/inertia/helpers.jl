@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 100, 25.)
+    (pls, pt) = GenRFS.massociations(es, xs, 100, 15.)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -120,45 +120,53 @@ end
 
 function td_flat(st::InertiaState)
     @unpack pt, pls = st
-    ne = 4
-    nx,_,np = size(pt)
-    t::Float64 = 5.0
-    ls = logsumexp(pls)
+    nx,ne,np = size(pt)
+    ne -= 1
+    t::Float64 = 15.0
+    ls::Float64 = logsumexp(pls)
+    nls = log.(softmax(pls, t=t))
+    # probability that each observation
+    # is explained by a target
     x_weights = Vector{Float64}(undef, nx)
     @inbounds for x = 1:nx
         xw = -Inf
         @views for p = 1:np, e = 1:ne
             pt[x, e, p] || continue
-            xw = logsumexp(xw, pls[p])
+            xw = logsumexp(xw, nls[p])
         end
-        x_weights[x] = xw/t - ls/t
+        x_weights[x] = xw
     end
+
+    # the ratio of observations explained by each target
+    # weighted by the probability that the observation is
+    # explained by other targets
     td_weights = fill(-Inf, ne)
     @inbounds for i = 1:ne
+        # @show i
         for p = 1:np
-            kx = 0
-            xw = -Inf
-            # @show i
+            ew = -Inf
             @views for x = 1:nx
                 pt[x, i, p] || continue
-                # @show x => x_weights[x]
-                xw = logsumexp(xw, x_weights[x])
-                kx += 1
+                ew = x_weights[x]
+                # println("pls($p) = $(pls[p]), xw($x) = $ew")
+                # assuming isomorphicity
+                # (one association per partition)
+                break
             end
-            kx == 0 && continue
             # P(e -> x) where x is associated with any other targets
-            pw = (pls[p]/t  - ls/t)
-            xw += pw
-            xw += - log(kx) # kx should equal 1
-            # @show xw
-            # @show td_weights[i]
-            td_weights[i] = logsumexp(td_weights[i], xw)
-            # @show td_weights[i]
+            prop = nls[p] # ((pls[p]/t - ls/t))
+            ew += prop
+            # println("pls($p) corrected = $(exp(prop))")
+            td_weights[i] = logsumexp(td_weights[i], ew)
         end
-        # td_weights[i] = exp(td_weights[i])
     end
+    # td_weights[:] .-= logsumexp(td_weights)
+    # @show pls
     # @show x_weights
+    # display(exp.(x_weights))
     # @show td_weights
+    # display(exp.(td_weights))
+    # error()
     return td_weights
 end
 

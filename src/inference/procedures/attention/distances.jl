@@ -18,7 +18,8 @@ end
 
 function discrete_measure(lws::Vector{Float64},
                           scale::Float64)
-    softmax(lws; t = scale)
+    exp.(lws .- logsumexp(lws))
+    # softmax(lws; t = scale)
 end
 
 function td_cost(x::Int64, y::Int64)::Float64
@@ -40,7 +41,7 @@ end
 
 function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
                       λ::Float64 = 1.0,
-                      ε::Float64 = 0.02,
+                      ε::Float64 = 0.1,
                       scale::Float64 = 1.0) where {K, V}
     a_k, a_w = discrete_measure(p, scale)
     b_k, b_w = discrete_measure(q, scale)
@@ -56,7 +57,7 @@ end
 
 
 function sinkhorn_div(p::Vector{V}, q::Vector{V};
-                      eps::Float64 = 0.1,
+                      eps::Float64 = 0.15,
                       scale::Float64 = 1.0) where {V}
     u = discrete_measure(p, scale)
     v = discrete_measure(q, scale)
@@ -64,7 +65,7 @@ function sinkhorn_div(p::Vector{V}, q::Vector{V};
     # @show q
     c = cost_matrix(length(u))
     ot = sinkhorn(u, v, c, eps;
-                  atol = 1E-3,
+                  atol = 1E-4,
                   maxiter=10_000)
     d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
                                                  regularization=false)

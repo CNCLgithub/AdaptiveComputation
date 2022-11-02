@@ -183,9 +183,11 @@ function predict(gm::InertiaGM,
     @unpack tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-                                                 gpp,
-                                                 (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
     end
     nt = t < k_tail ? (t + 1) : k_tail
     nt = ceil(Int64, nt / tail_sample_rate)
@@ -205,9 +207,11 @@ function observe(gm::InertiaGM,
     @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-                                                 gpp,
-                                                 (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
     end
     (es, gpp_mrfs(es, 50, 1.0))
 end

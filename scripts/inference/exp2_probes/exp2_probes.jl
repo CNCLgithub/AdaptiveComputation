@@ -108,9 +108,10 @@ function run(cmd)
     display(args)
 
     gm = MOT.load(InertiaGM, args["gm"])
-    dgp_gm = setproperties(gm,
-                           (outer_f = 0.1,
-                            inner_f = 0.1))
+    dgp_gm = gm
+    # dgp_gm = setproperties(gm,
+    #                        (outer_f = 5.0,
+    #                         inner_f = 5.1))
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
@@ -120,7 +121,7 @@ function run(cmd)
 
     # gm = @set gm.vel = aux_data["vel"]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.55
+    gm = @set gm.vel = aux_data["vel"] * 0.5
     gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
     gm = @set gm.w = gm.w * gm.vel
 
@@ -204,6 +205,7 @@ function main()
 
     # cmd = ["$(i)", "$c", "T"]
     cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
+    # cmd = ["$(i)", "$c", "-v", "--time=120", "T"]
     # cmd = ["$(i)", "$c", "-v", "--time=480", "T"]
     run(cmd);
 end
@@ -215,7 +217,7 @@ function parse_outer()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 27
+        default = 24
 
         "chain"
         help = "chain id"

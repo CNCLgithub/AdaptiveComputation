@@ -14,7 +14,13 @@ function paint(p::AttentionCentroidPainter, st::InertiaState, attention_weights:
         x -> (hcat(x...)')
         x -> Matrix{Float64}(x)
     end
-    aw = attention_weights ./ sum(attention_weights)
+    n = length(attention_weights)
+    aws = sum(attention_weights)
+    if aws <= 0.
+        aw = fill(1.0 / n, n)
+    else
+        aw = attention_weights ./ sum(attention_weights)
+    end
     weighted_mean = vec(sum(points .* aw, dims=1))
     _draw_circle(weighted_mean, p.radius, p.color; opacity=p.opacity)
 end
