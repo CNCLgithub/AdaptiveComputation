@@ -163,12 +163,13 @@ function render_scene(gm::InertiaGM,
 
     alpha = 3.0 * 1.0 / np
 
-
     att_rings = AttentionRingsPainter(max_attention = 1.0,
-                                        opacity = 1.00,
-                                        radius = 40.,
-                                        linewidth = 15.0,
-                                        attention_color = "red")
+                                    opacity = 1.00,
+                                    radius = 40.,
+                                    linewidth = 15.0,
+                                    attention_color = "red")
+    att_centroid = AttentionCentroidPainter()
+
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
 
@@ -196,13 +197,14 @@ function render_scene(gm::InertiaGM,
 
             # paint motion vectors
             p = KinPainter(color = color_codes,
-                           alpha = 1.0,
+                           alpha = 0.1,
                            tail = true)
             pf_state = pf_st[j, i]
             MOT.paint(p, pf_state)
 
             # attention rings
             MOT.paint(att_rings, pf_state, attended[:, i])
+            MOT.paint(att_centroid, pf_state, attended[:, i])
 
         end
         finish()

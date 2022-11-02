@@ -157,8 +157,8 @@ function update_graphics(gm::InertiaGM, d::Dot)
     gpoints = Vector{GaussianComponent{2}}(undef, nk)
     # linearly increase sd
     step_sd = (outer_f - inner_f) * r / nt
-    ws = Vector{Float64}([-i*decay_rate for i = 1:nk])
-    ws .-= logsumexp(ws)
+    # ws = Vector{Float64}([-i*decay_rate for i = 1:nk])
+    # ws .-= logsumexp(ws)
     c::Int64 = 1
     i::Int64 = 1
     @inbounds while c <= nt
@@ -166,7 +166,7 @@ function update_graphics(gm::InertiaGM, d::Dot)
         pos = mean(d.tail[c:c_next])
         sd = (i-1) * step_sd + base_sd
         cov = SMatrix{2,2}(spdiagm([sd, sd]))
-        gpoints[i] = GaussianComponent{2}(ws[i], pos, cov)
+        gpoints[i] = GaussianComponent{2}(1.0, pos, cov)
         c = c_next + 1
         i += 1
     end
@@ -183,9 +183,11 @@ function predict(gm::InertiaGM,
     @unpack tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-                                                 gpp,
-                                                 (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
     end
     nt = t < k_tail ? (t + 1) : k_tail
     nt = ceil(Int64, nt / tail_sample_rate)
@@ -205,9 +207,11 @@ function observe(gm::InertiaGM,
     @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-                                                 gpp,
-                                                 (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
     end
     (es, gpp_mrfs(es, 50, 1.0))
 end

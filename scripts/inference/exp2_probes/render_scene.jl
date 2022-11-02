@@ -1,9 +1,9 @@
 using MOT
 
-const experiment_name = "exp2_probes"
-const dataset = "/spaths/datasets/$(experiment_name).json"
-const render_out = "/spaths/datasets/$(experiment_name)/rendered"
-const img_dims = (800., 800.)
+experiment_name = "exp2_probes"
+dataset = "/spaths/datasets/$(experiment_name).json"
+render_out = "/spaths/datasets/$(experiment_name)/rendered"
+img_dims = (800., 800.)
 
 function render(gm, i::Int64)
     scene_data = MOT.load_scene(gm,
@@ -24,7 +24,7 @@ function main()
     end
 
     gm = MOT.load(InertiaGM, "$(@__DIR__)/gm.json")
-    render(gm, 27)
+    render(gm, 22)
     # for i = 1:40
     #     render(gm, i)
     # end

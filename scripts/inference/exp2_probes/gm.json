@@ -8,8 +8,8 @@
     "dot_radius": 20.0,
     "vel": 4.0,
     "bern": 0.95,
-    "k": 15.0,
-    "w": 0.2,
+    "k": 50.0,
+    "w": 0.15,
     "wall_rep_m": 0.1,
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
@@ -17,9 +17,9 @@
     "img_width": 100,
     "img_height": 100,
     "decay_rate": 2.0,
-    "inner_f": 7.0,
-    "outer_f": 15.0,
-    "k_tail": 8,
-    "tail_sample_rate": 3,
-    "nlog_bernoulli": -200
+    "inner_f": 13.0,
+    "outer_f": 17.0,
+    "k_tail": 6,
+    "tail_sample_rate": 2,
+    "nlog_bernoulli": -300
 }
