@@ -122,7 +122,7 @@ function td_flat(st::InertiaState)
     @unpack pt, pls = st
     nx,ne,np = size(pt)
     ne -= 1
-    t::Float64 = 15.0
+    t::Float64 = 10.0
     ls::Float64 = logsumexp(pls)
     nls = log.(softmax(pls, t=t))
     # probability that each observation
