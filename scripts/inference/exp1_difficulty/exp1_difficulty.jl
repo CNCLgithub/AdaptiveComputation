@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 12
+        default = 53
 
         "--chain"
         help = "The number of chains to run"
@@ -69,21 +69,20 @@ end
 function main()
     args = parse_commandline()
     # args = default_args()
+    args["restart"] = true
 
 
     # loading scene data
     gm = MOT.load(InertiaGM, args["gm"])
-    dgp_gm = setproperties(gm,
-                           (outer_f = 0.2,
-                            inner_f = 0.2))
+    dgp_gm = gm
     scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.55
-    gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
+    gm = @set gm.vel = aux_data["vel"] * 0.5
+    # gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
     gm = @set gm.w = gm.w * gm.vel
 
     query = query_from_params(gm, gt_states, length(gt_states))
@@ -93,7 +92,7 @@ function main()
                    plan = td_flat,
                    plan_args = (),
                    percept_update = tracker_kernel,
-                   percept_args = (4,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
 
     proc = MOT.load(PopParticleFilter,
@@ -119,7 +118,6 @@ function main()
         chain = sequential_monte_carlo(proc, query, chain_path,
                                     args["step_size"])
     end
-    # end
 
     dg = extract_digest(chain_path)
     pf = MOT.chain_performance(chain, dg,
