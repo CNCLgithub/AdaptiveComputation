@@ -18,7 +18,8 @@ end
 
 function discrete_measure(lws::Vector{Float64},
                           scale::Float64)
-    exp.(lws .- logsumexp(lws))
+    exp.(lws)
+    # exp.(lws .- logsumexp(lws))
     # softmax(lws; t = scale)
 end
 
@@ -57,21 +58,31 @@ end
 
 
 function sinkhorn_div(p::Vector{V}, q::Vector{V};
-                      eps::Float64 = 0.15,
+                      eps::Float64 = 0.01,
                       scale::Float64 = 1.0) where {V}
-    u = discrete_measure(p, scale)
-    v = discrete_measure(q, scale)
-    # @show p
-    # @show q
-    c = cost_matrix(length(u))
-    ot = sinkhorn(u, v, c, eps;
-                  atol = 1E-4,
-                  maxiter=10_000)
-    d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
-                                                 regularization=false)
-    # @show d
-    # instability could lead to negative values
-    d = log(max(d, 0.))
+    u = exp.(p)
+    v = exp.(q)
+    ds = u .- v
+    rmul!(ds, scale)
+    d = log(norm(ds))
+    # display(Dict(:u => u, :v => v, :d => d))
+    return d
+
+
+    # c = cost_matrix(length(p))
+    # rmul!(c, scale)
+
+    # λ = 5.0
+    # ot = sinkhorn_unbalanced(u, v, c, λ, λ, eps;
+    #                          atol = 1E-5,
+    #                          maxiter=10_000)
+    # # display(ot)
+    # d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
+    #                                              regularization=false)
+    # # instability could lead to negative values
+    # d = log(max(d, 0.))
+    # # display(Dict(:u => u, :v => v, :d => d))
+    # return d
 end
 
 function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}; kwargs...) where {K,V}

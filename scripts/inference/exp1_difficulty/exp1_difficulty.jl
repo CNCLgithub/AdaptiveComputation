@@ -81,8 +81,8 @@ function main()
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
     gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.5
-    # gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
+    gm = @set gm.vel = aux_data["vel"] * 0.55
+    gm = @set gm.bern = 1.0 - (0.0005 * aux_data["n_distractors"])
     gm = @set gm.w = gm.w * gm.vel
 
     query = query_from_params(gm, gt_states, length(gt_states))
@@ -90,7 +90,7 @@ function main()
     att = MOT.load(PopSensitivity,
                    att_params,
                    plan = td_flat,
-                   plan_args = (),
+                   plan_args = (2.0,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )

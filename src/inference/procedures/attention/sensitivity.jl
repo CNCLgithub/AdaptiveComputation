@@ -58,7 +58,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
         for i = 1:np # for each particle
             # initialize objective of S -> P
             s = state.traces[i]
-            p = att.plan(s)
+            p = att.plan(s, att.plan_args...)
             for j = 1:samples
                 # perceptual update:: S -> (S', dS)
                 s_prime, ls = att.percept_update(s, l , att.percept_args...)
@@ -68,9 +68,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                # dPdS[i, j] -= max(0.0, ls)
                 dS = log(abs(0.5 - exp(max(0., ls))))
-                # @show dS
                 dPdS[i, j] -= dS
                 # accepted a proposal and update references
                 c +=1

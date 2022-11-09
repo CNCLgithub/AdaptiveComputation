@@ -6,18 +6,18 @@
     "area_height": 800,
 
     "dot_radius": 20.0,
-    "vel": 2.0,
-    "bern": 0.95,
-    "k": 150.0,
-    "w": 0.1,
+    "vel": 3.0,
+    "bern": 0.98,
+    "k": 100.0,
+    "w": 0.5,
     "wall_rep_m": 0.1,
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
 
     "img_width": 100,
     "img_height": 100,
-    "inner_f": 10.0,
-    "outer_f": 10.0,
+    "inner_f": 15.0,
+    "outer_f": 20.0,
     "k_tail": 6,
     "tail_sample_rate": 2
 }

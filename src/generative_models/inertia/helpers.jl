@@ -118,11 +118,10 @@ function td_assocs(st::InertiaState)
     return x_weights
 end
 
-function td_flat(st::InertiaState)
+function td_flat(st::InertiaState, t::Float64)
     @unpack pt, pls = st
     nx,ne,np = size(pt)
     ne -= 1
-    t::Float64 = 10.0
     ls::Float64 = logsumexp(pls)
     nls = log.(softmax(pls, t=t))
     # probability that each observation
@@ -160,12 +159,11 @@ function td_flat(st::InertiaState)
             td_weights[i] = logsumexp(td_weights[i], ew)
         end
     end
-    # td_weights[:] .-= logsumexp(td_weights)
     # @show pls
     # @show x_weights
-    # display(exp.(x_weights))
+    # # display(exp.(x_weights))
     # @show td_weights
-    # display(exp.(td_weights))
+    # # display(exp.(td_weights))
     # error()
     return td_weights
 end

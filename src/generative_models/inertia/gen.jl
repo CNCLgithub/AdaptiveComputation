@@ -42,16 +42,16 @@ end
 
     # transform to angle & magnitude
     ang_mu = atan(_vy, _vx)
-    mag = sqrt(_vx^2 + _vy^2)
+    # _mag = sqrt(_vx^2 + _vy^2)
 
     inertia = @trace(bernoulli(gm.bern), :inertia)
 
     #- if high inertia, then turn 180 deg
-    ang_turn = !inertia * pi # approximate collisions
-    k = inertia * gm.k + !inertia * 5.0 # increase variance
-    ang = @trace(von_mises(ang_mu, k), :ang) + ang_turn
-
-    mag = @trace(normal(gm.vel, gm.w), :mag)
+    # ang_turn = !inertia * pi # approximate collisions
+    k = inertia * gm.k + !inertia * 1.0 # increase variance
+    ang = @trace(von_mises(ang_mu, k), :ang) # + ang_turn
+    w = gm.w * (inertia * 1.0 + !inertia * 5.0)
+    mag = @trace(normal(gm.vel, w), :mag)
 
     # converting back to vector form
     vel = SVector{2, Float64}([mag * cos(ang), mag * sin(ang)])
