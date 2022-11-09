@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 53
+        default = 43
 
         "--chain"
         help = "The number of chains to run"

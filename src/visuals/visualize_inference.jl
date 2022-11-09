@@ -24,7 +24,7 @@ function visualize_inference(chain, dg, gt_states, gm, path)
 
     # aggregate cycles per latent
     max_arrousal = proc.attention.max_arrousal
-    attended = Matrix{Float64}(undef, 4, k)
+    attended = Matrix{Float64}(undef, gm.n_targets, k)
     for t=1:k
         importance = aux_state[t].importance
         arrousal  = aux_state[t].arrousal

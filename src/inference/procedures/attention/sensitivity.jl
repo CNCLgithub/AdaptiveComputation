@@ -110,7 +110,7 @@ function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack m, max_arrousal, x0 = att
-    amp = exp(m * (logsumexp(sensitivities) + x0))
+    amp = m * (logsumexp(sensitivities) + x0)
     @show logsumexp(sensitivities)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
     println("arrousal: $(arrousal)")
