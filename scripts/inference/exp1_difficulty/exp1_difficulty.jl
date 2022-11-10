@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 14
+        default = 36
 
         "--chain"
         help = "The number of chains to run"
@@ -85,8 +85,9 @@ function main()
     gm = setproperties(gm, (
         n_dots = gm.n_targets + aux_data["n_distractors"],
         vel = aux_data["vel"] * 0.55,
-        bern = 1.0 - (0.0015 * aux_data["n_distractors"]),
-        k = gm.k - (15.0 * aux_data["n_distractors"])))
+        # bern = 1.0 - (0.0015 * aux_data["n_distractors"]),
+        # k = gm.k - (15.0 * aux_data["n_distractors"])
+        ))
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
