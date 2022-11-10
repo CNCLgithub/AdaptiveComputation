@@ -38,7 +38,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack sensitivities, importance, arrousal = auxillary
 
-    cycles_per_latent = floor.(Int64, importance .* arrousal)
+    cycles_per_latent = round.(Int64, importance .* arrousal)
     @show cycles_per_latent
 
     # number of particles
