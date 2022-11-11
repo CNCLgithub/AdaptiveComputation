@@ -58,30 +58,32 @@ end
 
 
 function sinkhorn_div(p::Vector{V}, q::Vector{V};
-                      eps::Float64 = 0.01,
+                      eps::Float64 = 1E-5,
                       scale::Float64 = 1.0) where {V}
     u = exp.(p)
     v = exp.(q)
     ds = u .- v
     rmul!(ds, scale)
-    d = log(norm(ds))
+    d = log(sum(abs.(ds)))
     # display(Dict(:u => u, :v => v, :d => d))
     return d
 
-
     # c = cost_matrix(length(p))
+    # n = length(p)
+    # c = fill(1E-1, (n, n))
+    # c[I(n)] .= 0.0
     # rmul!(c, scale)
 
-    # λ = 5.0
+    # λ = 1E5
     # ot = sinkhorn_unbalanced(u, v, c, λ, λ, eps;
     #                          atol = 1E-5,
     #                          maxiter=10_000)
-    # # display(ot)
+    # display(ot)
     # d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
     #                                              regularization=false)
     # # instability could lead to negative values
     # d = log(max(d, 0.))
-    # # display(Dict(:u => u, :v => v, :d => d))
+    # display(Dict(:u => u, :v => v, :d => d))
     # return d
 end
 

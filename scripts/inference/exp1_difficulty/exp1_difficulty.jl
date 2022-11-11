@@ -94,7 +94,7 @@ function main()
     att = MOT.load(PopSensitivity,
                    att_params,
                    plan = td_flat,
-                   plan_args = (2.0,),
+                   plan_args = (1.025,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )

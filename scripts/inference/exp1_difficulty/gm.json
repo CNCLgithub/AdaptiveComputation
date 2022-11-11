@@ -8,8 +8,8 @@
     "dot_radius": 20.0,
     "vel": 4.0,
     "bern": 0.98,
-    "k": 120.0,
-    "w": 0.1,
+    "k": 50.0,
+    "w": 0.2,
     "wall_rep_m": 0.1,
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
@@ -17,7 +17,7 @@
     "img_width": 100,
     "img_height": 100,
     "inner_f": 10.0,
-    "outer_f": 35.0,
-    "k_tail": 12,
-    "tail_sample_rate": 4
+    "outer_f": 15.0,
+    "k_tail": 6,
+    "tail_sample_rate": 2
 }

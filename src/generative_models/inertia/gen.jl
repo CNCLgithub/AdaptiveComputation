@@ -42,7 +42,7 @@ end
 
     # transform to angle & magnitude
     ang_mu = atan(_vy, _vx)
-    _mag = sqrt(_vx^2 + _vy^2)
+    # _mag = sqrt(_vx^2 + _vy^2)
 
     inertia = @trace(bernoulli(gm.bern), :inertia)
 

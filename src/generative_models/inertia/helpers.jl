@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 100, 15.)
+    (pls, pt) = GenRFS.massociations(es, xs, 200, 1.)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
