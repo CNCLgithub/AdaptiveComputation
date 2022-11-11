@@ -78,7 +78,7 @@ function chain_attention(chain, dg;
     aux_state = dg[:, :auxillary]
 
     steps = length(aux_state)
-    # cycles = 0
+    cycles = 0
 
     traces = chain.state.traces
     np = length(traces)
@@ -91,6 +91,7 @@ function chain_attention(chain, dg;
         pred_y = Float64[])
     for frame = 1:steps
         arrousal = aux_state[frame].arrousal
+        cycles += arrousal
         importance = aux_state[frame].importance
         cycles_per_latent =  arrousal .* importance
         positions = dg[frame, :positions]
@@ -102,5 +103,6 @@ function chain_attention(chain, dg;
                        px, py))
         end
     end
+    println("total arrousal = $(cycles)")
     return df
 end
