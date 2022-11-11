@@ -109,9 +109,6 @@ function run(cmd)
 
     gm = MOT.load(InertiaGM, args["gm"])
     dgp_gm = gm
-    # dgp_gm = setproperties(gm,
-    #                        (outer_f = 5.0,
-    #                         inner_f = 5.1))
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
@@ -119,11 +116,10 @@ function run(cmd)
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
 
-    # gm = @set gm.vel = aux_data["vel"]
-    gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.5
-    gm = @set gm.bern = gm.bern - (0.02 * aux_data["n_distractors"])
-    gm = @set gm.w = gm.w * gm.vel
+    gm = setproperties(gm, (
+        n_dots = gm.n_targets + aux_data["n_distractors"],
+        vel = aux_data["vel"] * 0.55,
+    ))
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
@@ -131,7 +127,7 @@ function run(cmd)
     att = MOT.load(PopSensitivity,
                    args[att_mode]["params"],
                    plan = args[att_mode]["objective"],
-                   plan_args = (),
+                   plan_args = (1.025,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )
@@ -187,8 +183,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=55", "T"]
+    cmd = ["$(i)", "$c", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=55", "T"]
     run(cmd);
 end
 
