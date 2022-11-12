@@ -96,9 +96,6 @@ end
 function update_importance!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
-    # importance = deepcopy(sensitivities)
-    # clamp!(importance, -40., Inf)
-    # importance = softmax(importance; t = att.importance_tau)
     importance = softmax(sensitivities; t = att.importance_tau)
     println("importance: $(importance)")
     @pack! auxillary = importance
@@ -111,7 +108,7 @@ function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack m, max_arrousal, x0 = att
-    amp = exp(m * (logsumexp(sensitivities) + x0))
+    amp = m * (logsumexp(sensitivities) + x0)
     @show logsumexp(sensitivities)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
     println("arrousal: $(arrousal)")
