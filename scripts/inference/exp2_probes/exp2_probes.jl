@@ -127,7 +127,7 @@ function run(cmd)
     att = MOT.load(PopSensitivity,
                    args[att_mode]["params"],
                    plan = args[att_mode]["objective"],
-                   plan_args = (1.025,),
+                   plan_args = (5.5,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )
@@ -183,8 +183,8 @@ function main()
     c = args["chain"]
     # scene, chain, time
 
-    # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
+    cmd = ["$(i)", "$c", "T"]
+    # cmd = ["$(i)", "$c", "-v", "-r", "--time=240", "T"]
     run(cmd);
 end
 
