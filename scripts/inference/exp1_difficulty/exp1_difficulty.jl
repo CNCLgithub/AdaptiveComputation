@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 64
+        default = 23
 
         "--chain"
         help = "The number of chains to run"
@@ -69,27 +69,34 @@ end
 function main()
     args = parse_commandline()
     # args = default_args()
+    # args["restart"] = true
 
 
     # loading scene data
     gm = MOT.load(InertiaGM, args["gm"])
-    scene_data = MOT.load_scene(gm,
+    dgp_gm = gm
+    scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
-    gm = @set gm.n_dots = gm.n_targets + aux_data["n_distractors"]
-    gm = @set gm.vel = aux_data["vel"] * 0.45
-    gm = @set gm.w = gm.w * gm.vel
+    # NOTE: messing with angular uncertainty as a function
+    # of collision frequency
+    gm = setproperties(gm, (
+        n_dots = gm.n_targets + aux_data["n_distractors"],
+        vel = aux_data["vel"] * 0.55,
+        # bern = 1.0 - (0.0015 * aux_data["n_distractors"]),
+        # k = gm.k - (15.0 * aux_data["n_distractors"])
+        ))
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
     att = MOT.load(PopSensitivity,
                    att_params,
                    plan = td_flat,
-                   plan_args = (),
+                   plan_args = (1.025,),
                    percept_update = tracker_kernel,
-                   percept_args = (4,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
 
     proc = MOT.load(PopParticleFilter,
@@ -115,7 +122,6 @@ function main()
         chain = sequential_monte_carlo(proc, query, chain_path,
                                     args["step_size"])
     end
-    # end
 
     dg = extract_digest(chain_path)
     pf = MOT.chain_performance(chain, dg,
@@ -132,9 +138,9 @@ function main()
     # render_pf(chain, joinpath(path, "$(c)_graphics"))
     # visualize_inference(chain, dg, gt_states, gm,
     #                                    joinpath(path, "$(c)_scene"))
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
-    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
-                                       joinpath(path, "$(c)_scene"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    # args["viz"] && visualize_inference(chain, dg, gt_states, gm,
+    #                                    joinpath(path, "$(c)_scene"))
 
     return nothing
 end

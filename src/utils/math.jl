@@ -79,16 +79,18 @@ end
 
 
 # translates coordinate from euclidean to image space
-function translate_area_to_img(x::Float64, y::Float64,
-                               img_width::Int64, img_height::Int64,
-                               area_width::Float64, area_height::Float64)
+function translate_area_to_img(a::Float64, b::Float64,
+                               img_width::Int64,
+                               area_width::Float64)
 
-    x = x * img_width/area_width
+    x = a * img_width/area_width
     x += img_width/2
+    xi = clamp_and_round(x, img_width)
 
     # inverting y
-    y = y * -1 * img_height/area_height
-    y += img_height/2
+    y = b * -1 * img_width/area_width
+    y += img_width/2
+    yi = clamp_and_round(y, img_width)
 
-    return x, y
+    return xi, yi
 end

@@ -19,7 +19,7 @@ function InertiaState(prev_st::InertiaState,
                       new_dots,
                       es::RFSElements{T},
                       xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 50, 10.0)
+    (pls, pt) = GenRFS.massociations(es, xs, 200, 1.)
     # (pls, pt) = GenRFS.associations(es, xs)
     setproperties(prev_st,
                   (objects = new_dots,
@@ -49,19 +49,17 @@ function Dot(gm::InertiaGM,
              pos::SVector{2, Float64},
              vel::SVector{2, Float64},
              target::Bool)
-    t_dot = Dot(gm.dot_radius, gm.dot_mass, pos, vel,
-                target, spzeros(gm.img_dims))
-    gs = update_graphics(gm, t_dot, pos)
-    update(t_dot, pos, vel, gs)
+    t_dot = _Dot(gm.dot_radius, gm.dot_mass, pos, vel,
+                gm.k_tail, target)
+    update_graphics(gm, t_dot)
 end
 
 
-function update(d::Dot,
-                pos::SVector{2, Float64},
-                vel::SVector{2, Float64},
-                gstate)
-    setproperties(d,
-                  (pos = pos, vel = vel, gstate = gstate))
+function sync_update(d::Dot,
+                     ku::KinematicsUpdate)
+    cb = deepcopy(d.tail)
+    pushfirst!(cb, ku.p)
+    setproperties(d, (vel = ku.v, tail = cb))
 end
 
 function UniformEnsemble(gm::InertiaGM,
@@ -105,10 +103,10 @@ end
 function td_assocs(st::InertiaState)
     @unpack pt, pls = st
     ne = 4
-    nx = 4
     np = size(pt, 3)
     ws = exp.(pls .- logsumexp(pls))
     x_weights = Vector{Float64}(undef, 4)
+    # first 4 objects are targets
     @inbounds @views for x = 1:4
         xw = 0.0
         for p = 1:np, e = 1:ne
@@ -120,48 +118,52 @@ function td_assocs(st::InertiaState)
     return x_weights
 end
 
-function td_flat(st::InertiaState)
+function td_flat(st::InertiaState, t::Float64)
     @unpack pt, pls = st
-    ne = 4
-    nx,_,np = size(pt)
-    # @show pls
-    # pls  = softmax(pls; t = 0.01)
-    # @show pls
-    t = 10.0
-    ls = logsumexp(pls)
+    nx,ne,np = size(pt)
+    ne -= 1
+    ls::Float64 = logsumexp(pls)
+    nls = log.(softmax(pls, t=t))
+    # probability that each observation
+    # is explained by a target
     x_weights = Vector{Float64}(undef, nx)
     @inbounds for x = 1:nx
         xw = -Inf
         @views for p = 1:np, e = 1:ne
             pt[x, e, p] || continue
-            xw = logsumexp(xw, pls[p])
+            xw = logsumexp(xw, nls[p])
         end
-        x_weights[x] = xw/t - ls/t
+        x_weights[x] = xw
     end
+
+    # the ratio of observations explained by each target
+    # weighted by the probability that the observation is
+    # explained by other targets
     td_weights = fill(-Inf, ne)
     @inbounds for i = 1:ne
+        # @show i
         for p = 1:np
-            kx = 0
-            xw = -Inf
-            # @show i
+            ew = -Inf
             @views for x = 1:nx
                 pt[x, i, p] || continue
-                # @show x => x_weights[x]
-                xw = logsumexp(xw, x_weights[x])
-                kx += 1
+                ew = x_weights[x]
+                # println("pls($p) = $(pls[p]), xw($x) = $ew")
+                # assuming isomorphicity
+                # (one association per partition)
+                break
             end
-            kx == 0 && continue
             # P(e -> x) where x is associated with any other targets
-            xw += - log(kx) + (pls[p]/t  - ls/t)
-            # @show xw
-            # @show td_weights[i]
-            td_weights[i] = logsumexp(td_weights[i], xw)
-            # @show td_weights[i]
+            prop = nls[p] # ((pls[p]/t - ls/t))
+            ew += prop
+            # println("pls($p) corrected = $(exp(prop))")
+            td_weights[i] = logsumexp(td_weights[i], ew)
         end
-        # td_weights[i] = exp(td_weights[i])
     end
+    # @show pls
     # @show x_weights
+    # # display(exp.(x_weights))
     # @show td_weights
+    # # display(exp.(td_weights))
     # error()
     return td_weights
 end
@@ -200,58 +202,6 @@ end
 # Misc
 ################################################################################
 
-
-function exp_dot_mask!(m,
-                       x0::Float64, y0::Float64,
-                       r::Float64,
-                       w::Int64, h::Int64,
-                       gm::InertiaGM)
-    exp_dot_mask!(m,x0, y0, r, w, h,
-                 gm.outer_f,
-                 gm.inner_f,
-                 gm.outer_p,
-                 gm.inner_p)
-end
-
-function exp_dot_mask( x0::Float64, y0::Float64,
-                       r::Float64,
-                       w::Int64, h::Int64,
-                       gm::InertiaGM)
-    exp_dot_mask(x0, y0, r, w,
-                 gm.mask_tail,
-                 gm.outer_f,
-                 gm.inner_f,
-                 gm.outer_p,
-                 gm.inner_p)
-end
-
-# function render_from_cgs(states,
-#                          gm::GMParams,
-#                          cgs::Vector{CausalGraph})
-#     k = length(cgs)
-#     # time x thing
-#     # first time step is initialization (not inferred)
-#     bit_masks= Vector{Vector{BitMatrix}}(undef, k-1)
-
-#     # initialize graphics
-#     g = first(cgs)
-#     set_prop!(g, :gm, gm)
-#     gr_diff = render(gr, g)
-#     @inbounds for t = 2:k
-#         g = cgs[t]
-#         set_prop!(g, :gm, gm)
-#         # carry over graphics from last step
-#         patch!(g, gr_diff)
-#         # render graphics from current step
-#         gr_diff = render(gr, g)
-#         patch!(g, gr_diff)
-#         @>> g predict(gr) patch!(g)
-#         # create masks
-#         bit_masks[t - 1] = rfs(get_prop(g, :es))
-#     end
-#     bit_masks
-# end
-
 function objects_from_positions(gm::InertiaGM, positions)
     nx = length(positions)
     dots = Vector{Dot}(undef, nx)
@@ -283,11 +233,8 @@ function state_from_positions(gm::InertiaGM, positions, targets)
             old_pos = Float64.(positions[t-1][i][1:2])
             new_pos = SVector{2}(Float64.(positions[t][i][1:2]))
             new_vel = SVector{2}(new_pos .- old_pos)
-            new_gstate = update_graphics(gm, objects[i], new_pos)
-            new_dots[i] = update(objects[i],
-                                 new_pos,
-                                 new_vel,
-                                 new_gstate)
+            dot = sync_update(objects[i], KinematicsUpdate(new_pos, new_vel))
+            new_dots[i] = update_graphics(gm, dot)
         end
         es, xs = observe(gm, new_dots)
         states[t] = InertiaState(prev_state,

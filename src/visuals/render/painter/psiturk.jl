@@ -9,7 +9,7 @@ export PsiturkPainter
 end
 
 function paint(p::PsiturkPainter, dot::Dot)
-    _draw_circle(dot.pos, dot.radius, p.dot_color,
+    _draw_circle(get_pos(dot), dot.radius, p.dot_color,
                  opacity = p.alpha)
     return nothing
 end

@@ -18,7 +18,9 @@ end
 
 function discrete_measure(lws::Vector{Float64},
                           scale::Float64)
-    softmax(lws; t = scale)
+    exp.(lws)
+    # exp.(lws .- logsumexp(lws))
+    # softmax(lws; t = scale)
 end
 
 function td_cost(x::Int64, y::Int64)::Float64
@@ -40,7 +42,7 @@ end
 
 function sinkhorn_div(p::Dict{K,V}, q::Dict{K,V};
                       λ::Float64 = 1.0,
-                      ε::Float64 = 0.02,
+                      ε::Float64 = 0.1,
                       scale::Float64 = 1.0) where {K, V}
     a_k, a_w = discrete_measure(p, scale)
     b_k, b_w = discrete_measure(q, scale)
@@ -56,20 +58,33 @@ end
 
 
 function sinkhorn_div(p::Vector{V}, q::Vector{V};
-                      eps::Float64 = 0.1,
+                      eps::Float64 = 1E-5,
                       scale::Float64 = 1.0) where {V}
-    u = discrete_measure(p, scale)
-    v = discrete_measure(q, scale)
-    # @show p
-    # @show q
-    c = cost_matrix(length(u))
-    ot = sinkhorn(u, v, c, eps;
-                  atol = 1E-3,
-                  maxiter=10_000)
-    d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
-                                                 regularization=false)
-    # instability could lead to negative values
-    d = log(max(d, 0.))
+    u = exp.(p)
+    v = exp.(q)
+    ds = u .- v
+    rmul!(ds, scale)
+    d = log(sum(abs.(ds)))
+    # display(Dict(:u => u, :v => v, :d => d))
+    return d
+
+    # c = cost_matrix(length(p))
+    # n = length(p)
+    # c = fill(1E-1, (n, n))
+    # c[I(n)] .= 0.0
+    # rmul!(c, scale)
+
+    # λ = 1E5
+    # ot = sinkhorn_unbalanced(u, v, c, λ, λ, eps;
+    #                          atol = 1E-5,
+    #                          maxiter=10_000)
+    # display(ot)
+    # d = OptimalTransport.sinkhorn_cost_from_plan(ot, c, eps;
+    #                                              regularization=false)
+    # # instability could lead to negative values
+    # d = log(max(d, 0.))
+    # display(Dict(:u => u, :v => v, :d => d))
+    # return d
 end
 
 function sinkhorn_div(ps::Array{Dict{K,V}}, qs::Array{Dict{K,V}}; kwargs...) where {K,V}

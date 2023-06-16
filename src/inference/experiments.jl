@@ -16,11 +16,11 @@ function get_init_constraints(gm::InertiaGM, st::InertiaState)
     cm = Gen.choicemap()
     n = gm.n_targets
     for i=1:n
-        dot = st.objects[i]
+        pos = get_pos(st.objects[i])
         addr = :init_state => :init_kernel => i => :x
-        cm[addr] = dot.pos[1]
+        cm[addr] = pos[1]
         addr = :init_state => :init_kernel => i => :y
-        cm[addr] = dot.pos[2]
+        cm[addr] = pos[2]
         # by convention, the first n init_kernel are targets
         # in the source trace
         cm[:init_state => :init_kernel => i => :target] = true
@@ -34,9 +34,10 @@ function query_from_params(gm::InertiaGM,
                            k::Int64)
 
     # ensure that all obs are present
-    dgp_gm = setproperties(gm,
-                           (outer_f = 1.0,
-                            inner_f = 1.0))
+    dgp_gm = gm
+    # dgp_gm = setproperties(gm,
+    #                        (outer_f = 1.0,
+    #                         inner_f = 1.0))
 
     init_gt = gt_states[1]
     rest_gt = gt_states[2:end]

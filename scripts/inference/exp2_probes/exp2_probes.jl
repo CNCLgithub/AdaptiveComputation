@@ -108,14 +108,18 @@ function run(cmd)
     display(args)
 
     gm = MOT.load(InertiaGM, args["gm"])
+    dgp_gm = gm
     # loading scene data
-    scene_data = MOT.load_scene(gm,
+    scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
 
-    # gm = @set gm.vel = aux_data["vel"]
+    gm = setproperties(gm, (
+        n_dots = gm.n_targets + aux_data["n_distractors"],
+        vel = aux_data["vel"] * 0.55,
+    ))
 
     query = query_from_params(gm, gt_states, length(gt_states))
 
@@ -123,9 +127,9 @@ function run(cmd)
     att = MOT.load(PopSensitivity,
                    args[att_mode]["params"],
                    plan = args[att_mode]["objective"],
-                   plan_args = (),
+                   plan_args = (1.025,),
                    percept_update = tracker_kernel,
-                   percept_args = (4,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
                     args["proc"];
@@ -144,28 +148,12 @@ function run(cmd)
     println("running chain $c")
 
     isfile(chain_path) && args["restart"] && rm(chain_path)
-
     if isfile(chain_path)
         chain  = resume_chain(chain_path, args["step_size"])
     else
         chain = sequential_monte_carlo(proc, query, chain_path,
                                        args["step_size"])
     end
-    # Profile.init(delay = 1E-4,
-    #              n = 10^7)
-    # Profile.clear()
-    # Profile.clear_malloc_data()
-    # isfile(chain_path) && args["restart"] && rm(chain_path)
-
-    # if isfile(chain_path)
-    #     chain  = resume_chain(chain_path, args["step_size"])
-    # else
-    #     chain = sequential_monte_carlo(proc, query, chain_path,
-    #     args["step_size"])
-    #     # chain = @profilehtml sequential_monte_carlo(proc, query, chain_path,
-    #     #                                             args["step_size"])
-    # end
-
 
     dg = extract_digest(chain_path)
     pf = MOT.chain_performance(chain, dg,
@@ -179,7 +167,7 @@ function run(cmd)
     af[!, :chain] .= c
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
-    args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
+    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
     args["viz"] && visualize_inference(chain, dg, gt_states, gm,
                                        joinpath(path, "$(c)_scene"))
     return nothing
@@ -196,7 +184,7 @@ function main()
     # scene, chain, time
 
     # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=370", "T"]
+    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
     run(cmd);
 end
 

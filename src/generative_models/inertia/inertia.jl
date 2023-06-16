@@ -39,7 +39,8 @@ Model that uses inertial change points to "explain" interactions
     outer_f::Float64 = 1.0
     inner_p::Float64 = 0.95
     outer_p::Float64 = 0.3
-    mask_tail::Float64 = 6.5
+    k_tail::Int64 = 4 # number of point in tail
+    tail_sample_rate::Int64 = 2
     nlog_bernoulli::Float64 = -100
     bern_existence_prob::Float64 = -expm1(nlog_bernoulli)
 end
@@ -83,24 +84,18 @@ function step(gm::InertiaGM,
     @inbounds for i in eachindex(objects)
         # force accumalator
         facc = MVector{2, Float64}(zeros(2))
-
-        # applyies the spatial jitter from gen
-        dot = apply_update(objects[i], updates[i])
-
+        # applies the motion kernel from gen
+        dot = overwrite_update(objects[i], updates[i])
         # interactions with walls
         for w in walls
             force!(facc, gm, w, dot)
         end
-
         # kinematics: resolve forces to pos vel
-        (new_pos, new_vel) = update_kinematics(gm, dot, facc)
-
+        ku = update_kinematics(gm, dot, facc)
+        dot = sync_update(dot, ku)
         # also do graphical update
-        new_gstate = update_graphics(gm, dot, new_pos)
-        new_dots[i] = update(dot, new_pos, new_vel, new_gstate)
-        # new_dots[i] = update(dot, new_pos, new_vel, dot.gstate)
+        new_dots[i] = update_graphics(gm, dot)
     end
-
     return new_dots
 end
 
@@ -112,7 +107,7 @@ function force!(f::MVector{2, Float64}, dm::InertiaGM, ::Thing, ::Thing)
 end
 
 function force!(f::MVector{2, Float64}, dm::InertiaGM, w::Wall, d::Dot)
-    @unpack pos = d
+    pos = get_pos(d)
     @unpack wall_rep_m, wall_rep_a, wall_rep_x0 = dm
     n = LinearAlgebra.norm(w.normal .* pos + w.nd)
     f .+= wall_rep_m * exp(-1 * (wall_rep_a * (n - wall_rep_x0))) * w.normal
@@ -121,17 +116,18 @@ function force!(f::MVector{2, Float64}, dm::InertiaGM, w::Wall, d::Dot)
 end
 
 # function force!(f::MVector{2, Float64}, dm::InertiaGM, a::Dot, b::Dot)
-#     v = a.pos- b.pos
+#     v = get_pos(a)- get_pos(b)
 #     norm_v = norm(v)
 #     absolute_force = dm.distance * exp(norm_v * dm.dot_repulsion)
 #     f .+= absolute_force .* normalize(v)
 #     return nothing
 # end
 
-function apply_update(d::Dot, ku::KinematicsUpdate)
-    setproperties(d,
-                  (pos = ku.p,
-                   vel = ku.v))
+function overwrite_update(d::Dot, ku::KinematicsUpdate)
+    # replace the current head with ku
+    cb = deepcopy(d.tail)
+    cb[1] = ku.p
+    setproperties(d, (vel = ku.v, tail = cb))
 end
 
 function update_kinematics(::InertiaGM, ::Object, ::MVector{2, Float64})
@@ -142,126 +138,83 @@ function update_kinematics(gm::InertiaGM, d::Dot, f::MVector{2, Float64})
     # treating force directly as velocity; update velocity by x percentage; but f isn't normalized to be similar to v
     a = f/d.mass
     new_vel = d.vel + a
-    new_pos = clamp.(d.pos + new_vel,
+    new_pos = clamp.(get_pos(d) + new_vel,
                      -gm.area_height * 0.5 + d.radius,
                      gm.area_height * 0.5  - d.radius)
-    return new_pos, new_vel
+    KinematicsUpdate(new_pos, new_vel)
 end
 
 
-function update_graphics(gm::InertiaGM, d::Dot, new_pos::SVector{2, Float64})
+function update_graphics(gm::InertiaGM, d::Dot)
 
-    @unpack area_width, area_height = gm
-    @unpack img_width, img_height = gm
+    nt = length(d.tail)
 
-    # going from area dims to img dims
-    x, y = translate_area_to_img(new_pos...,
-                                 img_height, img_width,
-                                 area_width, area_height)
-    scaled_r = d.radius/area_width*img_width # assuming square
-
-    # # initialize new array
-    # gstate = similar(d.gstate)
-    # @unpack inner_f, inner_p, outer_f, outer_p, decay_rate = gm
-    # new_frame_with_decay!(gstate, d.gstate,
-    #                      x, y, scaled_r,
-    #                      outer_f, inner_f, outer_p, inner_p,
-    #                      decay_rate)
-
-    # return gstate
-    gstate = exp_dot_mask(x, y, scaled_r, img_width, img_height, gm)
-
-    # decayed = dropzeros(d.gstate)
-    decayed = deepcopy(d.gstate)
-    rmul!(decayed, gm.decay_rate)
-    droptol!(decayed, gm.min_mag)
-
-    # overlay new render onto memory
-    # exp_dot_mask!(decayed, x, y, scaled_r, img_width, img_height, gm)
-    # return decayed
-    max.(gstate, decayed)
+    @unpack area_width, decay_rate = gm
+    @unpack inner_f, outer_f, tail_sample_rate = gm
+    r = d.radius
+    base_sd = r * inner_f
+    nk = ceil(Int64, nt / tail_sample_rate)
+    gpoints = Vector{GaussianComponent{2}}(undef, nk)
+    # linearly increase sd
+    step_sd = (outer_f - inner_f) * r / nt
+    # ws = Vector{Float64}([-i*decay_rate for i = 1:nk])
+    # ws .-= logsumexp(ws)
+    c::Int64 = 1
+    i::Int64 = 1
+    @inbounds while c <= nt
+        c_next = min(nt, c + tail_sample_rate - 1)
+        pos = mean(d.tail[c:c_next])
+        sd = (i-1) * step_sd + base_sd
+        cov = SMatrix{2,2}(spdiagm([sd, sd]))
+        gpoints[i] = GaussianComponent{2}(1.0, pos, cov)
+        c = c_next + 1
+        i += 1
+    end
+    setproperties(d, (gstate = gpoints))
 end
 
-# function predict(gm::InertiaGM,
-#                  st::InertiaState,
-#                  objects::AbstractVector{Dot})::RFSElements{SVector{2, Float64}}
-#     n = length(objects)
-#     es = RFSElements{SVector{2, Float64}}(undef, n + 1)
-#     @unpack nlog_bernoulli, img_dims = gm
-#     @inbounds for i in 1:n
-#         obj = objects[i]
-#         mus = obj.pos
-#         cov = diagm(abs.(obj.vel))
-#         es[i] = LogBernoulliElement{SVector{2, Float64}}(nlog_bernoulli,
-#                                                     pointmv,
-#                                                     (mus, cov))
-#     end
-#     mus = SVector{2, Float64}([0., 0.])
-#     cov = SMatrix{2,2,Float64}(diagm([gm.area_width, gm.area_width]))
-#     es[n + 1] = PoissonElement{SVector{2, Float64}}(4,
-#                                                     pointmv,
-#                                                     (mus, cov))
-#     return es
-# end
 function predict(gm::InertiaGM,
+                 t::Int,
                  st::InertiaState,
                  objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{Matrix{Bool}}(undef, n + 1)
-    @unpack nlog_bernoulli, img_dims = gm
+    es = RFSElements{GaussObs{2}}(undef, n + 1)
+    @unpack nlog_bernoulli, area_width, k_tail = gm
+    @unpack tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{Matrix{Bool}}(nlog_bernoulli,
-                                               mask,
-                                               (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
     end
-    @unpack rate, pixel_prob = (st.ensemble)
-    es[n + 1] = PoissonElement{Matrix{Bool}}(rate,
-                                          mask,
-                                          (Fill(pixel_prob, img_dims),))
+    nt = t < k_tail ? (t + 1) : k_tail
+    nt = ceil(Int64, nt / tail_sample_rate)
+    w = -log(nt)
+    @unpack rate = (st.ensemble)
+    mu = @SVector zeros(2)
+    cov = SMatrix{2,2}(spdiagm([50*area_width, 50*area_width]))
+    uniform_gpp = Fill(GaussianComponent{2}(w, mu, cov), nt)
+    es[n + 1] = PoissonElement{GaussObs{2}}(rate, gpp, (uniform_gpp,))
     return es
 end
 
-
-# function observe(gm::InertiaGM,
-#                  objects::AbstractVector{Dot})
-#     n = length(objects)
-#     es = RFSElements{SVector{2, Float64}}(undef, n)
-#     @unpack nlog_bernoulli, img_dims = gm
-#     @inbounds for i in 1:n
-#         obj = objects[i]
-#         mus = obj.pos
-#         cov = diagm(abs.(obj.vel))
-#         es[i] = LogBernoulliElement{SVector{2, Float64}}(nlog_bernoulli,
-#                                                     pointmv,
-#                                                     (mus, cov))
-#     end
-#     (es, point_mrfs(es, 50, 1.0))
-# end
 function observe(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{Matrix{Bool}}(undef, n)
+    es = RFSElements{GaussObs{2}}(undef, n)
     @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = LogBernoulliElement{Matrix{Bool}}(nlog_bernoulli,
-                                               mask,
-                                               (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp,
+                                       (obj.gstate,))
+        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
+        #                                          gpp,
+        #                                          (obj.gstate,))
     end
-    (es, mask_mrfs(es, 50, 1.0))
+    (es, gpp_mrfs(es, 50, 1.0))
 end
-# function render(gm::RepulsionGM, st::RepulsionState)
-
-#     gstate = zeros(gm.img_dims)
-#     @inbounds for j = 1:gm.n_dots
-#         #dot = ?
-#         dot = current_state.objects[j]
-#         gstate .+= dot.gstate
-#     end
-#     rmul!(gstate, 1.0 / gm.n_dots)
-#     Gray.(gstate)
-# end
 
 include("helpers.jl")
 include("gen.jl")

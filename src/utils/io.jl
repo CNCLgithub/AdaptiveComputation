@@ -60,32 +60,6 @@ function merge_experiment(exp_path::String;
     return nothing
 end
 
-"""
-    simplified target designation using the Hungarian algorithm
-    (or a simple version of the Hungarian algorithm)
-"""
-function get_simplified_target_designation(cg, gt_cg)
-    pos = @>> get_objects(cg, Dot) map(x->x.pos)
-    gt_pos = @>> get_objects(gt_cg, Dot) map(x->x.pos)
-    
-    n_trackers = @>> get_objects(cg, Dot) length
-    n_dots = @>> get_objects(gt_cg, Dot) length
-
-    inds = Iterators.product(1:n_trackers, 1:n_dots)
-    distances = @>> inds map(i -> norm(pos[i[1]] - gt_pos[i[2]]))
-    td = []
-    for i=1:n_trackers
-        perm = sortperm(distances[i,:])
-        for j in perm
-            if !(j in td)
-                push!(td, j)
-                break
-            end
-        end
-    end
-
-    return td
-end
 
 function chain_performance(chain, dg;
                            n_targets = 4)
@@ -104,7 +78,7 @@ function chain_attention(chain, dg;
     aux_state = dg[:, :auxillary]
 
     steps = length(aux_state)
-    # cycles = 0
+    cycles = 0
 
     traces = chain.state.traces
     np = length(traces)
@@ -117,6 +91,7 @@ function chain_attention(chain, dg;
         pred_y = Float64[])
     for frame = 1:steps
         arrousal = aux_state[frame].arrousal
+        cycles += arrousal
         importance = aux_state[frame].importance
         cycles_per_latent =  arrousal .* importance
         positions = dg[frame, :positions]
@@ -128,5 +103,6 @@ function chain_attention(chain, dg;
                        px, py))
         end
     end
+    println("total arrousal = $(cycles)")
     return df
 end

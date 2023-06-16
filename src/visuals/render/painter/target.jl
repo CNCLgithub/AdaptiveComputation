@@ -16,5 +16,5 @@ function paint(p::TargetPainter, cg::CausalGraph)
 end
 
 function paint(p::TargetPainter, cg::CausalGraph, v::Int64, d::Dot)
-    _draw_circle(d.pos[1:2], d.radius * p.dot_radius_multiplier, p.target_color)
+    _draw_circle(get_pos(d), d.radius * p.dot_radius_multiplier, p.target_color)
 end

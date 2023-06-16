@@ -38,7 +38,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     @unpack proc, state, auxillary = chain
     @unpack sensitivities, importance, arrousal = auxillary
 
-    cycles_per_latent = ceil.(Int64, importance .* arrousal)
+    cycles_per_latent = round.(Int64, importance .* arrousal)
     @show cycles_per_latent
 
     # number of particles
@@ -47,8 +47,10 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     nl = att.latents
     log_particles = log(np)
     # counter for acceptance ratio
+    c = 0
     accepted = 0
     for l = 1:nl # for each latent
+        # println("on latent $l")
         samples = cycles_per_latent[l] + att.min_samples
         log_steps = log(samples)
         # matrix storing estimates of dPdS
@@ -56,7 +58,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
         for i = 1:np # for each particle
             # initialize objective of S -> P
             s = state.traces[i]
-            p = att.plan(s)
+            p = att.plan(s, att.plan_args...)
             for j = 1:samples
                 # perceptual update:: S -> (S', dS)
                 s_prime, ls = att.percept_update(s, l , att.percept_args...)
@@ -66,8 +68,10 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                # dPdS[i, j] -= 0.01 * abs(ls)
+                dS = log(abs(0.5 - exp(max(0., ls))))
+                dPdS[i, j] -= dS
                 # accepted a proposal and update references
+                c +=1
                 if log(rand()) < ls
                     accepted += 1
                     s = s_prime
@@ -82,7 +86,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
     @show sensitivities
     # update adaptive computation state
     @pack! auxillary = sensitivities
-    acceptance = accepted / (np * (arrousal + att.min_samples))
+    acceptance = accepted / c
     @pack! auxillary = acceptance
     println("acceptance ratio $(acceptance)")
     return nothing
@@ -104,7 +108,7 @@ function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack m, max_arrousal, x0 = att
-    amp = exp(m * (logsumexp(sensitivities) + x0))
+    amp = m * (logsumexp(sensitivities) + x0)
     @show logsumexp(sensitivities)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
     println("arrousal: $(arrousal)")

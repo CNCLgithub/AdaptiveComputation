@@ -59,46 +59,13 @@ function correspondence(tr::Gen.Trace)
     end
 end
 
-# target designation 2:
-# for each observation gets score for being a target
-function td_flat(pt::BitArray{3}, ls::Vector{Float64})
-    tw = ones(size(pt, 2))
-    td_flat(pt, ls, tw)
-end
-function td_flat(pt::BitArray{3}, ls::Vector{Float64}, tw::Vector{Float64})
-    nx, ne, np = size(pt)
-    @assert ne === length(tw) "Number of elements must match target weights"
-    @assert np === length(ls) "Partition count in `pt` must match log score"
-
-    td = Dict{Int64, Float64}()
-    if ne === 0
-        for k = 1:nx
-            td[k] = 0.0 # log(1.0)
-        end
-        return td
-    end
-    total_lse = logsumexp(ls)
-    @inbounds for x = 1:nx
-        tdx = Vector{Float64}(undef, np)
-        # @show x
-        for p = 1:np
-            # @show (pt[x, :, p] .* tw, ls[p])
-            tdx[p] = log(sum(pt[x, :, p] .* tw)) + ls[p]
-        end
-        # @show tdx
-        td[x] = logsumexp(tdx) - total_lse
-    end
-    td
-end
-
-
-function td_flat(tr::Gen.Trace)
-    @>> tr begin
+function td_flat(tr::Gen.Trace, temp::Float64)
+    t = @>> tr begin
         get_args
         first # time t
-        t -> tr[:kernel => t] # state
-        td_flat # state specific flat
     end
+    # state specific flat
+    td_flat(tr[:kernel => t], temp)
 end
 
 # target designation 1:

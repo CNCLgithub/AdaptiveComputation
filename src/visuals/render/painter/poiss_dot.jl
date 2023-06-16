@@ -13,7 +13,7 @@ function paint(p::PoissDotPainter, cg::CausalGraph, v::Int64, d::Dot)
     ppp[1] = PoissonElement{Array{Float64}}(p.rate, broadcasted_normal, rvargs)
     positions = rfs(ppp)
     for pos in positions
-        _draw_circle(d.pos[1:2] + pos, d.radius, p.dot_color)
+        _draw_circle(get_pos(d) + pos, d.radius, p.dot_color)
     end
     return nothing
 end

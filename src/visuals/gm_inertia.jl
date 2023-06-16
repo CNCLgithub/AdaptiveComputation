@@ -2,13 +2,25 @@ export render_trace, render_pf, render_scene
 
 color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 
-function render_gstate!(canvas, d::Dot, c)
+function render_gstate!(canvas, d::Dot, c, aw)
     @unpack gstate = d
-    for i = eachindex(gstate)
-        v = gstate[i]
-        canvas[i] = ColorBlendModes.blend(canvas[i],
-                                          RGBA{Float64}(c.r, c.g, c.b, v))
-
+    iw,ih = size(canvas)
+    m = zeros(ih, iw)
+    nt = length(d.gstate)
+    for t = 1:nt
+        gc = gstate[t]
+        @inbounds for i = 1:iw, j = 1:ih
+            x = SVector{2, Float64}([(i - 0.5*iw) *  aw / iw,
+                                    (j - 0.5*ih) * -aw / ih])
+            v = exp(Gen.logpdf(mvnormal, x, gc.mu, gc.cov) + gc.w + 4.)
+            v = min(1.0, v)
+            m[j, i] = max(m[j,i], v)
+        end
+    end
+    # m .*= 1.0/nt
+    @inbounds for i = eachindex(canvas)
+        c = RGBA{Float64}(c.r, c.g, c.b, m[i])
+        canvas[i] = ColorBlendModes.blend(canvas[i], c)
     end
     return nothing
 end
@@ -18,18 +30,24 @@ function render_prediction!(canvas, gm::InertiaGM, st::InertiaState)
     ne = length(objects)
     for i = 1:ne
         color_code = RGB{Float64}(color_codes[i])
-        render_gstate!(canvas, objects[i], color_code)
+        render_gstate!(canvas, objects[i], color_code, gm.area_width)
     end
     return nothing
 end
 
 function render_observed!(canvas, gm::InertiaGM, st::InertiaState;
-                          alpha::Float64 = 0.6)
+                          alpha::Float64 = 1.0)
     @unpack xs = st
     nx = length(xs)
     color_code = RGBA{Float64}(1., 1., 1., alpha)
-    for i = 1:nx
-        canvas[xs[i]] .= ColorBlendModes.blend.(canvas[xs[i]], color_code)
+    @inbounds for i = 1:nx
+        xt = xs[i]
+        nt = length(xt)
+        for j = 1:nt
+            a,b = xt[j]
+            x,y = translate_area_to_img(a,b,gm.img_width, gm.area_height)
+            canvas[y,x] = color_code
+        end
     end
     return nothing
 end
@@ -37,8 +55,6 @@ end
 function render_trace(gm::InertiaGM,
                       tr::Gen.Trace,
                       path::String)
-
-
     @unpack img_dims = gm
 
     (init_state, states) = get_retval(tr)
@@ -117,12 +133,14 @@ function MOT.paint(p::Painter, st::InertiaState)
     end
     return nothing
 end
-function MOT.paint(p::IDPainter, st::InertiaState)
+function MOT.paint(p::Union{IDPainter,KinPainter}, st::InertiaState)
     for i in eachindex(st.objects)
         paint(p, st.objects[i], i)
     end
     return nothing
 end
+
+
 function MOT.paint(p::AttentionRingsPainter,
                    st::InertiaState,
                    weights::Vector{Float64})
@@ -144,6 +162,14 @@ function render_scene(gm::InertiaGM,
     np, nt = size(pf_st)
 
     alpha = 3.0 * 1.0 / np
+
+    att_rings = AttentionRingsPainter(max_attention = 1.0,
+                                    opacity = 1.00,
+                                    radius = 40.,
+                                    linewidth = 15.0,
+                                    attention_color = "red")
+    att_centroid = AttentionCentroidPainter()
+
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
 
@@ -170,30 +196,16 @@ function render_scene(gm::InertiaGM,
         for j = 1:np
 
             # paint motion vectors
-            p = KinPainter(alpha = alpha)
+            p = KinPainter(color = color_codes,
+                           alpha = 0.1,
+                           tail = true)
             pf_state = pf_st[j, i]
             MOT.paint(p, pf_state)
 
             # attention rings
-            # tw = target_weights(pf_st[j, i], attended[:, i])
-            att_rings = AttentionRingsPainter(max_attention = 1.0,
-                                              opacity = 0.95,
-                                              radius = 40.,
-                                              linewidth = 7.0,
-                                              attention_color = "red")
             MOT.paint(att_rings, pf_state, attended[:, i])
+            MOT.paint(att_centroid, pf_state, attended[:, i])
 
-            # add tails
-            step = 1
-            steps = max(1, i-7):i
-            for k = steps
-                alpha = 0.5 * exp(0.5 * (k - i))
-                p = IDPainter(colors = color_codes,
-                              label = false,
-                              alpha = alpha)
-                MOT.paint(p, pf_st[j, k])
-                step += 1
-            end
         end
         finish()
     end
