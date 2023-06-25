@@ -1,3 +1,0 @@
-[submodule "deps/sconfig"]
-	path = deps/sconfig
-	url = git@github.com:belledon/sconfig.git
