@@ -3,7 +3,7 @@ export PopParticleFilter,
 
 using Gen_Compose
 using Gen_Compose: initial_args, initial_constraints,
-    AuxillaryState, SeqPFChain
+    AuxillaryState, PFChain
 
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
@@ -15,30 +15,25 @@ function load(::Type{PopParticleFilter}, path; kwargs...)
     PopParticleFilter(;read_json(path)..., kwargs...)
 end
 
-function Gen_Compose.initialize_chain(proc::PopParticleFilter,
-                                      query::SequentialQuery)
-    @debug "initializing pf state"
-    args = initial_args(query)
-    constraints = initial_constraints(query)
-    state = Gen.initialize_particle_filter(query.forward_function,
-                                           args,
-                                           constraints,
-                                           proc.particles)
+function Gen_Compose.PFChain{Q, P}(q::Q,
+                                   p::PopParticleFilter,
+                                   n::Int,
+                                   i::Int = 1) where
+    {Q<:SequentialQuery}
 
-    aux = AdaptiveComputation(proc.attention)
-    return SeqPFChain(query, proc, state, aux)
+    state = initialize_procedure(p, q)
+    aux = AdaptiveComputation(p.attention)
+    return PFChain{Q, P}(q, p, state, aux, i, n)
 end
 
-function Gen_Compose.smc_step!(chain::SeqPFChain, proc::PopParticleFilter,
-                               query::StaticQuery)
-    @unpack state = chain
-    @unpack args, observations = query
+function Gen_Compose.step!(chain::PFChain{<:SequentialQuery, <:PopParticleFilter})
+    @unpack query, proc, state, step = chain
+    squery = query[step]
+    @unpack args, argdiffs, observations = squery
     # Resample before moving on...
     Gen.maybe_resample!(state, ess_threshold=proc.ess)
     # update the state of the particles
-    argdiffs = (UnknownChange(), NoChange())
-    println("taking step $(first(args))")
-    @time Gen.particle_filter_step!(state, args, argdiffs,
+    Gen.particle_filter_step!(state, args, argdiffs,
                               observations)
     @unpack attention = proc
     adaptive_compute!(chain, attention)

@@ -18,7 +18,7 @@ function update_arrousal!(::InferenceChain, ::AbstractAttentionModel)
     error("not implemented")
 end
 
-function adaptive_compute!(chain::SeqPFChain,
+function adaptive_compute!(chain::PFChain,
                            attention::AbstractAttentionModel)
     # apply perceptual updates and monitor dP/dS
     @time hypothesis_testing!(chain, attention)

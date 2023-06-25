@@ -30,39 +30,31 @@ end
 
 
 function query_from_params(gm::InertiaGM,
-                           gt_states::Vector{InertiaState},
-                           k::Int64)
+                           gt_states::Vector{InertiaState})
 
-    # ensure that all obs are present
-    dgp_gm = gm
-    # dgp_gm = setproperties(gm,
-    #                        (outer_f = 1.0,
-    #                         inner_f = 1.0))
-
+    k = length(gt_states)
     init_gt = gt_states[1]
     rest_gt = gt_states[2:end]
 
-    init_constraints = get_init_constraints(dgp_gm,
-                                            init_gt)
-    observations = get_observations(dgp_gm, rest_gt)
+    # initialize with gt positions for t = 1
+    init_constraints = get_init_constraints(gm, init_gt)
+    # must infer trajectories for t > 1
+    observations = get_observations(gm, rest_gt)
 
     init_args = (0, gm)
     args = [(t, gm) for t in 1:k]
+    argdiffs = [(UnknownChange(), NoChange()) for _ = 1:k]
 
     latent_map = LatentMap(
         :auxillary => digest_auxillary,
         :positions => digest_tracker_positions
     )
 
-    query = Gen_Compose.SequentialQuery(latent_map,
-                                        gm_inertia,
-                                        init_args,
-                                        init_constraints,
-                                        args,
-                                        observations)
-
-    # q = first(query)
-    # ms = q.observations[:kernel => 1 => :masks]
-    # @debug "number of masks $(length(ms))"
-    return query
+    Gen_Compose.SequentialQuery(latent_map,
+                                gm_inertia,
+                                init_args,
+                                init_constraints,
+                                args,
+                                argdiffs,
+                                observations)
 end

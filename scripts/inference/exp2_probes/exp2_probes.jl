@@ -1,9 +1,8 @@
 using CSV
-using GenRFS
 using MOT
-using Gen_Compose
 using ArgParse
 using Accessors
+using Gen_Compose
 
 # using Random
 # Random.seed!(1234);
@@ -14,128 +13,44 @@ using Accessors
 
 experiment_name = "exp2_probes"
 
-function parse_commandline(vs)
-    s = ArgParseSettings()
+exp_params = (;experiment_name = "exp2_probes",
+              gm = "$(@__DIR__)/gm.json",
+              proc = "$(@__DIR__)/proc.json",
+              att = "$(@__DIR__)/ac.json",
+              dataset = "/spaths/datasets/$(experiment_name).json",
+              dur = 480,
+              restart = true,
+              viz = false,
+              model = "adaptive_computation"
+              )
 
-    @add_arg_table! s begin
-        "--gm"
-        help = "Generative Model params"
-        arg_type = String
-        default = "$(@__DIR__)/gm.json"
-
-        "--proc"
-        help = "Generic particle filter params"
-        arg_type = String
-        default = "$(@__DIR__)/proc.json"
-
-        "--dataset"
-        help = "jld2 dataset path"
-        arg_type = String
-        default = "/spaths/datasets/$(experiment_name).json"
-
-        "--time", "-t"
-        help = "How many frames"
-        arg_type = Int64
-        default = 480
-
-        "--step_size", "-s"
-        help = "How many steps before saving"
-        arg_type = Int64
-        default = 60
-
-        "--restart", "-r"
-        help = "Whether to resume inference"
-        action = :store_true
-
-        "--viz", "-v"
-        help = "Whether to render masks"
-        action = :store_true
-
-        "scene"
-        help = "Which scene to run"
-        arg_type = Int
-        required = true
-
-        "chain"
-        help = "The number of chains to run"
-        arg_type = Int
-        required = true
-
-        "target_designation", "T"
-        help = "Using target designation"
-        action = :command
-
-        "data_correspondence", "D"
-        help = "Using data correspondence"
-        action = :command
-
-        "scene_avg", "A"
-        help = "Using scene avg"
-        action = :command
-
-    end
-
-    @add_arg_table! s["target_designation"] begin
-        "--params"
-        help = "Attention params"
-        arg_type = String
-        default = "$(@__DIR__)/td.json"
-
-        "--objective"
-        help = "Attention objective"
-        arg_type = Function
-        default = td_flat
-    end
-    @add_arg_table! s["data_correspondence"] begin
-        "--params"
-        help = "Attention params"
-        arg_type = String
-        default = "$(@__DIR__)/dc.json"
-    end
-    @add_arg_table! s["scene_avg"] begin
-        "model_path"
-        help = "path containing compute allocations"
-        arg_type = String
-        required = true
-
-    end
-
-    return parse_args(vs, s)
-end
-
-function run(cmd)
-    args = parse_commandline(cmd)
-    display(args)
-
-    gm = MOT.load(InertiaGM, args["gm"])
-    dgp_gm = gm
+function run_model(scene::Int, chain::Int)
+    gm = dgp_gm = MOT.load(InertiaGM, exp_params.gm)
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
-                                args["dataset"],
-                                args["scene"])
-    gt_states = scene_data[:gt_states][1:args["time"]]
+                                exp_params.dataset,
+                                scene)
+    gt_states = scene_data[:gt_states][1:exp_params.dur]
     aux_data = scene_data[:aux_data]
 
-    gm = setproperties(gm, (
-        n_dots = gm.n_targets + aux_data["n_distractors"],
-        vel = aux_data["vel"] * 0.55,
-    ))
+    gm = setproperties(gm,
+                       (n_dots = gm.n_targets + aux_data["n_distractors"],
+                        vel = aux_data["vel"] * 0.55))
 
-    query = query_from_params(gm, gt_states, length(gt_states))
+    query = query_from_params(gm, gt_states)
 
-    att_mode = "target_designation"
     att = MOT.load(PopSensitivity,
-                   args[att_mode]["params"],
-                   plan = args[att_mode]["objective"],
+                   exp_params.att,
+                   plan = td_flat,
                    plan_args = (1.025,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
-                    args["proc"];
+                    exp_params.proc;
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
+    path = "/spaths/experiments/$(experiment_name)_$(exp_params.model)/$(scene)"
     try
         isdir(path) || mkpath(path)
     catch e
@@ -143,52 +58,37 @@ function run(cmd)
     end
 
     c = args["chain"]
-    chain_path = joinpath(path, "$(c).jld2")
+    logger = MemLogger(length(gt_states))
+    chain_perf_path = joinpath(path, "$(c)_perf.csv")
+    chain_att_path = joinpath(path, "$(c)_att.csv")
 
     println("running chain $c")
 
-    isfile(chain_path) && args["restart"] && rm(chain_path)
-    if isfile(chain_path)
-        chain  = resume_chain(chain_path, args["step_size"])
-    else
-        chain = sequential_monte_carlo(proc, query, chain_path,
-                                       args["step_size"])
+    if isfile(chain_perf_path) && args["restart"]
+        rm(chain_perf_path)
+        rm(chain_att_path)
     end
 
-    dg = extract_digest(chain_path)
+    chain = run_chain(proc, query, length(gt_states), logger)
+
+    dg = extract_digest(chain)
     pf = MOT.chain_performance(chain, dg,
                                n_targets = gm.n_targets)
     pf[!, :scene] .= args["scene"]
     pf[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
+    CSV.write(chain_perf_path, pf)
     af = MOT.chain_attention(chain, dg,
                              n_targets = gm.n_targets)
     af[!, :scene] .= args["scene"]
     af[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c)_att.csv"), af)
+    CSV.write(chain_att_path, af)
 
-    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
     args["viz"] && visualize_inference(chain, dg, gt_states, gm,
                                        joinpath(path, "$(c)_scene"))
     return nothing
 end
 
-
-
-function main()
-    # args = Dict("scene" => 1,
-    #             "chain" => 1)
-    args = parse_outer()
-    i = args["scene"]
-    c = args["chain"]
-    # scene, chain, time
-
-    # cmd = ["$(i)", "$c", "T"]
-    cmd = ["$(i)", "$c", "-v", "-r", "--time=480", "T"]
-    run(cmd);
-end
-
-function parse_outer()
+function parse_args()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
@@ -205,5 +105,13 @@ function parse_outer()
 
     return parse_args(s)
 end
+
+function main()
+    args = parse_args()
+    i = args["scene"]
+    c = args["chain"]
+    run_model(i, c);
+end
+
 
 main();

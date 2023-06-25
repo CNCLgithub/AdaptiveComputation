@@ -1,10 +1,10 @@
-using Gen_Compose:SeqPFChain
+using Gen_Compose:PFChain
 
-function digest_auxillary(c::SeqPFChain)
+function digest_auxillary(c::PFChain)
     deepcopy(c.auxillary)
 end
 
-function digest_tracker_positions(c::SeqPFChain)
+function digest_tracker_positions(c::PFChain)
     np = length(c.state.traces)
     nt = @> (c.state.traces) begin
         first
@@ -25,7 +25,7 @@ function digest_tracker_positions(c::SeqPFChain)
     mean(pos, dims = 1) # avg position for each tracker
 end
 
-function extract_td_accuracy(c::SeqPFChain)
+function extract_td_accuracy(c::PFChain)
     # particles at last frame of inference
     @unpack state = c
     traces = sample_unweighted_traces(state, length(state.traces))

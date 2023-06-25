@@ -39,6 +39,19 @@ function extract_digest(f::String)
 end
 
 
+function extract_digest(c::String)
+    df = DataFrame()
+    jldopen(f, "r") do data
+        steps = data["current_idx"]
+        steps === 0 && return df
+        @inbounds for i = 1:steps
+            push!(df, data["$i"]; cols = :union)
+        end
+    end
+    return df
+end
+
+
 function merge_trial(trial_dir::String, report::String)::DataFrame
     @>> trial_dir begin
         readdir(; join = true)

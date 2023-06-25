@@ -15,7 +15,7 @@ function render_trace(tr::Gen.Trace, path::String)
     return nothing
 end
 
-function render_pf(chain::SeqPFChain, path::String)
+function render_pf(chain::PFChain, path::String)
     @unpack state, auxillary = chain
     (t, gm) = get_args(first(state.traces))
     render_pf(gm, chain, path)

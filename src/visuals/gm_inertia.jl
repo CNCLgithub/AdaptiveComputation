@@ -95,7 +95,7 @@ function render_trial(gm::InertiaGM,
 end
 
 function render_pf(gm::InertiaGM,
-                   chain::SeqPFChain,
+                   chain::PFChain,
                    path::String)
 
     @unpack state, auxillary = chain

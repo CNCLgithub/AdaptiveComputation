@@ -33,7 +33,7 @@ function AdaptiveComputation(att::PopSensitivity)
 end
 
 # returns the sensitivity of each latent variable
-function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
+function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
 
     @unpack proc, state, auxillary = chain
     @unpack sensitivities, importance, arrousal = auxillary
@@ -93,7 +93,7 @@ function hypothesis_testing!(chain::SeqPFChain, att::PopSensitivity)
 end
 
 # makes sensitivity weights smoother and softmaxes for categorical sampling
-function update_importance!(chain::SeqPFChain, att::PopSensitivity)
+function update_importance!(chain::PFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     importance = softmax(sensitivities; t = att.importance_tau)
@@ -104,7 +104,7 @@ end
 
 # returns number of sweeps (MH moves) to make determined
 # by the sensitivity weights using an exponential function
-function update_arrousal!(chain::SeqPFChain, att::PopSensitivity)
+function update_arrousal!(chain::PFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack m, max_arrousal, x0 = att

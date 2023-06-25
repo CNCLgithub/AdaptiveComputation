@@ -1,6 +1,5 @@
 using Gen_Compose
-using Gen_Compose: initial_args, initial_constraints,
-    AuxillaryState, SeqPFChain
+using Gen_Compose: AuxillaryState
 
 @with_kw mutable struct AdaptiveComputation <: AuxillaryState
     acceptance::Float64 = 0.
