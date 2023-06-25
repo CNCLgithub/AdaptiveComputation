@@ -1,6 +1,3 @@
-[submodule "deps/slurm"]
-	path = deps/slurm
-	url = git@github.com:belledon/slurm.git
 [submodule "deps/sconfig"]
 	path = deps/sconfig
 	url = git@github.com:belledon/sconfig.git
