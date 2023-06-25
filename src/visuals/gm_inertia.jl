@@ -140,6 +140,12 @@ function MOT.paint(p::Union{IDPainter,KinPainter}, st::InertiaState)
     return nothing
 end
 
+function MOT.paint(p::PsiturkPainter, st::InertiaState)
+    for o in st.objects[5:end]
+        paint(p, o)
+    end
+    return nothing
+end
 
 function MOT.paint(p::AttentionRingsPainter,
                    st::InertiaState,
@@ -189,22 +195,22 @@ function render_scene(gm::InertiaGM,
                                alpha = alpha)
             MOT.paint(p, gt_states[k])
         end
-        p = IDPainter(colors = [], label = true)
-        MOT.paint(p, gt_states[i])
+        # p = IDPainter(colors = [], label = true)
+        # MOT.paint(p, gt_states[i])
 
         # then render each particle's state
         for j = 1:np
 
             # paint motion vectors
             p = KinPainter(color = color_codes,
-                           alpha = 0.1,
+                           alpha = 0.9,
                            tail = true)
             pf_state = pf_st[j, i]
             MOT.paint(p, pf_state)
 
             # attention rings
             MOT.paint(att_rings, pf_state, attended[:, i])
-            MOT.paint(att_centroid, pf_state, attended[:, i])
+            # MOT.paint(att_centroid, pf_state, attended[:, i])
 
         end
         finish()

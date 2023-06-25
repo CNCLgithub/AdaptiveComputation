@@ -55,7 +55,7 @@ function parse_commandline()
         "--scene"
         help = "Which scene to run"
         arg_type = Int
-        default = 23
+        default = 1
 
         "--chain"
         help = "The number of chains to run"
@@ -69,7 +69,7 @@ end
 function main()
     args = parse_commandline()
     # args = default_args()
-    # args["restart"] = true
+    args["restart"] = true
 
 
     # loading scene data
@@ -136,8 +136,8 @@ function main()
     CSV.write(joinpath(path, "$(c)_att.csv"), af)
 
     # render_pf(chain, joinpath(path, "$(c)_graphics"))
-    # visualize_inference(chain, dg, gt_states, gm,
-    #                                    joinpath(path, "$(c)_scene"))
+    visualize_inference(chain, dg, gt_states, gm,
+                                       joinpath(path, "$(c)_scene"))
     # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
     # args["viz"] && visualize_inference(chain, dg, gt_states, gm,
     #                                    joinpath(path, "$(c)_scene"))

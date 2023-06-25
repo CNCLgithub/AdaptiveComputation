@@ -14,11 +14,13 @@ function paint(p::KinPainter, d::Dot, v::Int64)
     _draw_arrow(pos, pos .+ mag .+ 1e-3, p.color[v],
                 linewidth = p.linewidth, opacity = p.alpha)
     if p.tail
-        t = length(d.gstate)
+        t = length(d.tail)
         for k = 1:t
             alpha = p.alpha * exp(-0.5 * (k - 1))
-            c::GaussianComponent{2} = d.gstate[k]
-            _draw_circle(c.mu, 0.2 * c.cov[1,1], p.color[v],
+            # c::GaussianComponent{2} = d.gstate[k]
+            # _draw_circle(c.mu, 0.1 * c.cov[1,1], p.color[v],
+            #              opacity = alpha)
+            _draw_circle(d.tail[k], d.radius, p.color[v],
                          opacity = alpha)
         end
     end
