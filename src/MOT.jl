@@ -12,7 +12,7 @@ using Accessors: setproperties, @set
 using Parameters: @with_kw, @unpack, @pack!
 
 include("utils/utils.jl")
-include("generative_models/generative_models.jl")
+include("gms/gms.jl")
 include("inference/inference.jl")
 @load_generated_functions
 

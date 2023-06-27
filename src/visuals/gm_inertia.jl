@@ -1,5 +1,7 @@
 export render_trace, render_pf, render_scene
 
+using FileIO: save
+
 color_codes = parse.(RGB, ["#A3A500","#00BF7D","#00B0F6","#E76BF3"])
 
 function render_gstate!(canvas, d::Dot, c, aw)

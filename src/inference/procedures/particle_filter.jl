@@ -16,12 +16,13 @@ function load(::Type{PopParticleFilter}, path; kwargs...)
 end
 
 function Gen_Compose.PFChain{Q, P}(q::Q,
-                                   p::PopParticleFilter,
+                                   p::P,
                                    n::Int,
                                    i::Int = 1) where
-    {Q<:SequentialQuery}
+    {Q<:SequentialQuery,
+     P<:PopParticleFilter}
 
-    state = initialize_procedure(p, q)
+    state = Gen_Compose.initialize_procedure(p, q)
     aux = AdaptiveComputation(p.attention)
     return PFChain{Q, P}(q, p, state, aux, i, n)
 end

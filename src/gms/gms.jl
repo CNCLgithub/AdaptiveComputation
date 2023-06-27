@@ -8,26 +8,34 @@ abstract type GMState end
 # Generative Model specifications
 ################################################################################
 """
+    step(::GenerativeModel, ::GMState)
+
 Evolves state according rules in generative model
 """
-function step(::GenerativeModel, ::GMState)::GMState
-    error("Not implemented")
-end
+function step end
 
-function render(::GenerativeModel, ::GMState)
-    error("Not implemented")
-end
+"""
+    observe(::GenerativeModel, ::GMState)
 
-function predict(::GenerativeModel, ::GMState)
-    error("Not implemented")
-end
+Observe given the latent state returning a tuple
+1. Elements parameterizing the random finite set
+2. Observed set
+"""
+function observe end
+
+"""
+    predict(::GenerativeModel, ::GMState)
+
+Return the elements parameterizing the random finite set
+"""
+function predict end
 
 ################################################################################
 # Generative models
 ################################################################################
 
 include("things.jl")
-include("graphics.jl")
+# include("graphics.jl")
 # include("isr/isr.jl")
 include("inertia/inertia.jl")
 

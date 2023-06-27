@@ -3,7 +3,6 @@ export read_json, extract_digest, merge_trial, merge_experiment
 using CSV
 using CSV: write
 using JSON
-using JLD2
 using DataFrames
 
 """
@@ -39,14 +38,11 @@ function extract_digest(f::String)
 end
 
 
-function extract_digest(c::String)
+function extract_digest(l::MemLogger)
     df = DataFrame()
-    jldopen(f, "r") do data
-        steps = data["current_idx"]
-        steps === 0 && return df
-        @inbounds for i = 1:steps
-            push!(df, data["$i"]; cols = :union)
-        end
+    b = buffer(l)
+    for i = 1:length(b)
+        push!(df, b[i]; cols = :union)
     end
     return df
 end
@@ -71,51 +67,4 @@ function merge_experiment(exp_path::String;
         write("$(exp_path)_$(report).csv")
     end
     return nothing
-end
-
-
-function chain_performance(chain, dg;
-                           n_targets = 4)
-    aux_state = dg[:, :auxillary]
-    # causal graphs at the end of inference
-    td_acc = extract_td_accuracy(chain)
-    df = DataFrame(
-                   tracker = 1:n_targets,
-                   td_acc = td_acc)
-    return df
-end
-
-function chain_attention(chain, dg;
-                         n_targets = 4,
-                         n_objects = 8)
-    aux_state = dg[:, :auxillary]
-
-    steps = length(aux_state)
-    cycles = 0
-
-    traces = chain.state.traces
-    np = length(traces)
-    df = DataFrame(
-        frame = Int64[],
-        tracker = Int64[],
-        importance = Float64[],
-        cycles = Float64[],
-        pred_x = Float64[],
-        pred_y = Float64[])
-    for frame = 1:steps
-        arrousal = aux_state[frame].arrousal
-        cycles += arrousal
-        importance = aux_state[frame].importance
-        cycles_per_latent =  arrousal .* importance
-        positions = dg[frame, :positions]
-        for i = 1:n_targets
-            px, py = positions[1, i, :]
-            push!(df, (frame, i,
-                       importance[i],
-                       cycles_per_latent[i],
-                       px, py))
-        end
-    end
-    println("total arrousal = $(cycles)")
-    return df
 end

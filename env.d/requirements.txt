@@ -1,2 +1,2 @@
 numpy
-slurmpy @ git+ssh://git@github.com:belledon/slurm.git@master
+slurmpy @ git+https://github.com/belledon/slurm.git@master

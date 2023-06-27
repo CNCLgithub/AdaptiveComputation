@@ -100,22 +100,24 @@ function correspondence(st::InertiaState)
     correspondence(pt, pls)
 end
 
+"The probability in `st` that each gt target is associated with any target"
 function td_assocs(st::InertiaState)
     @unpack pt, pls = st
-    ne = 4
-    np = size(pt, 3)
-    ws = exp.(pls .- logsumexp(pls))
-    x_weights = Vector{Float64}(undef, 4)
-    # first 4 objects are targets
-    @inbounds @views for x = 1:4
-        xw = 0.0
+    ne = 4 # number of elements (trackers)
+    np = size(pt, 3) # number of partitions
+    # normalized weights of each partition
+    pws = exp.(pls .- logsumexp(pls))
+    weights = Vector{Float64}(undef, ne)
+    # first 4 objects / observations are targets in gt
+    @inbounds @views for x = 1:ne
+        w = 0.0 # Pr(x_i -> e_{1, 4})
         for p = 1:np, e = 1:ne
             pt[x, e, p] || continue
-            xw += ws[p]
+            w += pws[p]
         end
-        x_weights[x] = xw
+        weights[x] = w
     end
-    return x_weights
+    return weights
 end
 
 function td_flat(st::InertiaState, t::Float64)
@@ -141,30 +143,21 @@ function td_flat(st::InertiaState, t::Float64)
     # explained by other targets
     td_weights = fill(-Inf, ne)
     @inbounds for i = 1:ne
-        # @show i
         for p = 1:np
             ew = -Inf
             @views for x = 1:nx
                 pt[x, i, p] || continue
                 ew = x_weights[x]
-                # println("pls($p) = $(pls[p]), xw($x) = $ew")
                 # assuming isomorphicity
                 # (one association per partition)
                 break
             end
             # P(e -> x) where x is associated with any other targets
-            prop = nls[p] # ((pls[p]/t - ls/t))
+            prop = nls[p]
             ew += prop
-            # println("pls($p) corrected = $(exp(prop))")
             td_weights[i] = logsumexp(td_weights[i], ew)
         end
     end
-    # @show pls
-    # @show x_weights
-    # # display(exp.(x_weights))
-    # @show td_weights
-    # # display(exp.(td_weights))
-    # error()
     return td_weights
 end
 

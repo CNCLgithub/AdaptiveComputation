@@ -25,7 +25,7 @@ end
 """
 Computes the correspondence of a partition tensor.
 """
-function correspondence(ptensor::BitArray{3}, ls::Vector{Float64}) where {T}
+function correspondence(ptensor::BitArray{3}, ls::Vector{Float64})
     ls = ls .- logsumexp(ls)
     nx, ne, np = size(ptensor)
     c = zeros(nx, ne)

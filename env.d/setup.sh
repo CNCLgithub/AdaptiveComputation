@@ -58,7 +58,7 @@ cont_dest="${SENV[envd]}/${SENV[cont]}"
     echo "building python env at ${SENV[pyenv]}" && \
     $SING exec "${cont_dest}" bash -c "virtualenv ${SENV[pyenv]}" && \
     ./env.d/run.sh "python -m pip install --upgrade pip" && \
-    ./env.d/run.sh "python -m pip install -r /project/requirements.txt"
+    ./env.d/run.sh "python -m pip install -r /project/env.d/requirements.txt"
 
 #################################################################################
 # Julia setup

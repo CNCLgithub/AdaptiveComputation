@@ -1,1 +1,1 @@
-const SparseMBool = SparseMatrixCSC{Bool}
+# const SparseMBool = SparseMatrixCSC{Bool}

@@ -17,12 +17,11 @@ function main()
         cm[:init_state => :trackers => i => :target] = true
     end
 
-    println("initial run for JIT")
+    # generate a trace to create observations
     tr, _ = generate(gm_inertia, args, cm)
-    # render_trace(tr, "/spaths/test/gm_inertia_trace")
-
     choices = get_choices(tr)
 
+    # new trace to change via mcmc
     new_tr, _ = generate(gm_inertia, (0, gm),
                          get_submap(choices, :init_state))
     Profile.init(delay = 1E-6,
@@ -30,17 +29,15 @@ function main()
     Profile.clear()
 
     t = 5
-
     obs = choicemap()
     obs[:kernel => t => :masks] = choices[:kernel => t => :masks]
     new_tr, _ = update(new_tr, (t, gm), (UnknownChange(), NoChange()), obs)
 
-    # display(@benchmark MOT.td_flat($new_tr))
-    display(@benchmark MOT.tracker_kernel($new_tr, 1, 4))
+    display(@benchmark MOT.tracker_kernel($new_tr, 1, 3))
     steps = 100
     accepted = 0
     @profilehtml for i = 1:steps
-        _tr, w = MOT.tracker_kernel(new_tr, 1, 4)
+        _tr, w = MOT.tracker_kernel(new_tr, 1, 3)
         # @show ls
         if log(rand()) < w
             new_tr = _tr

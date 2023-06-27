@@ -1,5 +1,6 @@
 export query_from_params
 
+"Package simulated trajecties into a vector of choicemaps"
 function get_observations(gm::InertiaGM,
                           st::Vector{InertiaState})
     k = length(st)
@@ -12,6 +13,7 @@ function get_observations(gm::InertiaGM,
     return observations
 end
 
+"Creates a `choicemap` for t0 (gt initial positions)"
 function get_init_constraints(gm::InertiaGM, st::InertiaState)
     cm = Gen.choicemap()
     n = gm.n_targets
@@ -29,6 +31,16 @@ function get_init_constraints(gm::InertiaGM, st::InertiaState)
 end
 
 
+"""
+    query_from_params(gm, gt_state)
+
+The `SequentialQuery` for an MOT trial.
+
+Extracts trajectories from a vector of states (`gm_states`)
+and uses the parameters of `gm` to generate:
+ - observations (masks)
+ - initial constraints for simulation
+"""
 function query_from_params(gm::InertiaGM,
                            gt_states::Vector{InertiaState})
 
@@ -47,7 +59,8 @@ function query_from_params(gm::InertiaGM,
 
     latent_map = LatentMap(
         :auxillary => digest_auxillary,
-        :positions => digest_tracker_positions
+        :positions => digest_tracker_positions,
+        :task_accuracy => digest_td_accuracy,
     )
 
     Gen_Compose.SequentialQuery(latent_map,
@@ -57,4 +70,49 @@ function query_from_params(gm::InertiaGM,
                                 args,
                                 argdiffs,
                                 observations)
+end
+
+
+function chain_performance(dg; n_targets = 4)
+    # causal graphs at the end of inference
+    td_acc = extract_td_accuracy(chain)
+    df = DataFrame(
+                   tracker = 1:n_targets,
+                   td_acc = td_acc)
+    return df
+end
+
+function chain_attention(dg; n_targets = 4)
+    aux_state = dg[:, :auxillary]
+
+    steps = length(aux_state)
+    cycles = 0
+
+    df = DataFrame(
+        frame = Int64[],
+        tracker = Int64[],
+        importance = Float64[],
+        cycles = Float64[],
+        pred_x = Float64[],
+        pred_y = Float64[],
+        pred_x_sd = Float64[],
+        pred_y_sd = Float64[])
+    for frame = 1:steps
+        arrousal = aux_state[frame].arrousal
+        cycles += arrousal
+        importance = aux_state[frame].importance
+        cycles_per_latent =  arrousal .* importance
+        avg_pos = dg[frame, :positions].avg_pos
+        sd_pos = dg[frame, :positions].sd_pos
+        for i = 1:n_targets
+            px, py = avg_pos[1, i, :]
+            sx, sy = sd_pos[1, i, :]
+            push!(df, (frame, i,
+                       importance[i],
+                       cycles_per_latent[i],
+                       px, py, sx, sy))
+        end
+    end
+    println("total arrousal = $(cycles)")
+    return df
 end

@@ -130,9 +130,12 @@ function overwrite_update(d::Dot, ku::KinematicsUpdate)
     setproperties(d, (vel = ku.v, tail = cb))
 end
 
-function update_kinematics(::InertiaGM, ::Object, ::MVector{2, Float64})
-    error("Not implemented")
-end
+"""
+    update_kinematics(::InertiaGM, ::Object, ::MVector{2, Float64})
+
+resolve force on object, returning kinematics update
+"""
+function update_kinematics end
 
 function update_kinematics(gm::InertiaGM, d::Dot, f::MVector{2, Float64})
     # treating force directly as velocity; update velocity by x percentage; but f isn't normalized to be similar to v
@@ -183,9 +186,6 @@ function predict(gm::InertiaGM,
     @unpack tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-        #                                          gpp,
-        #                                          (obj.gstate,))
         es[i] = IsoElement{GaussObs{2}}(gpp,
                                        (obj.gstate,))
     end
@@ -209,9 +209,6 @@ function observe(gm::InertiaGM,
         obj = objects[i]
         es[i] = IsoElement{GaussObs{2}}(gpp,
                                        (obj.gstate,))
-        # es[i] = LogBernoulliElement{GaussObs{2}}(nlog_bernoulli,
-        #                                          gpp,
-        #                                          (obj.gstate,))
     end
     (es, gpp_mrfs(es, 50, 1.0))
 end

@@ -1,9 +1,15 @@
-export Thing, Object, Dot, Wall, UniformEnsemble
+export Thing,
+    Object,
+    Dot,
+    Wall,
+    UniformEnsemble
 
 using DataStructures
 
+"Some potentially physical element"
 abstract type Thing end
 
+"A kind of `Thing` with identity/persistence structure"
 abstract type Object <: Thing end
 
 """
@@ -13,14 +19,21 @@ function target(::Object)
     return 0.0
 end
 
-function get_pos(::Object)
-    error("Not implemented")
-end
+"""
+    get_pos(::Object)
 
-function get_vel(::Object)
-    error("Not implemented")
-end
+The 2D position of an object.
+"""
+function get_pos end
 
+"""
+    get_vel(::Object)
+
+The 2D instantaneous velocity of an object
+"""
+function get_vel end
+
+"A point object - used for tracking targets"
 @with_kw struct Dot <: Object
     # Dynamics
     radius::Float64
@@ -49,6 +62,7 @@ get_pos(d::Dot) = first(d.tail)
 get_vel(d::Dot) = d.vel
 target(d::Dot) = d.target
 
+"A wall (the boundry of the scene)"
 struct Wall <: Object
     # Dynamics
     d::Float64 # the distance from the center
@@ -86,5 +100,6 @@ end
 
 target(u::UniformEnsemble) = u.rate === 0. ? 0. : u.targets / u.rate
 
-const ZERO_POS = SVector{2, Float64}(zeros(2))
-get_pos(e::UniformEnsemble) = ZERO_POS
+const ZERO_VEC2 = SVector{2, Float64}(zeros(2))
+get_pos(e::UniformEnsemble) = ZERO_VEC2
+get_vel(e::UniformEnsemble) = ZERO_VEC2
