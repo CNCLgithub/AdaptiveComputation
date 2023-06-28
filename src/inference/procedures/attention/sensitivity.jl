@@ -80,6 +80,7 @@ function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
             end
             state.traces[i] = s
         end
+        # @show dPdS
         # normalize dPdS across particles and steps
         sensitivities[l] = logsumexp(dPdS) - log_particles - log_steps
     end

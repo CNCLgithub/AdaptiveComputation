@@ -1,5 +1,8 @@
 
-export correspondence, td_flat, td_full
+export correspondence,
+    td_flat,
+    td_full,
+    ensemble_uncertainty
 
 function n_obs(tr::Gen.Trace)
     @>> tr begin
@@ -94,4 +97,13 @@ function td_full(tr::Gen.Trace)
         t -> tr[:kernel => t] # state
         td_full # state specific obj
     end
+end
+
+function ensemble_uncertainty(tr::Gen.Trace, temp::Float64)
+    t = @>> tr begin
+        get_args
+        first # time t
+        t -> tr[:kernel => t] # state
+    end
+    ensemble_uncertainty(t, temp)
 end

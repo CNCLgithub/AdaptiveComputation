@@ -73,16 +73,15 @@ function query_from_params(gm::InertiaGM,
 end
 
 
-function chain_performance(dg; n_targets = 4)
+function chain_performance(dg)
     # causal graphs at the end of inference
-    td_acc = extract_td_accuracy(chain)
-    df = DataFrame(
-                   tracker = 1:n_targets,
-                   td_acc = td_acc)
+    perf = dg[end, :task_accuracy]
+    df = DataFrame(tracker = 1:length(perf),
+                   td_acc = perf)
     return df
 end
 
-function chain_attention(dg; n_targets = 4)
+function chain_attention(dg, n_targets = 4)
     aux_state = dg[:, :auxillary]
 
     steps = length(aux_state)
@@ -102,8 +101,8 @@ function chain_attention(dg; n_targets = 4)
         cycles += arrousal
         importance = aux_state[frame].importance
         cycles_per_latent =  arrousal .* importance
-        avg_pos = dg[frame, :positions].avg_pos
-        sd_pos = dg[frame, :positions].sd_pos
+        avg_pos = dg[frame, :positions].avg
+        sd_pos = dg[frame, :positions].sd
         for i = 1:n_targets
             px, py = avg_pos[1, i, :]
             sx, sy = sd_pos[1, i, :]

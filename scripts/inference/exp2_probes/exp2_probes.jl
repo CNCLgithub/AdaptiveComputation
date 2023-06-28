@@ -18,10 +18,11 @@ exp_params = (;experiment_name = "exp2_probes",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/ac.json",
               dataset = "/spaths/datasets/$(experiment_name).json",
-              dur = 480,
-              restart = true,
+              dur = 480, # number of frames to run; full = 480
+              model = "adaptive_computation",
+              # SET FALSE for full experiment
+              restart = false,
               viz = false,
-              model = "adaptive_computation"
               )
 
 function run_model(scene::Int, chain::Int)
@@ -42,6 +43,7 @@ function run_model(scene::Int, chain::Int)
     att = MOT.load(PopSensitivity,
                    exp_params.att,
                    plan = td_flat,
+                   # plan = ensemble_uncertainty,
                    plan_args = (1.025,),
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
@@ -57,45 +59,41 @@ function run_model(scene::Int, chain::Int)
         println("could not make dir $(path)")
     end
 
-    c = args["chain"]
-    logger = MemLogger(length(gt_states))
-    chain_perf_path = joinpath(path, "$(c)_perf.csv")
-    chain_att_path = joinpath(path, "$(c)_att.csv")
+    nsteps = length(gt_states) - 1
+    logger = MemLogger(nsteps)
+    chain_perf_path = joinpath(path, "$(chain)_perf.csv")
+    chain_att_path = joinpath(path, "$(chain)_att.csv")
 
-    println("running chain $c")
-
-    if isfile(chain_perf_path) && args["restart"]
+    println("running chain $(chain)")
+    if isfile(chain_perf_path) && exp_params.restart
         rm(chain_perf_path)
         rm(chain_att_path)
     end
+    smc_chain = run_chain(proc, query, nsteps, logger)
 
-    chain = run_chain(proc, query, length(gt_states), logger)
+    dg = extract_digest(logger)
+    perf_df = MOT.chain_performance(dg)
+    perf_df[!, :scene] .= scene
+    perf_df[!, :chain] .= chain
+    CSV.write(chain_perf_path, perf_df)
+    att_df = MOT.chain_attention(dg, gm.n_targets)
+    att_df[!, :scene] .= scene
+    att_df[!, :chain] .= chain
+    CSV.write(chain_att_path, att_df)
 
-    dg = extract_digest(chain)
-    pf = MOT.chain_performance(chain, dg,
-                               n_targets = gm.n_targets)
-    pf[!, :scene] .= args["scene"]
-    pf[!, :chain] .= c
-    CSV.write(chain_perf_path, pf)
-    af = MOT.chain_attention(chain, dg,
-                             n_targets = gm.n_targets)
-    af[!, :scene] .= args["scene"]
-    af[!, :chain] .= c
-    CSV.write(chain_att_path, af)
-
-    args["viz"] && visualize_inference(chain, dg, gt_states, gm,
-                                       joinpath(path, "$(c)_scene"))
+    exp_params.viz && visualize_inference(smc_chain, dg, gt_states, gm,
+                                          joinpath(path, "$(chain)_scene"))
     return nothing
 end
 
-function parse_args()
+function pargs()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24
+        default = 1
 
         "chain"
         help = "chain id"
@@ -107,7 +105,7 @@ function parse_args()
 end
 
 function main()
-    args = parse_args()
+    args = pargs()
     i = args["scene"]
     c = args["chain"]
     run_model(i, c);

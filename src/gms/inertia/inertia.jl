@@ -138,7 +138,9 @@ resolve force on object, returning kinematics update
 function update_kinematics end
 
 function update_kinematics(gm::InertiaGM, d::Dot, f::MVector{2, Float64})
-    # treating force directly as velocity; update velocity by x percentage; but f isn't normalized to be similar to v
+    # treating force directly as velocity;
+    # update velocity by x percentage;
+    # but f isn't normalized to be similar to v
     a = f/d.mass
     new_vel = d.vel + a
     new_pos = clamp.(get_pos(d) + new_vel,
@@ -160,8 +162,6 @@ function update_graphics(gm::InertiaGM, d::Dot)
     gpoints = Vector{GaussianComponent{2}}(undef, nk)
     # linearly increase sd
     step_sd = (outer_f - inner_f) * r / nt
-    # ws = Vector{Float64}([-i*decay_rate for i = 1:nk])
-    # ws .-= logsumexp(ws)
     c::Int64 = 1
     i::Int64 = 1
     @inbounds while c <= nt
@@ -182,16 +182,17 @@ function predict(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)
     es = RFSElements{GaussObs{2}}(undef, n + 1)
-    @unpack nlog_bernoulli, area_width, k_tail = gm
-    @unpack tail_sample_rate = gm
+    # the trackers
+    @unpack area_width, k_tail, tail_sample_rate = gm
     @inbounds for i in 1:n
         obj = objects[i]
         es[i] = IsoElement{GaussObs{2}}(gpp,
                                        (obj.gstate,))
     end
-    nt = t < k_tail ? (t + 1) : k_tail
-    nt = ceil(Int64, nt / tail_sample_rate)
-    w = -log(nt)
+    # the ensemble
+    tback = t < k_tail ? (t + 1) : k_tail
+    nt = ceil(Int64, tback / tail_sample_rate)
+    w = -log(nt) # REVIEW: no longer used in `GaussianComponent`
     @unpack rate = (st.ensemble)
     mu = @SVector zeros(2)
     cov = SMatrix{2,2}(spdiagm([50*area_width, 50*area_width]))
@@ -204,11 +205,9 @@ function observe(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)
     es = RFSElements{GaussObs{2}}(undef, n)
-    @unpack nlog_bernoulli, img_dims = gm
     @inbounds for i in 1:n
         obj = objects[i]
-        es[i] = IsoElement{GaussObs{2}}(gpp,
-                                       (obj.gstate,))
+        es[i] = IsoElement{GaussObs{2}}(gpp, (obj.gstate,))
     end
     (es, gpp_mrfs(es, 50, 1.0))
 end

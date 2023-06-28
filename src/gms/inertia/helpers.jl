@@ -15,20 +15,7 @@ function tracker_bounds(gm::InertiaGM)
     (xs, ys)
 end
 
-function InertiaState(prev_st::InertiaState,
-                      new_dots,
-                      es::RFSElements{T},
-                      xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 200, 1.)
-    # (pls, pt) = GenRFS.associations(es, xs)
-    setproperties(prev_st,
-                  (objects = new_dots,
-                   es = es,
-                   xs = xs,
-                   pt = pt,
-                   pls = pls))
-end
-
+"helper used to initialize `InertiaState` in `inertia_init`"
 function InertiaState(gm::InertiaGM, dots)
     walls = init_walls(gm.area_width)
     n_ens = Float64(gm.n_dots - length(dots)) + 0.01
@@ -38,6 +25,22 @@ function InertiaState(gm::InertiaGM, dots)
                  falses(0,0,0),
                  Float64[])
 end
+
+"creates next state, used in `inertia_kernel`"
+function InertiaState(prev_st::InertiaState,
+                      new_dots,
+                      es::RFSElements{T},
+                      xs::Vector{T}) where {T}
+    (pls, pt) = GenRFS.massociations(es, xs, 100, 10.)
+    # (pls, pt) = GenRFS.associations(es, xs)
+    setproperties(prev_st,
+                  (objects = new_dots,
+                   es = es,
+                   xs = xs,
+                   pt = pt,
+                   pls = pls))
+end
+
 
 function inertia_step_args(gm::InertiaGM, st::InertiaState)
     objs = get_objects(st)
@@ -120,6 +123,27 @@ function td_assocs(st::InertiaState)
     return weights
 end
 
+function ensemble_uncertainty(st::InertiaState,
+                              t::Float64)
+    @unpack pt, pls = st
+    nx,ne,np = size(pt)
+    ls::Float64 = logsumexp(pls)
+    nls = log.(softmax(pls, t=t))
+    # probability that each observation
+    # is explained by a target
+    x_weights = Vector{Float64}(undef, nx)
+    @inbounds for x = 1:nx
+        xw = -Inf
+        @views for p = 1:np
+            # assigned to ensemble
+            pt[x, ne, p] || continue
+            xw = logsumexp(xw, nls[p])
+        end
+        x_weights[x] = xw
+    end
+    return x_weights
+end
+
 function td_flat(st::InertiaState, t::Float64)
     @unpack pt, pls = st
     nx,ne,np = size(pt)
@@ -138,6 +162,9 @@ function td_flat(st::InertiaState, t::Float64)
         x_weights[x] = xw
     end
 
+    # @show length(pls)
+    # display(sum(pt; dims = 3))
+    # @show x_weights
     # the ratio of observations explained by each target
     # weighted by the probability that the observation is
     # explained by other targets
