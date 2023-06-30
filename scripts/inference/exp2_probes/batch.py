@@ -24,7 +24,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 20,
+    parser.add_argument('--duration', type = int, default = 25,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
@@ -37,7 +37,7 @@ def main():
         'cpus-per-task' : '1',
         'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(args.duration),
-        'partition' : 'scavenge',
+        'partition' : 'psych_scavenge',
         'requeue' : None,
         'job-name' : 'mot',
         'chdir' : os.getcwd(),

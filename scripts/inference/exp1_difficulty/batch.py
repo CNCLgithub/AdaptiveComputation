@@ -45,7 +45,7 @@ def main():
         'cpus-per-task' : '1',
         'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(args.duration),
-        'partition' : 'scavenge',
+        'partition' : 'psych_scavenge',
         'requeue' : None,
         'job-name' : 'mot',
         'chdir' : os.getcwd(),
