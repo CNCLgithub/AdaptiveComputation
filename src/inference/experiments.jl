@@ -92,6 +92,7 @@ function chain_attention(dg, n_targets = 4)
         tracker = Int64[],
         importance = Float64[],
         cycles = Float64[],
+        sensitivity = Float64[],
         pred_x = Float64[],
         pred_y = Float64[],
         pred_x_sd = Float64[],
@@ -100,6 +101,7 @@ function chain_attention(dg, n_targets = 4)
         arrousal = aux_state[frame].arrousal
         cycles += arrousal
         importance = aux_state[frame].importance
+        sensitivity = aux_state[frame].sensitivitities
         cycles_per_latent =  arrousal .* importance
         avg_pos = dg[frame, :positions].avg
         sd_pos = dg[frame, :positions].sd
@@ -108,6 +110,7 @@ function chain_attention(dg, n_targets = 4)
             sx, sy = sd_pos[1, i, :]
             push!(df, (frame, i,
                        importance[i],
+                       sensitivity[i],
                        cycles_per_latent[i],
                        px, py, sx, sy))
         end
