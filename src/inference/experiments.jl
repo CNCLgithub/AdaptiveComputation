@@ -101,7 +101,7 @@ function chain_attention(dg, n_targets = 4)
         arrousal = aux_state[frame].arrousal
         cycles += arrousal
         importance = aux_state[frame].importance
-        sensitivity = aux_state[frame].sensitivitities
+        sensitivity = aux_state[frame].sensitivities
         cycles_per_latent =  arrousal .* importance
         avg_pos = dg[frame, :positions].avg
         sd_pos = dg[frame, :positions].sd
@@ -110,8 +110,8 @@ function chain_attention(dg, n_targets = 4)
             sx, sy = sd_pos[1, i, :]
             push!(df, (frame, i,
                        importance[i],
-                       sensitivity[i],
                        cycles_per_latent[i],
+                       sensitivity[i],
                        px, py, sx, sy))
         end
     end

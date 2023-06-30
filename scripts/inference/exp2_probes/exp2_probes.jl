@@ -12,11 +12,12 @@ using Gen_Compose
 # using StatProfilerHTML
 
 experiment_name = "exp2_probes"
+plan = :td
 
 exp_params = (;experiment_name = "exp2_probes",
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
-              att = "$(@__DIR__)/ac.json",
+              att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(experiment_name).json",
               dur = 480, # number of frames to run; full = 480
               model = "adaptive_computation",
@@ -24,6 +25,12 @@ exp_params = (;experiment_name = "exp2_probes",
               restart = false,
               viz = false,
               )
+
+plan_objectives = Dict(
+    # key => (plan object, args)
+    :td => (td_flat, (1.025,)),
+    :eu => (ensemble_uncertainty, (1.0, ))
+)
 
 function run_model(scene::Int, chain::Int)
     gm = dgp_gm = MOT.load(InertiaGM, exp_params.gm)
@@ -40,11 +47,11 @@ function run_model(scene::Int, chain::Int)
 
     query = query_from_params(gm, gt_states)
 
+    plan_obj, plan_args = plan_objectives[plan]
     att = MOT.load(PopSensitivity,
                    exp_params.att,
-                   plan = td_flat,
-                   # plan = ensemble_uncertainty,
-                   plan_args = (1.025,),
+                   plan = plan_obj,
+                   plan_args = plan_args,
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )
@@ -52,7 +59,7 @@ function run_model(scene::Int, chain::Int)
                     exp_params.proc;
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_$(exp_params.model)/$(scene)"
+    path = "/spaths/experiments/$(experiment_name)_$(exp_params.model)_$(plan)/$(scene)"
     try
         isdir(path) || mkpath(path)
     catch e
