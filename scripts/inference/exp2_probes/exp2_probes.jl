@@ -12,7 +12,7 @@ using Gen_Compose
 # using StatProfilerHTML
 
 experiment_name = "exp2_probes"
-plan = :td
+plan = :eu
 
 exp_params = (;experiment_name = "exp2_probes",
               gm = "$(@__DIR__)/gm.json",
