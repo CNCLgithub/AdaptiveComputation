@@ -114,8 +114,8 @@ function td_assocs(st::InertiaState)
     weights = Vector{Float64}(undef, num_targets)
     # first 4 objects / observations are targets in gt
     @inbounds @views for x = 1:num_targets
-        w = 0.0 # Pr(x_i -> e_{1, 4})
-        for p = 1:np, e = 1:ne
+        w = 0.0 # Pr(x_i -> e_{1, N})
+        for p = 1:np, e = 1:num_targets
             pt[x, e, p] || continue
             w += pws[p]
         end

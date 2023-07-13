@@ -46,7 +46,7 @@ function main()
     steps = 240 # number of steps, 10s
     total_objects = 12
     n_targets = 1:6
-    velocities = [8.0, 9.0, 10.0, 11.0, 12.0, 13.0]
+    velocities = LinRange(8.0, 20., 6)# [8.0, 9.0, 10.0, 11.0, 12.0, 13.0]
     dataset = Dict[]
     for nt = n_targets, v = velocities
         gm = setproperties(default_gm,

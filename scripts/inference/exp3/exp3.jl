@@ -15,7 +15,8 @@ exp_params = (;experiment_name = "exp2_probes",
               dur = 240, # number of frames to run; full = 240
               model = "adaptive_computation",
               # SET FALSE for full experiment
-              restart = false,
+              # restart = false,
+              restart = true,
               viz = false,
               )
 

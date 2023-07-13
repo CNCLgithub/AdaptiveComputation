@@ -24,11 +24,11 @@ function main()
         println("could not make dir $(render_out)")
     end
     gm = ISRGM()
-    # render(gm, 1)
-    # render(gm, n)
-    for i = 1:n
-        render(gm, i)
-    end
+    render(gm, 1)
+    render(gm, n)
+    # for i = 1:n
+    #     render(gm, i)
+    # end
 end
 
 main();
