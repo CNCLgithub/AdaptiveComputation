@@ -123,19 +123,13 @@ end
 
 red = Colors.color_names["red"]
 
-function paint(p::InitPainter, st::InertiaState)
-    height, width = p.dimensions
-    Drawing(width, height, p.path)
-    Luxor.origin()
-    background(p.background)
-end
-function MOT.paint(p::Painter, st::InertiaState)
+function MOT.paint(p::Painter, st::GMState)
     for o in st.objects
         paint(p, o)
     end
     return nothing
 end
-function MOT.paint(p::Union{IDPainter,KinPainter}, st::InertiaState)
+function MOT.paint(p::Union{IDPainter,KinPainter}, st::GMState)
     for i in eachindex(st.objects)
         paint(p, st.objects[i], i)
     end
@@ -214,9 +208,9 @@ function render_scene(gm::InertiaGM,
     return nothing
 end
 
-function render_scene(gm::InertiaGM,
-                      gt_states::Vector{InertiaState},
-                      base::String)
+function render_scene(gm::GenerativeModel,
+                      gt_states::Vector{T},
+                      base::String) where {T<:GMState}
     @unpack area_width, area_height = gm
 
     isdir(base) && rm(base, recursive=true)
@@ -242,7 +236,13 @@ function render_scene(gm::InertiaGM,
                                alpha = alpha)
             MOT.paint(p, gt_states[k])
         end
-        p = IDPainter(colors = [], label = true)
+        colors = fill("black", length(gt_states[i].objects))
+        for obj_i = 1:length(colors)
+            if MOT.target(gt_states[i].objects[obj_i]) > 0.
+                colors[obj_i] = "red"
+            end
+        end
+        p = IDPainter(colors = colors, label = true)
         MOT.paint(p, gt_states[i])
         finish()
     end

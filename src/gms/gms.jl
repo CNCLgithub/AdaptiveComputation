@@ -35,9 +35,8 @@ function predict end
 ################################################################################
 
 include("things.jl")
-# include("graphics.jl")
-# include("isr/isr.jl")
 include("inertia/inertia.jl")
+include("isr/isr.jl")
 
 ################################################################################
 # Data generating procedures

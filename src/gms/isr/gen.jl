@@ -1,87 +1,47 @@
-export gm_isr_pos
+export gm_isr
 
 ################################################################################
 # Initial State
 ################################################################################
-@gen static function isr_tracker(cg::CausalGraph)::Dot
-    xs, ys, radius = tracker_bounds(cg)
+@gen static function isr_dot(gm::ISRGM)
+    xs, ys = tracker_bounds(gm)
     x = @trace(uniform(xs[1], xs[2]), :x)
     y = @trace(uniform(ys[1], ys[2]), :y)
 
-    ang = @trace(von_mises(0.0, 1e-5), :ang) # super flat
-    mag = @trace(normal(vel, 1e-2), :std)
+    ang = @trace(von_mises(0.0, 2*pi), :ang) # super flat
+    mag = @trace(normal(gm.vel, 1e-2), :std)
 
-    vx = mag * cos(ang)
-    vy = mag * sin(ang)
+    pos = SVector{2, Float64}([x, y])
+    vel = SVector{2, Float64}([mag*cos(ang), mag*sin(ang)])
 
-    # z (depth) drawn at beginning
-    z = @trace(uniform(0, 1), :z)
-
-    return Dot(pos=[x,y,z], vel=[vx, vy], radius=radius)
+    target = @trace(bernoulli(gm.target_p), :target)
+    new_dot::Dot = Dot(gm, pos, vel, target)
+    return new_dot
 end
 
-@gen static function isr_init(cg::CausalGraph)
-    cgs = fill(cg, cg.n_trackers)
-    trackers = @trace(Gen.Map(isr_tracker)(cgs), :trackers)
-    chain_cg = init_cg_from_things(cg, trackers)
-    return chain_cg
+@gen static function isr_init(gm::ISRGM)
+    gms = fill(gm, gm.n_dots)
+    dots = @trace(Gen.Map(isr_dot)(gms), :init_kernel)
+    state::ISRState = ISRState(gm, dots)
+    return state
 end
 
 ################################################################################
 # Dynamics
 ################################################################################
 
-@gen function isr_step(cg::CausalGraph, v::Int64)::Dot
-    dm = get_dm(cg)
-    dot = get_prop(cg, v, :object)
-
-    _x, _y, _z = dot.pos
-    vx, vy = dot.vel
-
-    if dm.brownian
-        vx = @trace(normal(dm.inertia * vx - dm.spring * _x,
-                               dm.sigma_x), :vx)
-        vy = @trace(normal(dm.inertia * vy - dm.spring * _y,
-                               dm.sigma_y), :vy)
-    end
-
-    x = _x + vx
-    y = _y + vy
-
-    return Dot(pos=[x,y,_z], vel=[vx,vy])
+@gen (static) function isr_kernel(t::Int,
+                                  prev_st::ISRState,
+                                  gm::ISRGM)
+    new_dots = step(gm, prev_st)
+    next_st::ISRState = ISRState(gm, new_dots)
+    return next_st
 end
 
 
-@gen function isr_update(prev_cg::CausalGraph)
-    cg = deepcopy(prev_cg)
-    vs = get_object_verts(cg, Dot)
-
-    # first start with repulsion step (deterministic)
-    things = isr_repulsion_step(cg)
-    cg = dynamics_update(get_dm(cg), cg, things)
-
-    # then brownian step (random)
-    cgs = fill(cg, length(vs))
-    things = @trace(Map(isr_step)(cgs, vs), :trackers)
-    cg = dynamics_update(get_dm(cg), cg, things)
-
-    return cg
-end
-
-
-@gen function isr_pos_kernel(t::Int,
-                         prev_cg::CausalGraph)
-    # advancing causal graph according to dynamics
-    # (there is a deepcopy here)
-    cg = @trace(isr_update(prev_cg), :dynamics)
-    return cg
-end
-
-
-@gen function gm_isr_pos(k::Int, gm, dm)
-    cg = get_init_cg(gm, dm)
-    init_state = @trace(isr_init(cg), :init_state)
-    states = @trace(Gen.Unfold(isr_pos_kernel)(k, init_state), :kernel)
+@gen (static) function gm_isr(k::Int, gm::ISRGM)
+    init_state = @trace(isr_init(gm), :init_state)
+    states = @trace(Gen.Unfold(isr_kernel)(k, init_state, gm), :kernel)
     result = (init_state, states)
     return result
 end

@@ -66,9 +66,9 @@ struct KinematicsUpdate
     v::SVector{2, Float64}
 end
 
-function step(state::InertiaState, updates)
-    step(state.gm, state, updates)
-end
+# function step(state::InertiaState, updates)
+#     step(state.gm, state, updates)
+# end
 
 function step(gm::InertiaGM,
               state::InertiaState,
@@ -98,8 +98,6 @@ function step(gm::InertiaGM,
     end
     return new_dots
 end
-
-normalvec(w::Wall, pos) = w.normal
 
 """Computes the force of A -> B"""
 function force!(f::MVector{2, Float64}, dm::InertiaGM, ::Thing, ::Thing)
@@ -131,7 +129,7 @@ function overwrite_update(d::Dot, ku::KinematicsUpdate)
 end
 
 """
-    update_kinematics(::InertiaGM, ::Object, ::MVector{2, Float64})
+    update_kinematics(::GM, ::Object, ::MVector{2, Float64})
 
 resolve force on object, returning kinematics update
 """

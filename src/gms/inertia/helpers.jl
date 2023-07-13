@@ -92,27 +92,28 @@ function get_objects(st::InertiaState)
     st.objects
 end
 
-"""
-Defines the `InertiaState` correspondence as a marginal
-across partitions on non-zero target trackers.
-"""
-function correspondence(st::InertiaState)
-    @unpack objects, ensemble, es, pt, pls = st
-    targets = 1:4
-    pt = pt[:, targets, :]
-    correspondence(pt, pls)
-end
+# """
+# Defines the `InertiaState` correspondence as a marginal
+# across partitions on non-zero target trackers.
+# """
+# function correspondence(st::InertiaState)
+#     @unpack objects, ensemble, es, pt, pls = st
+#     targets = Int64(sum(map(MOT.target, objects)))
+#     pt = pt[:, targets, :]
+#     correspondence(pt, pls)
+# end
 
 "The probability in `st` that each gt target is associated with any target"
 function td_assocs(st::InertiaState)
     @unpack pt, pls = st
-    ne = 4 # number of elements (trackers)
+    nx,ne,np = size(pt)
+    num_targets = ne - 1
     np = size(pt, 3) # number of partitions
     # normalized weights of each partition
     pws = exp.(pls .- logsumexp(pls))
-    weights = Vector{Float64}(undef, ne)
+    weights = Vector{Float64}(undef, num_targets)
     # first 4 objects / observations are targets in gt
-    @inbounds @views for x = 1:ne
+    @inbounds @views for x = 1:num_targets
         w = 0.0 # Pr(x_i -> e_{1, 4})
         for p = 1:np, e = 1:ne
             pt[x, e, p] || continue
@@ -197,15 +198,6 @@ function td_full(st::InertiaState)
 end
 
 
-function target_weights(st::InertiaState, wv::Vector{Float64})
-    c = correspondence(st)
-    ne = size(c, 2)
-    tws = zeros(ne)
-    @inbounds for ti = 1:ne
-        tws[ti] = sum(c[:, ti] .* wv)
-    end
-    return tws
-end
 
 function trackers(dm::InertiaGM, tr::Trace)
     t = first(get_args(tr))
@@ -222,7 +214,7 @@ end
 # Misc
 ################################################################################
 
-function objects_from_positions(gm::InertiaGM, positions)
+function objects_from_positions(gm::InertiaGM, positions, targets)
     nx = length(positions)
     dots = Vector{Dot}(undef, nx)
     for i = 1:nx
@@ -230,7 +222,7 @@ function objects_from_positions(gm::InertiaGM, positions)
         dots[i] = Dot(gm,
                       SVector{2}(xy),
                       SVector{2, Float64}(zeros(2)),
-                      false)
+                      targets[i])
     end
     return dots
 end
@@ -240,7 +232,7 @@ function state_from_positions(gm::InertiaGM, positions, targets)
     states = Vector{InertiaState}(undef, nt)
     for t = 1:nt
         if t == 1
-            dots = objects_from_positions(gm, positions[t])
+            dots = objects_from_positions(gm, positions[t], targets)
             states[t] = InertiaState(gm, dots)
             continue
         end
@@ -265,7 +257,7 @@ function state_from_positions(gm::InertiaGM, positions, targets)
     return states
 end
 
-function load_scene(gm::InertiaGM, dataset_path::String, scene::Int64)
+function load_scene(gm::GenerativeModel, dataset_path::String, scene::Int64)
     scene_data = JSON.parsefile(dataset_path)[scene]
     aux_data = scene_data["aux_data"]
     states = state_from_positions(gm,

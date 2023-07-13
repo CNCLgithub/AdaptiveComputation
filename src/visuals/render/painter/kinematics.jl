@@ -11,14 +11,16 @@ end
 function paint(p::KinPainter, d::Dot, v::Int64)
     mag = p.vel_scale * d.vel
     pos = get_pos(d)
-    _draw_arrow(pos, pos .+ mag .+ 1e-3, p.color[v],
+    cidx = (v % length(p.color)) + 1
+    c = p.color[cidx]
+    _draw_arrow(pos, pos .+ mag .+ 1e-3, c,
                 linewidth = p.linewidth, opacity = p.alpha)
     if p.tail
         t = length(d.gstate)
         for k = 1:t
             alpha = p.alpha * exp(-0.5 * (k - 1))
-            c::GaussianComponent{2} = d.gstate[k]
-            _draw_circle(c.mu, 0.2 * c.cov[1,1], p.color[v],
+            gc::GaussianComponent{2} = d.gstate[k]
+            _draw_circle(gc.mu, 0.2 * gc.cov[1,1], c,
                          opacity = alpha)
         end
     end

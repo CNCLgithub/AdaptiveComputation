@@ -1,0 +1,23 @@
+{
+    "n_dots": 8,
+    "n_targets": 4,
+
+    "area_width": 800,
+    "area_height": 800,
+
+    "dot_radius": 20.0,
+    "vel": 4.0,
+    "bern": 0.90,
+    "k": 60.0,
+    "w": 0.25,
+    "wall_rep_m": 0.1,
+    "wall_rep_a": 0.1,
+    "wall_rep_x0": 80.0,
+
+    "img_width": 100,
+    "img_height": 100,
+    "inner_f": 10.0,
+    "outer_f": 15.0,
+    "k_tail": 6,
+    "tail_sample_rate": 2
+}
