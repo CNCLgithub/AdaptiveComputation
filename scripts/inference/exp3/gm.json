@@ -10,9 +10,9 @@
     "bern": 0.90,
     "k": 60.0,
     "w": 0.25,
-    "wall_rep_m": 0.1,
+    "wall_rep_m": 0.0,
     "wall_rep_a": 0.1,
-    "wall_rep_x0": 80.0,
+    "wall_rep_x0": 90.0,
 
     "img_width": 100,
     "img_height": 100,

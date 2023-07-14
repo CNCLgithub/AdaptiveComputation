@@ -257,12 +257,16 @@ function state_from_positions(gm::InertiaGM, positions, targets)
     return states
 end
 
-function load_scene(gm::GenerativeModel, dataset_path::String, scene::Int64)
-    scene_data = JSON.parsefile(dataset_path)[scene]
+function load_scene(gm::GenerativeModel, scene_data::Dict)
     aux_data = scene_data["aux_data"]
     states = state_from_positions(gm,
                                   scene_data["positions"],
                                   aux_data["targets"])
-    scene_data = Dict(:gt_states => states,
-                       :aux_data => aux_data)
+    Dict(:gt_states => states,
+         :aux_data => aux_data)
+end
+
+function load_scene(gm::GenerativeModel, dataset_path::String, scene::Int64)
+    scene_data = JSON.parsefile(dataset_path)[scene]
+    load_scene(gm, scene_data)
 end

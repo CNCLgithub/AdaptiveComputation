@@ -22,7 +22,6 @@ function load(::Type{PopSensitivity}, path; kwargs...)
     PopSensitivity(;read_json(path)..., kwargs...)
 end
 
-
 function AdaptiveComputation(att::PopSensitivity)
     n = att.latents
     base_arrousal = n * att.init_samples
@@ -109,8 +108,8 @@ function update_arrousal!(chain::PFChain, att::PopSensitivity)
     @unpack auxillary = chain
     @unpack sensitivities = auxillary
     @unpack m, max_arrousal, x0 = att
-    amp = m * (logsumexp(sensitivities) + x0)
-    @show logsumexp(sensitivities)
+    logsumsens = logsumexp(sensitivities)
+    amp = m * (logsumsens + x0)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
     println("arrousal: $(arrousal)")
     @pack! auxillary = arrousal
