@@ -3,8 +3,8 @@
     "div_scale": 1.0,
     "importance_tau": 10.0,
     "init_samples": 10,
-    "min_samples": 5,
-    "max_arrousal": 35,
+    "min_samples": 3,
+    "max_arrousal": 15,
     "x0": 45.0,
     "m": 0.45
 }
