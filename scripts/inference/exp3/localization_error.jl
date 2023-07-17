@@ -18,7 +18,7 @@ plan = :td
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
-              att = "$(@__DIR__)/$(plan).json",
+              att = "$(@__DIR__)/$(plan)_loc_error.json",
               dur = 120, # number of frames to run; full = 120
               model = "adaptive_computation",
               dataset = "/spaths/datasets/$(experiment_name).json",

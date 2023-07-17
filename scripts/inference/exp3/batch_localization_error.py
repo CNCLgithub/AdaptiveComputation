@@ -9,8 +9,8 @@ script = 'bash {0!s}/env.d/run.sh julia ' + \
          '/project/scripts/inference/exp3/localization_error.jl'
 
 def att_tasks(args):
-    tasks = [(t,c) for c in range(1, args.scenes + 1)
-             for t in range(1, args.ntargets+1)]
+    tasks = [(t,c) for c in range(1, args.chains + 1)
+             for t in range(1, args.scenes+1)]
     return (tasks, [], [])
     
 def main():
