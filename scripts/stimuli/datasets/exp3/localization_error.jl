@@ -4,8 +4,8 @@ using JSON
 using Accessors
 
 default_gm = ISRGM(;
-                   dot_repulsion = 30.0,
-                   wall_repulsion = 30.0,
+                   dot_repulsion = 50.0,
+                   wall_repulsion = 50.0,
                    distance_factor = 100.0,
                    rep_inertia = 0.25,
                    max_distance = 150.0,
@@ -43,23 +43,24 @@ function trial_data(tr::Gen.Trace)
 end
 
 function main()
-    steps = 240 # number of steps, 10s
-    total_objects = 12
-    n_targets = 1:6
-    velocities = LinRange(8.0, 20., 6)# [8.0, 9.0, 10.0, 11.0, 12.0, 13.0]
+    nscenes = 80
+    steps = 144 # number of steps, 5s
+    total_objects = 10
+    ntargets = 3
+    vel = 12
     dataset = Dict[]
-    for nt = n_targets, v = velocities
+    for _ = 1:nscenes
         gm = setproperties(default_gm,
                            (n_dots = total_objects,
-                            n_targets = nt,
-                            vel = v))
+                            n_targets = ntargets,
+                            vel = vel))
         cm = trial_constraints(gm)
         trace, _ = generate(gm_isr, (steps, gm), cm)
         data = trial_data(trace)
         push!(dataset, data)
     end
 
-    open("/spaths/datasets/exp3.json", "w") do f
+    open("/spaths/datasets/exp3_localization_error.json", "w") do f
         write(f, json(dataset))
     end
 
