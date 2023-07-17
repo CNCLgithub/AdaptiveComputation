@@ -13,7 +13,7 @@ using Gen_Compose
 experiment_name = "exp3_localization_error"
 nobjects = 10
 ntargets = 3
-plan = :td
+plan = :eu
 
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
@@ -123,7 +123,7 @@ function pargs()
         "scene"
         help = "Scene / trial to run"
         arg_type = Int64
-        default = 1
+        default = 3
 
         "chain"
         help = "chain id"

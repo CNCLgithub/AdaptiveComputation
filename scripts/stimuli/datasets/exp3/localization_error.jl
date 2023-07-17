@@ -4,10 +4,10 @@ using JSON
 using Accessors
 
 default_gm = ISRGM(;
-                   dot_repulsion = 50.0,
-                   wall_repulsion = 50.0,
+                   dot_repulsion = 20.0,
+                   wall_repulsion = 10.0,
                    distance_factor = 100.0,
-                   rep_inertia = 0.25,
+                   rep_inertia = 0.15,
                    max_distance = 150.0,
                    dot_radius = 20.0,
                    area_width = 800.0,
@@ -28,11 +28,7 @@ function trial_data(tr::Gen.Trace)
     positions = []
     for t in 1:steps
         objects = states[t].objects
-        time_step = []
-        for i in 1:gm.n_dots
-            push!(time_step, get_pos(objects[i]))
-        end
-        push!(positions, time_step)
+        push!(positions, map(get_pos, objects))
     end
     trial = Dict(
         :positions => positions,
@@ -47,7 +43,7 @@ function main()
     steps = 144 # number of steps, 5s
     total_objects = 10
     ntargets = 3
-    vel = 12
+    vel = 8.0
     dataset = Dict[]
     for _ = 1:nscenes
         gm = setproperties(default_gm,
@@ -59,13 +55,9 @@ function main()
         data = trial_data(trace)
         push!(dataset, data)
     end
-
     open("/spaths/datasets/exp3_localization_error.json", "w") do f
         write(f, json(dataset))
     end
-
-
 end
-
 
 main();
