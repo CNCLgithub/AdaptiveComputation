@@ -28,7 +28,7 @@ def main():
 
     args = parser.parse_args()
 
-    n = args.scenes * args.chains
+    n = args.ntargets * args.chains
     tasks, kwargs, extras = att_tasks(args)
 
     interpreter = '#!/bin/bash'
