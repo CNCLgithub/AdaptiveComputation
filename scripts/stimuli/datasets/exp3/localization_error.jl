@@ -4,11 +4,11 @@ using JSON
 using Accessors
 
 default_gm = ISRGM(;
-                   dot_repulsion = 20.0,
-                   wall_repulsion = 10.0,
+                   dot_repulsion = 50.0,
+                   wall_repulsion = 25.0,
                    distance_factor = 100.0,
                    rep_inertia = 0.15,
-                   max_distance = 150.0,
+                   max_distance = 125.0,
                    dot_radius = 20.0,
                    area_width = 800.0,
                    area_height = 800.0)
@@ -40,7 +40,7 @@ end
 
 function main()
     nscenes = 80
-    steps = 144 # number of steps, 5s
+    steps = 120 # number of steps, 5s
     total_objects = 10
     ntargets = 3
     vel = 8.0

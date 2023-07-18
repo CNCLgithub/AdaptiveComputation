@@ -123,7 +123,7 @@ function pargs()
         "scene"
         help = "Scene / trial to run"
         arg_type = Int64
-        default = 3
+        default = 4
 
         "chain"
         help = "chain id"
