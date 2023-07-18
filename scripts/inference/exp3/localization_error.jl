@@ -13,7 +13,7 @@ using Gen_Compose
 experiment_name = "exp3_localization_error"
 nobjects = 10
 ntargets = 3
-plan = :eu
+plan = :td
 
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",

@@ -62,26 +62,17 @@ end
 
 # see `scripts/aggregate_chains.jl`
 model = "td"
-# chain performance
-model_perf_csv = "/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_perf.csv"
-model_perf = DataFrame(CSV.File(model_perf_csv))
-model_perf = groupby(model_perf, Cols(:chain, :scene))
-model_perf = combine(model_perf, Cols(:td_acc) => mean => :avg_acc)
-transform!(model_perf, [:avg_acc] => ByRow(acc -> acc > 0.75) => :passed)
-filter!(row -> row.passed, model_perf)
-passed_chains = select(model_perf, Cols(:chain, :scene))
-
 
 model_inferences = "/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))
 max_frame = maximum(df.frame)
-filter!(row -> row.frame == max_frame, df)
+filter!(row -> row.frame >  max_frame - 24, df)
 select!(df, Cols(:chain, :scene, :frame, :tracker, :pred_x, :pred_y))
 # filter!(row -> row.scene == 1, df) # TODO: remove after debugging
 
 # distance to the nearest distractor for each frame x tracker
 gt_positions = load_gt_positions("/spaths/datasets/exp3_localization_error.json")
-filter!(row -> row.frame == max_frame, gt_positions)
+filter!(row -> row.frame >  max_frame - 24, gt_positions)
 
 grouped_gt_positions = groupby(gt_positions, Cols(:scene, :frame, :object))
 loc_error_f = ByRow((s, f, t, x, y) -> localization_error(s,f,t,x,y,grouped_gt_positions))
@@ -95,9 +86,6 @@ transform!(df,
            [:scene, :frame, :pred_x, :pred_y] => nd_dist_f => :nn_dist)
 
 
-gdf = groupby(df, Cols(:scene, :frame, :tracker))
-gdf = combine(gdf, Cols(:pred_x, :pred_y, :loc_error, :nn_dist) .=> [mean std])
-
-CSV.write("/spaths/experiments/exp3_localization_error_computation_$(model)_dnd.csv",
-          gdf)
+CSV.write("/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_dnd.csv",
+          df)
 
