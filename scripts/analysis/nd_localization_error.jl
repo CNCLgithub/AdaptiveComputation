@@ -65,14 +65,14 @@ model = "td"
 
 model_inferences = "/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))
-max_frame = maximum(df.frame)
-filter!(row -> row.frame >  max_frame - 24, df)
+min_frame = 24 # skip the first second
+filter!(row -> row.frame >  min_frame, df)
 select!(df, Cols(:chain, :scene, :frame, :tracker, :pred_x, :pred_y))
 # filter!(row -> row.scene == 1, df) # TODO: remove after debugging
 
 # distance to the nearest distractor for each frame x tracker
 gt_positions = load_gt_positions("/spaths/datasets/exp3_localization_error.json")
-filter!(row -> row.frame >  max_frame - 24, gt_positions)
+filter!(row -> row.frame >  min_frame, gt_positions)
 
 grouped_gt_positions = groupby(gt_positions, Cols(:scene, :frame, :object))
 loc_error_f = ByRow((s, f, t, x, y) -> localization_error(s,f,t,x,y,grouped_gt_positions))
