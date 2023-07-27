@@ -29,6 +29,6 @@ end
 
 include("objectives.jl")
 include("distances.jl")
-# include("uniform.jl")
 include("sensitivity.jl")
+include("fixed.jl")
 include("perturb_state.jl")
