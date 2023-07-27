@@ -1,6 +1,7 @@
 using CSV
 using Gen
 using MOT
+using DataFrames
 using ArgParse
 using Accessors
 using Statistics
@@ -15,9 +16,9 @@ nobjects = 12
 plan = :td
 
 exp_params = (;
-              gm = "$(@__DIR__)/gm.json",
+              gm = "$(@__DIR__)/gm_staircase.json",
               proc = "$(@__DIR__)/proc.json",
-              att = "$(@__DIR__)/$(plan).json",
+              att = "$(@__DIR__)/$(plan)_staircase.json",
               dur = 72, # number of frames to run; full = 240
               stairsteps = 15,
               velstep = 1.25,

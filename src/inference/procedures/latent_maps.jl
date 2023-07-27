@@ -15,6 +15,7 @@ function digest_tracker_positions(c::PFChain)
         length # num targets
     end
     traces = sample_unweighted_traces(c.state, np)
+    # traces = c.state.traces
     pos = Array{Float64, 3}(undef, np, nt, 2)
     for i = 1:np
         (_, states) = Gen.get_retval(traces[i])

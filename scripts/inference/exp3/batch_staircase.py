@@ -19,7 +19,7 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--ntargets', type = int, default = 6,
+    parser.add_argument('--ntargets', type = int, default = 8,
                         help = 'number of targets, 1:ntargets')
     parser.add_argument('--chains', type = int, default = 50,
                         help = 'number of chains')
