@@ -15,8 +15,9 @@ nobjects = 10
 ntargets = 3
 
 # avg cycles per object
-# from mot-analysis/reports/exp3_localization_error.Rmd
-avg_cycles = 4.0
+# 4 , from mot-analysis/reports/exp3_localization_error.Rmd
+# 10 , attempting to pass .99 td acc threshold 
+avg_cycles = 5
 
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
