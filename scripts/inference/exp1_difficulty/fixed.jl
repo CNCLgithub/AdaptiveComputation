@@ -20,7 +20,7 @@ avg_cycles = 2
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
-              dur = 240, # number of frames to run; full = 120
+              dur = 240, # number of frames to run; full = 240
               model = "fixed_resources",
               dataset = "/spaths/datasets/$(experiment_name).json",
               # SET FALSE for full experiment

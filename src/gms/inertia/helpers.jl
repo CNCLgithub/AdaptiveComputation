@@ -228,6 +228,7 @@ function objects_from_positions(gm::InertiaGM, positions, targets)
 end
 
 function state_from_positions(gm::InertiaGM, positions, targets)
+    targets = collect(Bool, targets) # this is sometimes Int
     nt = length(positions)
     states = Vector{InertiaState}(undef, nt)
     for t = 1:nt
