@@ -6,7 +6,7 @@ import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/env.d/run.sh julia ' + \
-         '/project/scripts/inference/exp1_difficulty/exp1_difficulty.jl'
+         '/project/scripts/inference/exp1_difficulty/fixed.jl'
 
 def att_tasks(args):
     tasks = [('--scene {0:d}'.format(t),
@@ -16,7 +16,7 @@ def att_tasks(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Submits batch jobs for Exp1 (Effort)',
+        description = 'Submits batch jobs for Effort Exp (fixed model)',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -29,7 +29,6 @@ def main():
 
     args = parser.parse_args()
 
-    #  tasks, kwargs, extras = fig4_tasks(args)
     tasks, kwargs, extras = att_tasks(args)
     n = len(tasks)
 

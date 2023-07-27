@@ -1,42 +1,39 @@
 #!/usr/bin/env python
 
-""" Submits sbatch array for rendering stimuli """
 import os
 import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/env.d/run.sh julia ' + \
-         '/project/scripts/inference/exp1_difficulty/exp1_difficulty.jl'
+         '/project/scripts/inference/exp3/staircase_fixed.jl'
 
 def att_tasks(args):
-    tasks = [('--scene {0:d}'.format(t),
-              '--chain {0:d}'.format(c)) for c in range(1, args.chains + 1)
-             for t in range(1, args.scenes+1)]
+    tasks = [(t,c) for c in range(1, args.chains + 1)
+             for t in range(1, args.ntargets+1)]
     return (tasks, [], [])
-
+    
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Submits batch jobs for Exp1 (Effort)',
+        description = 'Submits batch jobs for Exp 3',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--scenes', type = int, default = 65,
-                        help = 'number of scenes')
-    parser.add_argument('--chains', type = int, default = 20,
+    parser.add_argument('--ntargets', type = int, default = 8,
+                        help = 'number of targets, 1:ntargets')
+    parser.add_argument('--chains', type = int, default = 50,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 35,
+    parser.add_argument('--duration', type = int, default = 25,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
 
-    #  tasks, kwargs, extras = fig4_tasks(args)
+    n = args.ntargets * args.chains
     tasks, kwargs, extras = att_tasks(args)
-    n = len(tasks)
 
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
-        'mem-per-cpu' : '2GB',
+        'mem-per-cpu' : '3GB',
         'time' : '{0:d}'.format(args.duration),
         'partition' : 'psych_scavenge',
         'requeue' : None,
@@ -47,9 +44,10 @@ def main():
     func = script.format(os.getcwd())
     batch = sbatch.Batch(interpreter, func, tasks,
                          kwargs, extras, resources)
+    bscript = '\n'.join(batch.job_file(chunk=n, tmp_dir = 'env.d/spaths/slurm'))
     print("Template Job:")
-    print('\n'.join(batch.job_file(chunk=n)))
-    batch.run(n = n, check_submission = False)
+    print(bscript)
+    batch.run(n = n, check_submission = False, script = bscript)
 
 if __name__ == '__main__':
     main()

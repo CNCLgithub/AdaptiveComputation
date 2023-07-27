@@ -38,10 +38,11 @@ function hypothesis_testing!(chain::PFChain, att::FixedResources)
             for j = 1:base_samples
                 # perceptual update:: S -> (S', dS)
                 s_prime, ls = att.percept_update(s, l , att.percept_args...)
-                # accepted a proposal and update references
                 c +=1
                 if log(rand()) < ls
+                    # accepted a proposal and update references
                     accepted += 1
+                    s = s_prime
                 end
             end
             state.traces[i] = s
