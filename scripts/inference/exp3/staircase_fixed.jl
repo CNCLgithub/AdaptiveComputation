@@ -14,9 +14,8 @@ using Gen_Compose
 experiment_name = "exp3_staircase"
 nobjects = 12
 
-# avg cycles per object
-# maximum possible cycles used in adaptive computation
-avg_cycles = 5.0
+# avg cycles per object used in adaptive computation
+avg_cycles = 8
 
 exp_params = (;
               gm = "$(@__DIR__)/gm_staircase.json",
@@ -120,7 +119,7 @@ function run_model(ntargets::Int, chain::Int)
         percept_update = tracker_kernel,
         percept_args = (3,), # look back steps
         latents = ntargets,
-        base_samples = avg_cycles
+        base_samples = ceil(Int64, avg_cycles / ntargets)
     )
     proc = MOT.load(PopParticleFilter,
                     exp_params.proc;

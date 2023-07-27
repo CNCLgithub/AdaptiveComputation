@@ -15,12 +15,12 @@ ntargets = 4
 
 # avg cycles per object
 # from mot-analysis/reports/effort.Rmd
-avg_cycles = 4.0
+avg_cycles = 2
 
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
-              dur = 120, # number of frames to run; full = 120
+              dur = 240, # number of frames to run; full = 120
               model = "fixed_resources",
               dataset = "/spaths/datasets/$(experiment_name).json",
               # SET FALSE for full experiment

@@ -61,9 +61,10 @@ end
 
 
 # see `scripts/aggregate_chains.jl`
-model = "td"
+# model = "adaptive_computation_td"
+model = "fixed_resources"
 
-model_inferences = "/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_att.csv"
+model_inferences = "/spaths/experiments/exp3_localization_error_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))
 min_frame = 24 # skip the first second
 filter!(row -> row.frame >  min_frame, df)
@@ -86,6 +87,6 @@ transform!(df,
            [:scene, :frame, :pred_x, :pred_y] => nd_dist_f => :nn_dist)
 
 
-CSV.write("/spaths/experiments/exp3_localization_error_adaptive_computation_$(model)_dnd.csv",
+CSV.write("/spaths/experiments/exp3_localization_error_$(model)_dnd.csv",
           df)
 

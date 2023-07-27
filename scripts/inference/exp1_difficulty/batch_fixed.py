@@ -9,8 +9,8 @@ script = 'bash {0!s}/env.d/run.sh julia ' + \
          '/project/scripts/inference/exp1_difficulty/fixed.jl'
 
 def att_tasks(args):
-    tasks = [('--scene {0:d}'.format(t),
-              '--chain {0:d}'.format(c)) for c in range(1, args.chains + 1)
+    tasks = [('{0:d}'.format(t),
+              '{0:d}'.format(c)) for c in range(1, args.chains + 1)
              for t in range(1, args.scenes+1)]
     return (tasks, [], [])
 
