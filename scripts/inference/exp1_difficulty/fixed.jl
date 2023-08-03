@@ -15,7 +15,7 @@ ntargets = 4
 
 # avg cycles per object
 # from mot-analysis/reports/effort.Rmd
-avg_cycles = 2
+avg_cycles = 8
 
 exp_params = (;
               gm = "$(@__DIR__)/gm.json",
