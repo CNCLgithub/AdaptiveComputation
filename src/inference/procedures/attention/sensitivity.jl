@@ -67,8 +67,9 @@ function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                dS = log(abs(0.5 - exp(max(0., ls))))
-                dPdS[i, j] -= dS
+                # dS = log(abs(0.5 - exp(max(0., ls))))
+                dS = clamp(ls, -Inf, 0.0)
+                dPdS[i, j] += dS
                 # accepted a proposal and update references
                 c +=1
                 if log(rand()) < ls
@@ -111,7 +112,7 @@ function update_arrousal!(chain::PFChain, att::PopSensitivity)
     logsumsens = logsumexp(sensitivities)
     amp = m * (logsumsens + x0)
     arrousal = floor(Int64, clamp(amp, 0., max_arrousal))
-    println("arrousal: $(arrousal)")
+    println("arrousal: $(logsumsens) -> $(arrousal)")
     @pack! auxillary = arrousal
     return nothing
 end
