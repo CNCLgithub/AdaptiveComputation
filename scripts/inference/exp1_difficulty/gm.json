@@ -7,10 +7,10 @@
 
     "dot_radius": 20.0,
     "vel": 4.0,
-    "bern": 0.98,
-    "k": 50.0,
-    "w": 0.15,
-    "wall_rep_m": 0.1,
+    "bern": 0.90,
+    "k": 60.0,
+    "w": 0.3,
+    "wall_rep_m": 0.0,
     "wall_rep_a": 0.1,
     "wall_rep_x0": 80.0,
 

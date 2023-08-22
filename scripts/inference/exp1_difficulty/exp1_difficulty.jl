@@ -11,7 +11,7 @@ using Accessors
 # using StatProfilerHTML
 
 experiment_name = "exp1_difficulty"
-att_mode = "target_designation"
+att_mode = "td"
 att_params = "$(@__DIR__)/td.json"
 objective = td_flat
 
@@ -80,16 +80,13 @@ function main()
                                 args["scene"])
     gt_states = scene_data[:gt_states][1:args["time"]]
     aux_data = scene_data[:aux_data]
-    # NOTE: messing with angular uncertainty as a function
-    # of collision frequency
+
     gm = setproperties(gm, (
         n_dots = gm.n_targets + aux_data["n_distractors"],
         vel = aux_data["vel"] * 0.55,
-        # bern = 1.0 - (0.0015 * aux_data["n_distractors"]),
-        # k = gm.k - (15.0 * aux_data["n_distractors"])
         ))
 
-    query = query_from_params(gm, gt_states, length(gt_states))
+    query = query_from_params(gm, gt_states)
 
     att = MOT.load(PopSensitivity,
                    att_params,
@@ -103,44 +100,38 @@ function main()
                     args["proc"];
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_$(att_mode)/$(args["scene"])"
+    path = "/spaths/experiments/$(experiment_name)_adaptive_computation_$(att_mode)/$(args["scene"])"
     try
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
     end
 
-    c = args["chain"]
-    chain_path = joinpath(path, "$(c).jld2")
+    c = chain = args["chain"]
+    nsteps = length(gt_states) - 1
+    logger = MemLogger(nsteps)
+    chain_perf_path = joinpath(path, "$(chain)_perf.csv")
+    chain_att_path = joinpath(path, "$(chain)_att.csv")
 
-    println("running chain $c")
-
-    isfile(chain_path) && args["restart"] && rm(chain_path)
-    if isfile(chain_path)
-        chain  = resume_chain(chain_path, args["step_size"])
-    else
-        chain = sequential_monte_carlo(proc, query, chain_path,
-                                    args["step_size"])
+    println("running chain $(chain)")
+    if isfile(chain_perf_path) && exp_params.restart
+        rm(chain_perf_path)
+        rm(chain_att_path)
     end
+    smc_chain = run_chain(proc, query, nsteps, logger)
 
-    dg = extract_digest(chain_path)
-    pf = MOT.chain_performance(chain, dg,
-                               n_targets = gm.n_targets)
-    pf[!, :scene] .= args["scene"]
-    pf[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c)_perf.csv"), pf)
-    af = MOT.chain_attention(chain, dg,
-                             n_targets = gm.n_targets)
-    af[!, :scene] .= args["scene"]
-    af[!, :chain] .= c
-    CSV.write(joinpath(path, "$(c)_att.csv"), af)
+    dg = extract_digest(logger)
+    perf_df = MOT.chain_performance(dg)
+    perf_df[!, :scene] .= scene
+    perf_df[!, :chain] .= chain
+    CSV.write(chain_perf_path, perf_df)
+    att_df = MOT.chain_attention(dg, gm.n_targets)
+    att_df[!, :scene] .= scene
+    att_df[!, :chain] .= chain
+    CSV.write(chain_att_path, att_df)
 
-    # render_pf(chain, joinpath(path, "$(c)_graphics"))
-    # visualize_inference(chain, dg, gt_states, gm,
-    #                                    joinpath(path, "$(c)_scene"))
-    # args["viz"] && render_pf(chain, joinpath(path, "$(c)_graphics"))
-    # args["viz"] && visualize_inference(chain, dg, gt_states, gm,
-    #                                    joinpath(path, "$(c)_scene"))
+    exp_params.viz && visualize_inference(smc_chain, dg, gt_states, gm,
+                                          joinpath(path, "$(chain)_scene"))
 
     return nothing
 end
