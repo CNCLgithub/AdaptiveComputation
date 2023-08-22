@@ -4,11 +4,6 @@ using Gen_Compose
 using ArgParse
 using Accessors
 
-# using Random
-# Random.seed!(1234);
-
-# using Profile
-# using StatProfilerHTML
 
 experiment_name = "exp1_difficulty"
 att_mode = "td"
@@ -37,7 +32,7 @@ function parse_commandline()
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
-        default = 240
+        default = 24
 
         "--step_size", "-s"
         help = "How many steps before saving"
@@ -69,7 +64,8 @@ end
 function main()
     args = parse_commandline()
     # args = default_args()
-    # args["restart"] = true
+    args["restart"] = true
+    args["viz"] = true
 
 
     # loading scene data
@@ -114,7 +110,7 @@ function main()
     chain_att_path = joinpath(path, "$(chain)_att.csv")
 
     println("running chain $(chain)")
-    if isfile(chain_perf_path) && exp_params.restart
+    if isfile(chain_perf_path) && args["restart"]
         rm(chain_perf_path)
         rm(chain_att_path)
     end
@@ -122,15 +118,15 @@ function main()
 
     dg = extract_digest(logger)
     perf_df = MOT.chain_performance(dg)
-    perf_df[!, :scene] .= scene
+    perf_df[!, :scene] .= args["scene"]
     perf_df[!, :chain] .= chain
     CSV.write(chain_perf_path, perf_df)
     att_df = MOT.chain_attention(dg, gm.n_targets)
-    att_df[!, :scene] .= scene
+    att_df[!, :scene] .= args["scene"]
     att_df[!, :chain] .= chain
     CSV.write(chain_att_path, att_df)
 
-    exp_params.viz && visualize_inference(smc_chain, dg, gt_states, gm,
+    args["viz"] && visualize_inference(smc_chain, dg, gt_states, gm,
                                           joinpath(path, "$(chain)_scene"))
 
     return nothing
