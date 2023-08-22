@@ -61,8 +61,8 @@ end
 
 
 # see `scripts/aggregate_chains.jl`
-# model = "adaptive_computation_td"
-model = "fixed_resources"
+model = "adaptive_computation_td"
+# model = "fixed_resources"
 
 model_inferences = "/spaths/experiments/exp3_localization_error_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))

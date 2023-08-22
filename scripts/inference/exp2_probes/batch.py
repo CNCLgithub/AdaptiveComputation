@@ -5,7 +5,6 @@ import os
 import argparse
 from slurmpy import sbatch
 
-# script = 'bash {0!s}/run.sh julia -J "/project/mot.so" -C generic' + \
 script = 'bash {0!s}/env.d/run.sh julia ' + \
          '/project/scripts/inference/exp2_probes/exp2_probes.jl'
 
@@ -24,7 +23,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 25,
+    parser.add_argument('--duration', type = int, default = 30,
                         help = 'job duration (min)')
 
     args = parser.parse_args()

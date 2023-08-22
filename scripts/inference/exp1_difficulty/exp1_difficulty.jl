@@ -32,7 +32,7 @@ function parse_commandline()
         "--time", "-t"
         help = "How many frames"
         arg_type = Int64
-        default = 24
+        default = 240
 
         "--step_size", "-s"
         help = "How many steps before saving"
@@ -63,9 +63,8 @@ end
 
 function main()
     args = parse_commandline()
-    # args = default_args()
-    args["restart"] = true
-    args["viz"] = true
+    # args["restart"] = true
+    # args["viz"] = true
 
 
     # loading scene data
