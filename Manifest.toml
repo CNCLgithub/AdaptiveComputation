@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.3"
+julia_version = "1.9.1"
 manifest_format = "2.0"
 project_hash = "2f4c0aa1186c94a4e0dc99f953d41230ca300ffd"
 
@@ -220,7 +220,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.0.5+0"
+version = "1.0.2+0"
 
 [[deps.CompositionsBase]]
 git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
@@ -485,9 +485,9 @@ uuid = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 version = "0.4.6"
 
 [[deps.GenRFS]]
-deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "FunctionalCollections", "Gen", "IterTools", "LRUCache", "Lazy", "LightGraphs", "LinearAlgebra", "Revise", "SHA", "SpecialFunctions", "StatProfilerHTML", "Test", "UnicodePlots"]
-git-tree-sha1 = "0c1055701a857791eaf361b2370a3ea2e6c493bf"
-repo-rev = "master"
+deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "Distributions", "FunctionalCollections", "Gen", "IterTools", "LRUCache", "Lazy", "LightGraphs", "LinearAlgebra", "Revise", "SHA", "SpecialFunctions", "StatProfilerHTML", "Test", "UnicodePlots"]
+git-tree-sha1 = "241bd36fd3010a20a9491556fb8634fb74b52699"
+repo-rev = "rfgm"
 repo-url = "https://github.com/CNCLgithub/GenRFS.git"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"
@@ -1122,7 +1122,7 @@ version = "0.42.2+0"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.9.2"
+version = "1.9.0"
 
 [[deps.PkgVersion]]
 deps = ["Pkg"]

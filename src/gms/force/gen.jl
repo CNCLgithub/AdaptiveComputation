@@ -34,7 +34,7 @@ end
 # Dynamics
 ################################################################################
 
-@gen static function force_kernel(gm::ForceGM)
+@gen static function force_prior(gm::ForceGM)
     fx = @trace(normal(gm.force_mu, gm.force_sd), :fx)
     fy = @trace(normal(gm.force_mu, gm.force_sd), :fy)
     f::SVector{2,Float64} = SVector{2, Float64}(fx, fy)
@@ -46,7 +46,7 @@ end
                                     gm::ForceGM)
     # sample some random forces
     gms = Fill(gm, gm.n_dots)
-    forces = @trace(Gen.Map(force_kernel)(gms), :force)
+    forces = @trace(Gen.Map(force_prior)(gms), :trackers)
     # integrate noisy forces
     new_state::ForceState = step(gm, prev_st, forces)
     elements = predict(gm, new_state)

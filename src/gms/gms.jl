@@ -37,6 +37,7 @@ function predict end
 include("things.jl")
 include("inertia/inertia.jl")
 include("isr/isr.jl")
+include("force/force.jl")
 
 ################################################################################
 # Data generating procedures

@@ -194,6 +194,8 @@ function observe(gm::ForceGM,
     (es, gpp_mrfs(es, 50, 1.0))
 end
 
+include("gen.jl")
+
 ################################################################################
 # Misc
 ################################################################################
@@ -238,4 +240,21 @@ function state_from_positions(gm::ForceGM, positions, targets)
     end
     return states
 end
+
+function extract_rfs_subtrace(trace::Gen.Trace, t::Int64)
+    # StaticIR names and nodes
+    outer_ir = Gen.get_ir(gm_force)
+    kernel_node = outer_ir.call_nodes[2] # (:kernel)
+    kernel_field = Gen.get_subtrace_fieldname(kernel_node)
+    # subtrace for each time step
+    vector_trace = getproperty(trace, kernel_field)
+    sub_trace = vector_trace.subtraces[t]
+    # StaticIR for `force_kernel`
+    inner_ir = Gen.get_ir(force_kernel)
+    xs_node = inner_ir.call_nodes[2] # (:masks)
+    xs_field = Gen.get_subtrace_fieldname(xs_node)
+    # `RFSTrace` for :masks
+    getproperty(sub_trace, xs_field)
+end
+
 

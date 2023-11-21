@@ -107,3 +107,37 @@ function ensemble_uncertainty(tr::Gen.Trace, temp::Float64)
     end
     ensemble_uncertainty(t, temp)
 end
+
+function eu_static(tr::Gen.Trace, temp::Float64)
+    t, _... = get_args(tr)
+    rfs_trace = extract_rfs_subtrace(tr, t)
+    ensemble_uncertainty(rfs, temp)
+end
+
+
+function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
+        k::Int64)
+    pt = rfs.ptensor
+    mass = rfs.score
+    pls = rfs.pscores
+    nx,ne,np = size(pt)
+    
+    # probability that each observation
+    # is explained by a target
+    x_weights = fill(-Inf, nx)
+    @inbounds for p = 1:np
+        pmass = pls[p] - mass
+        for x = 1:nx
+            assigned_distractor = true
+            for e = 1:k
+                pt[x, ne, p] || continue
+                assigned_target = false
+            end
+            if assigned_distractor
+                x_weights[x] = logsumexp(pmass, x_weights[x])
+            end
+        end
+    end
+    return x_weights
+end
+
