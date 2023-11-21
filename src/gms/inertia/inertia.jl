@@ -51,7 +51,7 @@ function load(::Type{InertiaGM}, path::String; kwargs...)
 end
 
 
-struct InertiaState <: GMState
+struct InertiaState <: GMState{InertiaState}
     walls::SVector{4, Wall}
     objects::Vector{Dot}
     ensemble::UniformEnsemble
@@ -152,7 +152,6 @@ function update_graphics(gm::InertiaGM, d::Dot)
 
     nt = length(d.tail)
 
-    @unpack area_width, decay_rate = gm
     @unpack inner_f, outer_f, tail_sample_rate = gm
     r = d.radius
     base_sd = r * inner_f

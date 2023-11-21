@@ -1,7 +1,7 @@
 export GenerativeModel, GMState
 
 abstract type GenerativeModel end
-abstract type GMState end
+abstract type GMState{T<:GenerativeModel} end
 
 
 ################################################################################

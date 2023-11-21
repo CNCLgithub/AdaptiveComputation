@@ -20,7 +20,7 @@ export ISRGM
     rep_inertia::Float64 = 0.9
 end
 
-struct ISRState <: GMState
+struct ISRState <: GMState{ISRGM}
     walls::SVector{4, Wall}
     objects::Vector{Dot}
 end
@@ -106,7 +106,7 @@ function update_kinematics(gm::ISRGM, d::Dot, f::MVector{2, Float64})
     new_pos = clamp.(get_pos(d) + new_vel,
                      -area_height * 0.5 + d.radius,
                      area_height * 0.5  - d.radius)
-    any(isnan, new_pos) && error()
+    any(isnan, new_pos) && error("Kinematics update returned NaN")
     KinematicsUpdate(new_pos, new_vel)
 end
 
