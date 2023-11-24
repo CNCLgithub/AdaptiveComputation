@@ -1,6 +1,6 @@
 export gm_force
 
-gp_rfgm = RFGM(RFS{GP}, ())
+gp_rfgm = RFGM(MRFS{GaussObs{2}}(), (100, 1.0))
 
 ################################################################################
 # Initial State
@@ -24,7 +24,7 @@ gp_rfgm = RFGM(RFS{GP}, ())
 end
 
 @gen static function force_init(gm::ForceGM)
-    gms = fill(gm, gm.n_targets)
+    gms = Fill(gm, gm.n_dots)
     trackers = @trace(Gen.Map(force_tracker)(gms), :init_kernel)
     state::ForceState = ForceState(gm, trackers)
     return state
@@ -35,8 +35,8 @@ end
 ################################################################################
 
 @gen static function force_prior(gm::ForceGM)
-    fx = @trace(normal(gm.force_mu, gm.force_sd), :fx)
-    fy = @trace(normal(gm.force_mu, gm.force_sd), :fy)
+    fx = @trace(normal(0.0, gm.force_sd), :fx)
+    fy = @trace(normal(0.0, gm.force_sd), :fy)
     f::SVector{2,Float64} = SVector{2, Float64}(fx, fy)
     return f
 end

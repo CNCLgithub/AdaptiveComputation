@@ -1,3 +1,4 @@
+export ForceGM
 
 """
 Model that computes force between objects
@@ -20,6 +21,7 @@ Model that computes force between objects
     max_distance::Float64 = 100.0
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
+    force_sd::Float64 = 1.0
 
     # GRAPHICS
     img_width::Int64 = 100
@@ -38,6 +40,8 @@ struct ForceState <: GMState{ForceGM}
     walls::SVector{4, Wall}
     objects::Vector{Dot}
 end
+
+get_objects(st::ForceState) = st.objects
 
 function ForceState(gm::ForceGM, objects::AbstractVector{<:Dot})
     walls = init_walls(gm.area_width)
@@ -68,13 +72,14 @@ function step(gm::ForceGM,
     n_dots == length(forces) ||
         error("Length of `forces` missmatch with objects")
 
+    objects = state.objects
     new_dots = Vector{Dot}(undef, n_dots)
     @inbounds for i in eachindex(objects)
         dot = objects[i]
         # force accumalator
         facc = MVector{2, Float64}(forces[i])
         # interactions with walls
-        for w in walls
+        for w in state.walls
             force!(facc, gm, w, dot)
         end
         for j in eachindex(objects)
@@ -85,7 +90,7 @@ function step(gm::ForceGM,
         ku = update_kinematics(gm, dot, facc)
         new_dots[i] = update_graphics(gm, sync_update(dot, ku))
     end
-    setproperties(; objects = new_dots)
+    setproperties(state; objects = new_dots)
 end
 
 function step(gm::ForceGM,
@@ -172,8 +177,8 @@ function update_graphics(gm::ForceGM, d::Dot)
     setproperties(d, (gstate = gpoints))
 end
 
-function predict(gm::ForceGM, st::ForceState)
-    n = gm.n_dots
+function rf_elements(gm::ForceGM, objects::AbstractVector{Dot})
+    n = length(objects)
     es = Vector{RandomFiniteElement{GaussObs{2}}}(undef, n)
     # the trackers
     @inbounds for i in 1:n
@@ -183,18 +188,20 @@ function predict(gm::ForceGM, st::ForceState)
     return es
 end
 
+
+function predict(gm::ForceGM, st::ForceState)
+    rf_elements(gm, st.objects)
+end
+
 function observe(gm::ForceGM,
                  objects::AbstractVector{Dot})
-    n = length(objects)
-    es = RFSElements{GaussObs{2}}(undef, n)
-    @inbounds for i in 1:n
-        obj = objects[i]
-        es[i] = IsoElement{GaussObs{2}}(gpp, (obj.gstate,))
-    end
+    es = rf_elements(gm, objects)
     (es, gpp_mrfs(es, 50, 1.0))
 end
 
 include("gen.jl")
+
+gen_fn(::ForceGM) = gm_force
 
 ################################################################################
 # Misc
@@ -235,7 +242,6 @@ function state_from_positions(gm::ForceGM, positions, targets)
             dot = sync_update(objects[i], KinematicsUpdate(new_pos, new_vel))
             new_dots[i] = update_graphics(gm, dot)
         end
-        es, xs = observe(gm, new_dots)
         states[t] = ForceState(gm, new_dots)
     end
     return states

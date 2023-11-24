@@ -18,9 +18,9 @@ export PopSensitivity
     m::Float64 = 1.0
 end
 
-function load(::Type{PopSensitivity}, path; kwargs...)
-    PopSensitivity(;read_json(path)..., kwargs...)
-end
+# function load(::Type{PopSensitivity}, path; kwargs...)
+#     PopSensitivity(;read_json(path)..., kwargs...)
+# end
 
 function AdaptiveComputation(att::PopSensitivity)
     n = att.latents
@@ -76,6 +76,8 @@ function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
                     accepted += 1
                     s = s_prime
                     p = p_prime
+                    # mh reweighting
+                    state.log_weights[i] += ls
                 end
             end
             state.traces[i] = s

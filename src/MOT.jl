@@ -7,14 +7,13 @@ using LinearAlgebra
 using FillArrays
 using SparseArrays
 using StaticArrays
-using Lazy: @>, @>>
+using Lazy: @>, @>> # TODO: remove
 using Accessors: setproperties, @set
 using Parameters: @with_kw, @unpack, @pack!
 
 include("utils/utils.jl")
 include("gms/gms.jl")
 include("inference/inference.jl")
-@load_generated_functions
 
 include("visuals/visuals.jl")
 

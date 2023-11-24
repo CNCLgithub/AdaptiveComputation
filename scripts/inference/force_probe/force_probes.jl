@@ -12,27 +12,28 @@ using Gen_Compose
 # using StatProfilerHTML
 
 experiment_name = "force_probes"
-dataset_name = "exp2_probes.json"
-plan = :td
+dataset_name = "exp2_probes"
+plan = :eu
 
 exp_params = (;experiment_name = experiment_name,
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(dataset_name).json",
-              dur = 48, # number of frames to run; full = 480
+              dur = 480, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
+              # restart = false,
+              # viz = false,
               restart = true,
-              viz = false,
-              # restart = true,
-              # viz = true,
+              viz = true,
               )
 
 plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
-    :eu => (ensemble_uncertainty, (4, ))
+    # :eu => (ensemble_uncertainty, (4, ))
+    :eu => (eu_static, (4, ))
 )
 
 function run_model(scene::Int, chain::Int)
@@ -41,21 +42,22 @@ function run_model(scene::Int, chain::Int)
     scene_data = MOT.load_scene(dgp_gm,
                                 exp_params.dataset,
                                 scene)
-    gt_states = scene_data[:gt_states][1:exp_params.dur]
+    init_gt_state = scene_data[:gt_states][1]
+    gt_states = scene_data[:gt_states][2:(exp_params.dur + 1)]
     aux_data = scene_data[:aux_data]
 
-    gm = setproperties(gm,
-                       (n_dots = gm.n_targets + aux_data["n_distractors"]))
-
-    query = query_from_params(gm, gt_states)
+    @show length(gt_states)
+    @show length(scene_data[:gt_states])
+    query = query_from_params(gm, init_gt_state, gt_states)
+    @show length(query)
 
     plan_obj, plan_args = plan_objectives[plan]
     att = MOT.load(PopSensitivity,
-                   exp_params.att,
+                   exp_params.att;
                    plan = plan_obj,
                    plan_args = plan_args,
                    percept_update = tracker_kernel,
-                   percept_args = (3,) # look back steps
+                   percept_args = (1,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
                     exp_params.proc;
@@ -68,7 +70,7 @@ function run_model(scene::Int, chain::Int)
         println("could not make dir $(path)")
     end
 
-    nsteps = length(gt_states) - 1
+    nsteps = length(query) + 1
     logger = MemLogger(nsteps)
     chain_perf_path = joinpath(path, "$(chain)_perf.csv")
     chain_att_path = joinpath(path, "$(chain)_att.csv")
@@ -102,7 +104,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 1
+        default = 24
 
         "chain"
         help = "chain id"

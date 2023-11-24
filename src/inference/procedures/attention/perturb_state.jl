@@ -45,15 +45,18 @@ function regenerate_trajectory(trace::Gen.Trace, tracker::Int, k::Int)
     ct = first(get_args(trace))
     t = max(1, ct - k)
     # t == 1 && return (trace, 0.)
-    addrs = []
+    selection = Gen.select()
     for i = (t+1):ct
-        push!(addrs,
+        push!(selection,
               :kernel => i => :trackers => tracker)
     end
-    (new_tr, ll, _) = regenerate(trace, Gen.select(addrs...))
+    (new_tr, ll, _) = regenerate(trace, selection)
 end
 
 function tracker_kernel(trace::Gen.Trace, tracker::Int, t::Int)
     new_tr, w = regenerate_trajectory(trace, tracker, t)
+    if isnan(w)
+        error()
+    end
     (new_tr, w)
 end

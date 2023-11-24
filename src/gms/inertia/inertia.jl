@@ -51,7 +51,7 @@ function load(::Type{InertiaGM}, path::String; kwargs...)
 end
 
 
-struct InertiaState <: GMState{InertiaState}
+struct InertiaState <: GMState{InertiaGM}
     walls::SVector{4, Wall}
     objects::Vector{Dot}
     ensemble::UniformEnsemble
@@ -211,3 +211,5 @@ end
 
 include("helpers.jl")
 include("gen.jl")
+
+gen_fn(::InertiaGM) = gm_inertia

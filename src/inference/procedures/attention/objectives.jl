@@ -2,7 +2,8 @@
 export correspondence,
     td_flat,
     td_full,
-    ensemble_uncertainty
+    ensemble_uncertainty,
+    eu_static
 
 function n_obs(tr::Gen.Trace)
     @>> tr begin
@@ -16,12 +17,39 @@ end
 # Objectives
 
 function td_assocs(tr::Gen.Trace)
-    @>> tr begin
-        get_args
-        first
-        t -> tr[:kernel => t]
-        td_assocs
+    t, gm = get_args(tr)
+    rfs_trace = extract_rfs_subtrace(tr, t)
+    td_assocs(rfs_trace, gm.n_targets)
+    # @>> tr begin
+    #     get_args
+    #     first
+    #     t -> tr[:kernel => t]
+    #     td_assocs
+    # end
+end
+
+function td_assocs(rfs::GenRFS.RFSTrace,
+        k::Int64)
+    pt = rfs.ptensor
+    mass = rfs.score
+    pls = rfs.pscores
+    nx,ne,np = size(pt)
+    
+    weights = zeros(k) # fill(-Inf, k)
+    @inbounds for p = 1:np
+        pmass = exp(pls[p] - mass)
+        for x = 1:k
+            assigned_target = false
+            for e = 1:k
+                pt[x, e, p] || continue
+                assigned_target = true
+            end
+            if assigned_target
+                weights[x] += pmass # logsumexp(pmass, weights[x])
+            end
+        end
     end
+    return weights
 end
 
 
@@ -108,10 +136,10 @@ function ensemble_uncertainty(tr::Gen.Trace, temp::Float64)
     ensemble_uncertainty(t, temp)
 end
 
-function eu_static(tr::Gen.Trace, temp::Float64)
+function eu_static(tr::Gen.Trace, k::Int64)
     t, _... = get_args(tr)
     rfs_trace = extract_rfs_subtrace(tr, t)
-    ensemble_uncertainty(rfs, temp)
+    ensemble_uncertainty(rfs_trace, k)
 end
 
 
@@ -130,8 +158,9 @@ function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
         for x = 1:nx
             assigned_distractor = true
             for e = 1:k
-                pt[x, ne, p] || continue
-                assigned_target = false
+                pt[x, e, p] || continue
+                assigned_distractor = false
+                break
             end
             if assigned_distractor
                 x_weights[x] = logsumexp(pmass, x_weights[x])
