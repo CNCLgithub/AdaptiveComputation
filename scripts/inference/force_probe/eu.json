@@ -2,9 +2,9 @@
     "latents": 8,
     "div_scale": 1.0,
     "importance_tau": 20.0,
-    "init_samples": 10,
+    "init_samples": 5,
     "min_samples": 3,
     "max_arrousal": 35,
-    "x0": 175.0,
-    "m": 0.175
+    "x0": 190.0,
+    "m": 0.2
 }

@@ -194,7 +194,7 @@ function render_scene(gm::T,
             # paint motion vectors
             p = KinPainter(color = color_codes,
                            alpha = 0.1,
-                           tail = true)
+                           tail = false)
             pf_state = pf_st[j, i]
             for i = 1:length(pf_state.objects)
                 obj = pf_state.objects[i]

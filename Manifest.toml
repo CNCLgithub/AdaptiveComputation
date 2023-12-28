@@ -2,7 +2,7 @@
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "2f4c0aa1186c94a4e0dc99f953d41230ca300ffd"
+project_hash = "437fbe1f73dac98c55d4388606799b5ab356859b"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -484,9 +484,17 @@ git-tree-sha1 = "9878ff4ab1990f5647e89b4228a3c9da5f0e69c7"
 uuid = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 version = "0.4.6"
 
+[[deps.GenParticleFilters]]
+deps = ["Distributions", "Gen", "Parameters", "Statistics"]
+git-tree-sha1 = "1009fe501115947ba57a9e9e90a3acd3e8d476bb"
+uuid = "56b76ac4-72ef-411e-b419-6d312ed86a6f"
+version = "0.1.8"
+
 [[deps.GenRFS]]
 deps = ["BenchmarkTools", "Cassette", "Combinatorics", "DataStructures", "Distributions", "FunctionalCollections", "Gen", "IterTools", "LRUCache", "Lazy", "LightGraphs", "LinearAlgebra", "Revise", "SHA", "SpecialFunctions", "StatProfilerHTML", "Test", "UnicodePlots"]
-path = "/home/mario/dev/mot/env.d/jenv/dev/GenRFS"
+git-tree-sha1 = "259a46cf032e871a368c37127763a3882e4c8a16"
+repo-rev = "rfgm"
+repo-url = "https://github.com/CNCLgithub/GenRFS.git"
 uuid = "56ab6c88-a2ab-44ec-99ca-7b9069b439c2"
 version = "0.1.0"
 
@@ -745,9 +753,9 @@ uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
 version = "15.0.4+0"
 
 [[deps.LRUCache]]
-git-tree-sha1 = "d36130483e3b6e4cd88d81633b596563264f15db"
+git-tree-sha1 = "5930ef949f30a9a947c69ef6b069c0b1aa27619d"
 uuid = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
-version = "1.5.0"
+version = "1.6.0"
 
 [[deps.LZO_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]

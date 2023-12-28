@@ -12,8 +12,14 @@ function Gen.random(::VonMises, mu::Float64, k::Float64)
     rand(d)
 end
 
+const twopi = 2 * pi
+
 function Gen.logpdf(::VonMises, x::Float64, mu::Float64, k::Float64)
-    d = Distributions.VonMises(mu, k)
+    # from https://stackoverflow.com/a/24234924
+    x = x - mu
+    x = x - twopi * floor((x + pi) / twopi)
+    # @show x
+    d = Distributions.VonMises(k)
     Distributions.logpdf(d, x)
 end
 

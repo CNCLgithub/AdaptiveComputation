@@ -23,10 +23,10 @@ exp_params = (;experiment_name = experiment_name,
               dur = 480, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
-              # restart = false,
-              # viz = false,
-              restart = true,
-              viz = true,
+              restart = false,
+              viz = false,
+              # restart = true,
+              # viz = true,
               )
 
 plan_objectives = Dict(
@@ -104,7 +104,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24
+        default = 11
 
         "chain"
         help = "chain id"
@@ -118,8 +118,11 @@ end
 function main()
     args = pargs()
     i = args["scene"]
-    c = args["chain"]
-    run_model(i, c);
+    nc = args["chain"]
+    for c = 1:nc
+        run_model(i, c)
+    end
+    # run_model(i, c);
 end
 
 

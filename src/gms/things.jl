@@ -41,25 +41,17 @@ function get_vel end
     mass::Float64
 
     # Kinematics
+    pos::SVector{2, Float64}
     vel::SVector{2, Float64}
-    tail::CircularBuffer{SVector{2, Float64}}
 
     # Graphics
-    gstate::Vector{GaussianComponent{2}}
+    # gstate::Vector{GaussianComponent{2}}
 
     # Misc
     target::Float64
 end
 
-function _Dot(radius::Float64, mass::Float64, pos::SVector{2, Float64},
-             vel::SVector{2, Float64}, nt::Int, target::Bool)
-    tail = CircularBuffer{SVector{2, Float64}}(nt)
-    pushfirst!(tail, pos)
-    g = GaussianComponent{SVector{2, Float64}}[]
-    Dot(radius, mass, vel, tail, g, target)
-end
-
-get_pos(d::Dot) = first(d.tail)
+get_pos(d::Dot) = d.pos
 get_vel(d::Dot) = d.vel
 target(d::Dot) = d.target
 
