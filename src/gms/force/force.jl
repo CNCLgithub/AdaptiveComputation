@@ -193,7 +193,20 @@ end
 
 function rf_element(gm::ForceGM, d::Dot)
     pos = get_pos(d)
+    vel = get_vel(d)
+    nvel = norm(vel)
+    normv = normalize(vel)
     c = 5.0
+    # # rotm
+    # c = SMatrix{2, 2, Float64}(abs(vel[1]), 0., 0., abs(vel[2]))
+    # c *= 2.0
+    # @show c
+
+    # angle
+    # u = atan(normv[2], normv[1])
+    # u = atan(sin(u), cos(u))
+    # # k = clamp(10.0 * (nvel + 0.001) + 50.0, 0., 300.0)
+    # k = 75.0 # 5.0 * nvel + 5.0
     (pos, c)
 end
 
