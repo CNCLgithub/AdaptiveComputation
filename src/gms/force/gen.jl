@@ -1,6 +1,6 @@
 export gm_force
 
-gp_rfgm = RFGM(MRFS{GaussObs{2}}(), (100, 1.0))
+gp_rfgm = RFGM(MRFS{GaussObs{2}}(), (200, 2.0))
 
 ################################################################################
 # Initial State

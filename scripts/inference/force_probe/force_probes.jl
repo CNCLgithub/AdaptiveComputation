@@ -20,7 +20,7 @@ exp_params = (;experiment_name = experiment_name,
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(dataset_name).json",
-              dur = 480, # number of frames to run; full = 480
+              dur = 20, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
               # restart = false,
