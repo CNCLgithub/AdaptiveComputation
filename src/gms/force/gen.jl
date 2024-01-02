@@ -1,7 +1,6 @@
 export gm_force
 
-mo_rfs = MRFS{MotionObs}()
-mo_rfgm = RFGM(MRFS{MotionObs}(), (200, 2.0))
+gp_rfgm = RFGM(MRFS{GaussObs{2}}(), (100, 1.0))
 
 ################################################################################
 # Initial State
@@ -52,7 +51,7 @@ end
     new_state::ForceState = step(gm, prev_st, forces)
     elements = predict(gm, new_state)
     # predict observations as a random finite set
-    xs = @trace(mo_rfgm(elements), :masks)
+    xs = @trace(gp_rfgm(elements), :masks)
     return new_state
 end
 

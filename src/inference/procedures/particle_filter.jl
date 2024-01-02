@@ -4,7 +4,6 @@ export PopParticleFilter,
 using Gen_Compose
 using Gen_Compose: initial_args, initial_constraints,
     AuxillaryState, PFChain
-using GenParticleFilters
 
 @with_kw struct PopParticleFilter <: Gen_Compose.AbstractParticleFilter
     particles::Int = 1
@@ -34,8 +33,7 @@ function Gen_Compose.step!(chain::PFChain{<:SequentialQuery, <:PopParticleFilter
     squery = query[step]
     @unpack args, argdiffs, observations = squery
     # Resample before moving on...
-    GenParticleFilters.pf_residual_resample!(state)
-    # Gen.maybe_resample!(state, ess_threshold=proc.ess)
+    Gen.maybe_resample!(state, ess_threshold=proc.ess)
     # update the state of the particles
     Gen.particle_filter_step!(state, args, argdiffs,
                               observations)

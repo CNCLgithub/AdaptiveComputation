@@ -6,10 +6,11 @@ import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/env.d/run.sh julia ' + \
-         '/project/scripts/inference/force_probes/force_probes.jl'
+         '/project/scripts/inference/exp2_probes/exp2_probes.jl'
 
 def att_tasks(args):
-    tasks = [(t,args.chains) for t in range(1, args.scenes+1)]
+    tasks = [(t,c) for c in range(1, args.chains + 1)
+             for t in range(1, args.scenes+1)]
     return (tasks, [], [])
     
 def main():
@@ -22,7 +23,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 15,
+    parser.add_argument('--duration', type = int, default = 30,
                         help = 'job duration (min)')
 
     args = parser.parse_args()

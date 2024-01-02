@@ -59,7 +59,9 @@ function Dot(gm::ForceGM,
              pos::SVector{2, Float64},
              vel::SVector{2, Float64},
              target::Bool)
-    Dot(gm.dot_radius, 1.0, pos, vel, target)
+    t_dot = _Dot(gm.dot_radius, 1.0, pos, vel,
+                gm.k_tail, target)
+    update_graphics(gm, t_dot)
 end
 
 function step(gm::ForceGM,
@@ -86,9 +88,7 @@ function step(gm::ForceGM,
         end
         # kinematics: resolve forces to pos vel
         ku = update_kinematics(gm, dot, facc)
-        new_dots[i] = setproperties(dot,
-                                    pos = ku.p,
-                                    vel = ku.v)
+        new_dots[i] = update_graphics(gm, sync_update(dot, ku))
     end
     setproperties(state; objects = new_dots)
 end
@@ -115,9 +115,7 @@ function step(gm::ForceGM,
         end
         # kinematics: resolve forces to pos vel
         ku = update_kinematics(gm, dot, facc)
-        new_dots[i] = setproperties(dot,
-                                    pos = ku.p,
-                                    vel = ku.v)
+        new_dots[i] = sync_update(dot, ku)
     end
     setproperties(; objects = new_dots)
 end
@@ -145,24 +143,12 @@ end
 
 function update_kinematics(gm::ForceGM, d::Dot, f::MVector{2, Float64})
     @unpack rep_inertia, vel, area_height = gm
-    # new_vel = (d.vel ./ norm(d.vel)) * vel
-    # new_vel += (rep_inertia * f)
-    # new_pos = clamp.(get_pos(d) + new_vel,
-    #                  -area_height * 0.5 + d.radius,
-    #                  area_height * 0.5  - d.radius)
-    # any(isnan, new_pos) && error("Kinematics update returned NaN")
-  # @unpack max_accel, max_vel, area_height = gm
-    nf = max(norm(f), 0.01)
-    f_adj = f .* (min(nf, 5.0) / nf)
-    v = d.vel + f_adj
-    nv = max(norm(v), 0.01)
-    new_vel = v .* (clamp(nv, gm.vel, 10.0) / nv)
-    prev_pos = get_pos(d)
-    new_pos = clamp.(prev_pos + new_vel,
+    new_vel = (d.vel ./ norm(d.vel)) * vel
+    new_vel += (rep_inertia * f)
+    new_pos = clamp.(get_pos(d) + new_vel,
                      -area_height * 0.5 + d.radius,
                      area_height * 0.5  - d.radius)
-    # any(isnan, new_pos) && error()
-    # setproperties(d; pos = new_pos, vel = v_adj)
+    any(isnan, new_pos) && error("Kinematics update returned NaN")
     KinematicsUpdate(new_pos, new_vel)
 end
 
@@ -191,42 +177,16 @@ function update_graphics(gm::ForceGM, d::Dot)
     setproperties(d, (gstate = gpoints))
 end
 
-function rf_element(gm::ForceGM, d::Dot)
-    pos = get_pos(d)
-    vel = get_vel(d)
-    nvel = norm(vel)
-    normv = normalize(vel)
-    c = 5.0
-    # # rotm
-    # c = SMatrix{2, 2, Float64}(abs(vel[1]), 0., 0., abs(vel[2]))
-    # c *= 2.0
-    # @show c
-
-    # angle
-    # u = atan(normv[2], normv[1])
-    # u = atan(sin(u), cos(u))
-    # # k = clamp(10.0 * (nvel + 0.001) + 50.0, 0., 300.0)
-    # k = 75.0 # 5.0 * nvel + 5.0
-    (pos, c)
-end
-
 function rf_elements(gm::ForceGM, objects::AbstractVector{Dot})
     n = length(objects)
-    es = Vector{RandomFiniteElement{MotionObs}}(undef, n)
+    es = Vector{RandomFiniteElement{GaussObs{2}}}(undef, n)
     # the trackers
     @inbounds for i in 1:n
         obj = objects[i]
-        rfargs = rf_element(gm, obj)
-        # @show obj
-        # @show rfargs
-        es[i] = IsoElement{MotionObs}(motiongauss, rfargs)
+        es[i] = IsoElement{GaussObs{2}}(gpp, (obj.gstate,))
     end
     return es
 end
-
-include("gen.jl")
-
-gen_fn(::ForceGM) = gm_force
 
 
 function predict(gm::ForceGM, st::ForceState)
@@ -236,8 +196,12 @@ end
 function observe(gm::ForceGM,
                  objects::AbstractVector{Dot})
     es = rf_elements(gm, objects)
-    (es, mo_rfs(es, 50, 1.0))
+    (es, gpp_mrfs(es, 50, 1.0))
 end
+
+include("gen.jl")
+
+gen_fn(::ForceGM) = gm_force
 
 ################################################################################
 # Misc
@@ -275,8 +239,8 @@ function state_from_positions(gm::ForceGM, positions, targets)
             old_pos = Float64.(positions[t-1][i][1:2])
             new_pos = SVector{2}(Float64.(positions[t][i][1:2]))
             new_vel = SVector{2}(new_pos .- old_pos)
-            # dot = sync_update(objects[i], KinematicsUpdate(new_pos, new_vel))
-            new_dots[i] = setproperties(objects[i], pos = new_pos, vel = new_vel)
+            dot = sync_update(objects[i], KinematicsUpdate(new_pos, new_vel))
+            new_dots[i] = update_graphics(gm, dot)
         end
         states[t] = ForceState(gm, new_dots)
     end
