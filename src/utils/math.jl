@@ -1,12 +1,22 @@
-export softmax, normalize_weights
+export softmax, normalize_weights, logdiffexp
 
 
 
 # Numerical constants
 const ln_hlf = log(0.5)
+const ln_two = log(2.0)
 const two_pi_sqr = 4.0 * pi * pi
 
-log1mexp(a::Float64) = (a < ln_hlf) ? log1p(-exp(a)) : log(-expm1(a))
+function log1mexp(x::Float64)
+    a = abs(x)
+    (a < ln_two) ? log1p(-exp(-a)) : log(-expm1(-a))
+end
+
+function logdiffexp(a::Float64, b::Float64)
+    x = min(a, b)
+    y = max(a, b)
+    x == -Inf ? x : x + log1mexp(y - x)
+end
 
 # stable softmax
 # function softmax(x::Array{Float64}; t = 1.0)

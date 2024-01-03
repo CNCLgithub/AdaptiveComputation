@@ -20,7 +20,7 @@ exp_params = (;experiment_name = experiment_name,
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(dataset_name).json",
-              dur = 20, # number of frames to run; full = 480
+              dur = 480, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
               # restart = false,
@@ -34,6 +34,7 @@ plan_objectives = Dict(
     :td => (td_flat, (1.025,)),
     # :eu => (ensemble_uncertainty, (4, ))
     :eu => (eu_static, (4, ))
+    # :eu => (MOT.td_flat_rfgm, (4, 1.0))
 )
 
 function run_model(scene::Int, chain::Int)
