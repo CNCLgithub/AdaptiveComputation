@@ -23,10 +23,10 @@ exp_params = (;experiment_name = experiment_name,
               dur = 480, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
-              # restart = false,
-              # viz = false,
-              restart = true,
-              viz = true,
+              restart = false,
+              viz = false,
+              # restart = true,
+              # viz = true,
               )
 
 plan_objectives = Dict(
