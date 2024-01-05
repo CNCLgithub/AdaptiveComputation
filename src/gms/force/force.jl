@@ -151,7 +151,7 @@ function update_kinematics(gm::ForceGM, d::Dot, f::MVector{2, Float64})
     # any(isnan, new_pos) && error("Kinematics update returned NaN")
     # KinematicsUpdate(new_pos, new_vel)
     nf = max(norm(f), 0.01)
-    f_adj = f .* (min(nf, 7.5) / nf)
+    f_adj = f .* (min(nf, 5.0) / nf)
     v = get_vel(d) + f_adj
     nv = max(norm(v), 0.01)
     new_vel = v .* (clamp(nv, gm.vel, 10.0) / nv)

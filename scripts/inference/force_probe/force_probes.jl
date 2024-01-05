@@ -88,7 +88,7 @@ function run_model(scene::Int, chain::Int)
     perf_df[!, :scene] .= scene
     perf_df[!, :chain] .= chain
     CSV.write(chain_perf_path, perf_df)
-    att_df = MOT.chain_attention(dg, gm.n_targets)
+    att_df = MOT.chain_attention(dg, gm.n_dots)
     att_df[!, :scene] .= scene
     att_df[!, :chain] .= chain
     CSV.write(chain_att_path, att_df)
@@ -105,7 +105,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24
+        default = 36
 
         "chain"
         help = "chain id"
