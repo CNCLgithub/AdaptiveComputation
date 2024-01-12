@@ -6,7 +6,7 @@ import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/env.d/run.sh julia ' + \
-         '/project/scripts/inference/exp2_probes/exp2_probes.jl'
+         '/project/scripts/inference/force_probe/force_probes.jl'
 
 def att_tasks(args):
     tasks = [(t,c) for c in range(1, args.chains + 1)
