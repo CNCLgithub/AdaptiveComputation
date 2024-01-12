@@ -143,18 +143,11 @@ end
 
 function update_kinematics(gm::ForceGM, d::Dot, f::MVector{2, Float64})
     @unpack rep_inertia, vel, area_height = gm
-    # new_vel = (d.vel ./ norm(d.vel)) * vel
-    # new_vel += (rep_inertia * f)
-    # new_pos = clamp.(get_pos(d) + new_vel,
-    #                  -area_height * 0.5 + d.radius,
-    #                  area_height * 0.5  - d.radius)
-    # any(isnan, new_pos) && error("Kinematics update returned NaN")
-    # KinematicsUpdate(new_pos, new_vel)
     nf = max(norm(f), 0.01)
-    f_adj = f .* (min(nf, 5.0) / nf)
+    f_adj = f .* (min(nf, rep_inertia) / nf)
     v = get_vel(d) + f_adj
     nv = max(norm(v), 0.01)
-    new_vel = v .* (clamp(nv, gm.vel, 12.5) / nv)
+    new_vel = v .* (clamp(nv, gm.vel, 3 * gm.vel) / nv)
     prev_pos = get_pos(d)
     new_pos = clamp.(prev_pos + new_vel,
                      -area_height * 0.5 + d.radius,
