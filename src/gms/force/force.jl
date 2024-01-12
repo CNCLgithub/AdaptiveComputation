@@ -154,7 +154,7 @@ function update_kinematics(gm::ForceGM, d::Dot, f::MVector{2, Float64})
     f_adj = f .* (min(nf, 5.0) / nf)
     v = get_vel(d) + f_adj
     nv = max(norm(v), 0.01)
-    new_vel = v .* (clamp(nv, gm.vel, 10.0) / nv)
+    new_vel = v .* (clamp(nv, gm.vel, 12.5) / nv)
     prev_pos = get_pos(d)
     new_pos = clamp.(prev_pos + new_vel,
                      -area_height * 0.5 + d.radius,
