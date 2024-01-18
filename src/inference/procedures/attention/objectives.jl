@@ -136,53 +136,6 @@ function eu_static(tr::Gen.Trace, k::Int64)
     ensemble_uncertainty(rfs_trace, k)
 end
 
-function td_flat_rfgm(trace::Gen.Trace,
-                      ne::Int64,
-                      temp::Float64)
-    t, _... = get_args(trace)
-    rfs = extract_rfs_subtrace(trace, t)
-    pt = rfs.ptensor
-    nx,_,np = size(pt)
-    # ls::Float64 = logsumexp(pls)
-    nls = log.(softmax(rfs.pscores, t=temp))
-    # probability that each observation
-    # is explained by a target
-    x_weights = Vector{Float64}(undef, nx)
-    @inbounds for x = 1:nx
-        xw = -Inf
-        @views for p = 1:np, e = 1:ne
-            pt[x, e, p] || continue
-            xw = logsumexp(xw, nls[p])
-        end
-        x_weights[x] = xw
-    end
-
-    # @show length(pls)
-    # display(sum(pt; dims = 3))
-    @show x_weights
-    # the ratio of observations explained by each target
-    # weighted by the probability that the observation is
-    # explained by other targets
-    td_weights = fill(-Inf, ne)
-    @inbounds for i = 1:ne
-        for p = 1:np
-            ew = -Inf
-            @views for x = 1:nx
-                pt[x, i, p] || continue
-                ew = x_weights[x]
-                # assuming isomorphicity
-                # (one association per partition)
-                break
-            end
-            # P(e -> x) where x is associated with any other targets
-            prop = nls[p]
-            ew += prop
-            td_weights[i] = logsumexp(td_weights[i], ew)
-        end
-    end
-    @show td_weights
-    return td_weights
-end
 
 function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
         k::Int64)
@@ -209,7 +162,7 @@ function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
         end
     end
     @inbounds for x = 1:nx
-        x_weights[x] = clamp(round(x_weights[x]; digits=6), -Inf, 0.0)
+        x_weights[x] = clamp(round(x_weights[x]; digits=7), -Inf, 0.0)
     end
     return x_weights
 end

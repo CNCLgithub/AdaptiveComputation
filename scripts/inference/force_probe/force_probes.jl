@@ -13,7 +13,7 @@ using Gen_Compose
 
 experiment_name = "force_probes"
 dataset_name = "exp2_probes"
-plan = :eu
+plan = :td
 
 exp_params = (;experiment_name = experiment_name,
               gm = "$(@__DIR__)/gm.json",
@@ -31,7 +31,7 @@ exp_params = (;experiment_name = experiment_name,
 
 plan_objectives = Dict(
     # key => (plan object, args)
-    :td => (td_flat, (1.025,)),
+    :td => (td_flat, (4, 10.0)),
     # :eu => (ensemble_uncertainty, (4, ))
     :eu => (eu_static, (4, ))
     # :eu => (MOT.td_flat_rfgm, (4, 1.0))
@@ -105,7 +105,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 38
+        default = 35
 
         "chain"
         help = "chain id"
