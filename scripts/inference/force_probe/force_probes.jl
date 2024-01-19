@@ -105,7 +105,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 34
+        default = 31
 
         "chain"
         help = "chain id"
