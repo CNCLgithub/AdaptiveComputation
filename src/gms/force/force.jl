@@ -125,7 +125,8 @@ function force!(f::MVector{2, Float64}, gm::ForceGM, w::Wall, d::Dot)
     @unpack wall_repulsion, max_distance, distance_factor = gm
     v = LinearAlgebra.norm(w.normal .* pos + w.nd)
     v > max_distance && return nothing
-    mag = wall_repulsion * exp(-v/distance_factor)
+    # mag = wall_repulsion * exp(-v/distance_factor)
+    mag = exp(-((v - wall_repulsion)/distance_factor))
     f .+= mag * w.normal
     return nothing
 end
@@ -135,7 +136,8 @@ function force!(f::MVector{2, Float64}, gm::ForceGM, x::Dot, d::Dot)
     v = get_pos(d) - get_pos(x)
     nv = norm(v)
     nv > max_distance && return nothing
-    mag = dot_repulsion * exp(-nv/distance_factor)
+    # mag = dot_repulsion * exp(-nv/distance_factor)
+    mag = exp(-((nv - dot_repulsion)/distance_factor))
     delta_f = mag * (v./nv)
     f .+= delta_f
     return nothing
