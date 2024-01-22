@@ -13,8 +13,8 @@
     "img_width": 100,
     "force_sd": 4.0,
     "img_height": 100,
-    "inner_f": 5.0,
-    "outer_f": 7.5,
+    "inner_f": 7.5,
+    "outer_f": 15.0,
     "k_tail": 6,
     "tail_sample_rate": 2
 }

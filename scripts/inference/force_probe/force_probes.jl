@@ -1,15 +1,7 @@
 using CSV
 using MOT
 using ArgParse
-using Accessors
 using Gen_Compose
-
-# using Random
-# Random.seed!(1234);
-# @warn "Seed is set, remove before experiments!"
-
-# using Profile
-# using StatProfilerHTML
 
 experiment_name = "force_probes"
 dataset_name = "exp2_probes"
@@ -105,7 +97,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 31
+        default = 1
 
         "chain"
         help = "chain id"
