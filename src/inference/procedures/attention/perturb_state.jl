@@ -53,6 +53,25 @@ function regenerate_trajectory(trace::Gen.Trace, tracker::Int, k::Int)
     (new_tr, ll, _) = regenerate(trace, selection)
 end
 
+
+function regenerate_trajectory(trace::ForceEnsembleTrace, tracker::Int, k::Int)
+    ct, gm = get_args(trace)
+
+    t = max(1, ct - k)
+    # t == 1 && return (trace, 0.)
+    selection = Gen.select()
+    if tracker <= gm.n_targets
+        for i = (t+1):ct
+            push!(selection, :kernel => i => :trackers => tracker)
+        end
+    else
+        for i = (t+1):ct
+            push!(selection, :kernel => i => :ensemble)
+        end
+    end
+    (new_tr, ll, _) = regenerate(trace, selection)
+end
+
 function tracker_kernel(trace::Gen.Trace, tracker::Int, t::Int)
     new_tr, w = regenerate_trajectory(trace, tracker, t)
     if isnan(w)

@@ -65,6 +65,45 @@ function get_init_constraints(gm::ForceGM, st::ForceState)
     return Gen.StaticChoiceMap(cm)
 end
 
+
+"Package simulated trajecties into a vector of choicemaps"
+function get_observations(gm::ForceEnsemble,
+                          st::Vector{ForceEState})
+    k = length(st)
+    observations = Vector{Gen.ChoiceMap}(undef, k)
+    for t=1:k
+        _, xs = observe(gm, st[t].objects)
+        cm = Gen.choicemap()
+        for (i, x) = enumerate(xs)
+            cm[:kernel => t => :masks => i] = x
+        end
+        observations[t] = Gen.StaticChoiceMap(cm)
+    end
+    return observations
+end
+
+"Creates a `choicemap` for t0 (gt initial positions)"
+function get_init_constraints(gm::ForceEnsemble, st::ForceEState)
+    cm = Gen.choicemap()
+    k = gm.n_targets
+    n = length(st.objects)
+    for i=1:k
+        pos = get_pos(st.objects[i])
+        cm[:init_state => :tracker_prior => i => :x] = pos[1]
+        cm[:init_state => :tracker_prior => i => :y] = pos[2]
+        cm[:init_state => :tracker_prior => i => :target] = true
+    end
+    dis_pos = map(get_pos, st.objects[(k+1):end])
+    mu_x, mu_y = mean(dis_pos)
+    sigma = norm(std(dis_pos))
+    cm[:init_state => :ensemble_prior => :x] = mu_x
+    cm[:init_state => :ensemble_prior => :y] = mu_y
+    cm[:init_state => :ensemble_prior => :sigma] = sigma
+    cm[:init_state => :ensemble_prior => :rate] = n - k
+    return Gen.StaticChoiceMap(cm)
+end
+
+
 """
     query_from_params(gm, gt_state)
 
@@ -109,7 +148,6 @@ end
 
 
 function chain_performance(dg)
-    # causal graphs at the end of inference
     perf = dg[end, :task_accuracy]
     df = DataFrame(tracker = 1:length(perf),
                    td_acc = perf)

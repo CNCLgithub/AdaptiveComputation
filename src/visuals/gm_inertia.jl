@@ -136,6 +136,15 @@ function MOT.paint(p::Union{IDPainter,KinPainter}, st::GMState)
     return nothing
 end
 
+function MOT.paint(gm::GenerativeModel, st::GMState)
+    return nothing
+end
+
+function MOT.paint(gm::ForceEnsemble, st::ForceEState)
+    e = st.ensemble
+    _draw_circle(e.mu, e.sigma, "purple", opacity=0.5,
+                 style = :stroke)
+end
 
 function MOT.paint(p::AttentionRingsPainter,
                    st::GMState,
@@ -164,7 +173,7 @@ function render_scene(gm::T,
                                     radius = 40.,
                                     linewidth = 15.0,
                                     attention_color = "red")
-    att_centroid = AttentionCentroidPainter()
+    # att_centroid = AttentionCentroidPainter()
 
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
@@ -202,6 +211,7 @@ function render_scene(gm::T,
                     MOT.paint(p, obj, i)
                 end
             end
+            MOT.paint(gm, pf_state)
             # MOT.paint(p, pf_state)
 
             # attention rings

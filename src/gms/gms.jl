@@ -38,6 +38,7 @@ include("things.jl")
 include("inertia/inertia.jl")
 include("isr/isr.jl")
 include("force/force.jl")
+include("force_ensemble/force_ensemble.jl")
 
 ################################################################################
 # Data generating procedures
