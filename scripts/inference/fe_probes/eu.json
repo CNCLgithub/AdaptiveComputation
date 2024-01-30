@@ -1,7 +1,7 @@
 {
     "latents": 4,
     "div_scale": 1.0,
-    "importance_tau": 200.0,
+    "importance_tau": 800.0,
     "init_samples": 5,
     "min_samples": 3,
     "max_arrousal": 40,

@@ -22,6 +22,9 @@ Model that computes force between objects
     vel::Float64 = 10.0 # base velocity
     rep_inertia::Float64 = 0.9
     force_sd::Float64 = 1.0
+    ens_repulsion::Float64 = 1.0
+    ens_force_sd::Float64 = 0.9
+    ens_sd::Float64 = 0.9
 
     # GRAPHICS
     img_width::Int64 = 100
@@ -151,14 +154,14 @@ end
 
 function force!(f::MVector{2, Float64}, gm::ForceEnsemble,
                 x::GaussianEnsemble, d::Dot)
-    @unpack dot_repulsion, max_distance, distance_factor = gm
+    @unpack ens_repulsion, max_distance, distance_factor = gm
     v = get_pos(d) - get_pos(x)
     nv = norm(v)
     nv > max_distance && return nothing
-    scaled = nv * (x.sigma) / x.rate
-    mag = exp(-((scaled)/distance_factor))
-    delta_f = mag * (v./nv)
-    f .+= delta_f
+    # scaled = nv * (x.sigma) / x.rate
+    # mag = exp(-((scaled - ens_repulsion)/distance_factor))
+    # delta_f = mag * (v./nv)
+    # f .+= delta_f
     return nothing
 end
 
@@ -202,7 +205,7 @@ function update_ensemble(gm::ForceEnsemble, e::GaussianEnsemble,
 
     d_mu = SVector{2, Float64}(10.0 * dx, 10.0 * dy)
     new_mu = e.mu + d_mu
-    new_sigma = clamp(e.sigma + 2.0 * ds, 0.0, 0.5 * gm.area_height)
+    new_sigma = clamp(e.sigma + ds, 0.0, 0.5 * gm.area_height)
     GaussianEnsemble(new_mu, new_sigma, e.rate)
 end
 

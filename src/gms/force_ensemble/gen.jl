@@ -55,9 +55,9 @@ end
 end
 
 @gen static function fe_ensemble_kernel(gm::ForceEnsemble, prev::ForceEState)
-    dx = @trace(normal(0.0, gm.force_sd), :dx)
-    dy = @trace(normal(0.0, gm.force_sd), :dy)
-    ds = @trace(normal(0.0, gm.force_sd), :ds)
+    dx = @trace(normal(0.0, gm.ens_force_sd), :dx)
+    dy = @trace(normal(0.0, gm.ens_force_sd), :dy)
+    ds = @trace(normal(0.0, gm.ens_sd), :ds)
     e::GaussianEnsemble = update_ensemble(gm, prev.ensemble, dx, dy, ds)
     return e
 end
