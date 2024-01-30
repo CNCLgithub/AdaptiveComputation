@@ -1,5 +1,5 @@
 {
-    "latents": 4,
+    "latents": 5,
     "div_scale": 1.0,
     "importance_tau": 800.0,
     "init_samples": 5,

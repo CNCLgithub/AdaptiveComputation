@@ -10,14 +10,14 @@
     "max_distance": 200.0,
     "vel": 4.0,
     "rep_inertia": 10.0,
-    "force_sd": 6.0,
-    "ens_repulsion": 10.0,
+    "force_sd": 7.0,
+    "ens_repulsion": 30.0,
     "ens_force_sd": 2.0,
     "ens_sd" : 1.0,
     "img_width": 100,
     "img_height": 100,
+    "outer_f": 3.0,
     "inner_f": 1.0,
-    "outer_f": 2.0,
-    "k_tail": 6,
-    "tail_sample_rate": 2
+    "k_tail": 9,
+    "tail_sample_rate": 3
 }
