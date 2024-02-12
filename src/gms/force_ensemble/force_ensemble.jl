@@ -370,13 +370,12 @@ function td_full(trace::ForceEnsembleTrace,
     # probability that each observation
     # is explained by a target
     x_weights = fill(-Inf, nx)
-    pmarg = fill(-Inf, nx, ne)
+    pmarg = fill(-Inf, nx, k)
     @inbounds for p = 1:np
         pmass = pls[p] - mass
         for x = 1:nx
-            if pt[x, ne, p]
+            if !pt[x, ne, p]
                 x_weights[x] = logsumexp(pmass, x_weights[x])
-            else
                 for e = 1:k
                     if pt[x, e, p]
                         pmarg[x, e] = logsumexp(pmass, pmarg[x, e])
@@ -391,7 +390,10 @@ function td_full(trace::ForceEnsembleTrace,
         for x = 1:nx
             tprob = logsumexp(x_weights[x] + pmarg[x, e], tprob)
         end
+        # tprob = round(tprob; sigdigits = 4)
         expected_reward = logsumexp(tprob, expected_reward)
     end
+    # display(x_weights)
+    # display(pmarg)
     return expected_reward
 end

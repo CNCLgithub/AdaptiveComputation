@@ -5,6 +5,6 @@
     "init_samples": 5,
     "min_samples": 3,
     "max_arrousal": 40,
-    "x0": 100.0,
-    "m": 0.3
+    "x0": 200.0,
+    "m": 0.1
 }

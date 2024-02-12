@@ -12,12 +12,12 @@
     "rep_inertia": 20.0,
     "force_sd": 15.0,
     "ens_repulsion": 10.0,
-    "ens_force_sd": 2.0,
-    "ens_sd" : 1.0,
+    "ens_force_sd": 5.0,
+    "ens_sd" : 5.0,
     "img_width": 100,
     "img_height": 100,
-    "outer_f": 1.0,
-    "inner_f": 2.0,
-    "k_tail": 2,
+    "inner_f": 3.00,
+    "outer_f": 7.00,
+    "k_tail": 6,
     "tail_sample_rate": 2
 }

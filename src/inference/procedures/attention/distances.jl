@@ -84,6 +84,7 @@ end
 function sinkhorn_div(p::Float64, q::Float64; kwargs...)
     p == -Inf && p == -Inf && return 0.0
     m = max(p, q)
+    # @show (p, q)
     m + log(sqrt(-(exp(p - m), exp(q - m))^2))
     # sqrt((p - q)^2)
 end

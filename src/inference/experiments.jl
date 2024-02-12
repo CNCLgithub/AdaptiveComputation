@@ -95,7 +95,7 @@ function get_init_constraints(gm::ForceEnsemble, st::ForceEState)
     end
     dis_pos = map(get_pos, st.objects[(k+1):end])
     mu_x, mu_y = mean(dis_pos)
-    sigma = 2.0 * norm(std(dis_pos))
+    sigma = norm(std(dis_pos))
     cm[:init_state => :ensemble_prior => :x] = mu_x
     cm[:init_state => :ensemble_prior => :y] = mu_y
     cm[:init_state => :ensemble_prior => :sigma] = sigma
