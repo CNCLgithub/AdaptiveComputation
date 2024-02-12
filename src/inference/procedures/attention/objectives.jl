@@ -150,20 +150,10 @@ function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
     @inbounds for p = 1:np
         pmass = pls[p] - mass
         for x = 1:nx
-            assigned_distractor = true
-            for e = 1:k
-                pt[x, e, p] || continue
-                assigned_distractor = false
-                break
-            end
-            if assigned_distractor
+            if pt[x, ne, p]
                 x_weights[x] = logsumexp(pmass, x_weights[x])
             end
         end
     end
-    @inbounds for x = 1:nx
-        x_weights[x] = clamp(round(x_weights[x]; digits=7), -Inf, 0.0)
-    end
     return x_weights
 end
-

@@ -25,7 +25,8 @@ plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (4, 10.0)),
     # :eu => (ensemble_uncertainty, (4, ))
-    :eu => (eu_static, (4, ))
+    # :eu => (eu_static, (4, ))
+    :eu => (td_full, (4, ))
     # :eu => (MOT.td_flat_rfgm, (4, 1.0))
 )
 
@@ -97,7 +98,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 33
+        default = 39
 
         "chain"
         help = "chain id"

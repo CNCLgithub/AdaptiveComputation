@@ -158,10 +158,10 @@ function force!(f::MVector{2, Float64}, gm::ForceEnsemble,
     v = get_pos(d) - get_pos(x)
     nv = norm(v)
     nv > max_distance && return nothing
-    # scaled = nv * (x.sigma) / x.rate
-    # mag = exp(-((scaled - ens_repulsion)/distance_factor))
-    # delta_f = mag * (v./nv)
-    # f .+= delta_f
+    scaled = nv * (x.sigma) / x.rate
+    mag = exp(-((scaled - ens_repulsion)/distance_factor))
+    delta_f = mag * (v./nv)
+    f .+= delta_f
     return nothing
 end
 
@@ -192,7 +192,7 @@ function update_kinematics(gm::ForceEnsemble, d::Dot, f::MVector{2, Float64})
     f_adj = f .* (min(nf, rep_inertia) / nf)
     v = get_vel(d) + f_adj
     nv = max(norm(v), 0.01)
-    new_vel = v .* (clamp(nv, gm.vel, 3 * gm.vel) / nv)
+    new_vel = v .* (clamp(nv, 0.5 * gm.vel, 2 * gm.vel) / nv)
     prev_pos = get_pos(d)
     new_pos = clamp.(prev_pos + new_vel,
                      -area_height * 0.5 + d.radius,
@@ -355,3 +355,43 @@ function extract_rfs_subtrace(trace::ForceEnsembleTrace, t::Int64)
     getproperty(sub_trace, xs_field)
 end
 
+
+function td_full(trace::ForceEnsembleTrace,
+                 k::Int64)
+
+    t = first(get_args(trace))
+    rfs = extract_rfs_subtrace(trace, t)
+
+    pt = rfs.ptensor
+    mass = rfs.score
+    pls = rfs.pscores
+    nx,ne,np = size(pt)
+
+    # probability that each observation
+    # is explained by a target
+    x_weights = fill(-Inf, nx)
+    pmarg = fill(-Inf, nx, ne)
+    @inbounds for p = 1:np
+        pmass = pls[p] - mass
+        for x = 1:nx
+            if pt[x, ne, p]
+                x_weights[x] = logsumexp(pmass, x_weights[x])
+            else
+                for e = 1:k
+                    if pt[x, e, p]
+                        pmarg[x, e] = logsumexp(pmass, pmarg[x, e])
+                    end
+                end
+            end
+        end
+    end
+    expected_reward = -Inf
+    @inbounds for e = 1:k
+        tprob = -Inf
+        for x = 1:nx
+            tprob = logsumexp(x_weights[x] + pmarg[x, e], tprob)
+        end
+        expected_reward = logsumexp(tprob, expected_reward)
+    end
+    return expected_reward
+end
