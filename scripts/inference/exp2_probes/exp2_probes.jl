@@ -19,13 +19,13 @@ exp_params = (;experiment_name = "exp2_probes",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(experiment_name).json",
-              dur = 480, # number of frames to run; full = 480
-              model = "adaptive_computation",
+              dur = 96, # number of frames to run; full = 480
+              model = "ac",
               # SET FALSE for full experiment
-              restart = false,
-              viz = false,
-              # restart = true,
-              # viz = true,
+              # restart = false,
+              # viz = false,
+              restart = true,
+              viz = true,
               )
 
 plan_objectives = Dict(
@@ -40,14 +40,16 @@ function run_model(scene::Int, chain::Int)
     scene_data = MOT.load_scene(dgp_gm,
                                 exp_params.dataset,
                                 scene)
-    gt_states = scene_data[:gt_states][1:exp_params.dur]
+    init_gt_state = scene_data[:gt_states][1]
+    gt_states = scene_data[:gt_states][2:(exp_params.dur + 1)]
+    # gt_states = scene_data[:gt_states][1:exp_params.dur]
     aux_data = scene_data[:aux_data]
 
     gm = setproperties(gm,
                        (n_dots = gm.n_targets + aux_data["n_distractors"],
                         vel = aux_data["vel"] * 0.55))
 
-    query = query_from_params(gm, gt_states)
+    query = query_from_params(gm, init_gt_state, gt_states)
 
     plan_obj, plan_args = plan_objectives[plan]
     att = MOT.load(PopSensitivity,
@@ -68,7 +70,7 @@ function run_model(scene::Int, chain::Int)
         println("could not make dir $(path)")
     end
 
-    nsteps = length(gt_states) - 1
+    nsteps = length(gt_states) + 1
     logger = MemLogger(nsteps)
     chain_perf_path = joinpath(path, "$(chain)_perf.csv")
     chain_att_path = joinpath(path, "$(chain)_att.csv")
@@ -102,7 +104,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 26
+        default = 38
 
         "chain"
         help = "chain id"

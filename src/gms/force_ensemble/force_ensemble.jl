@@ -364,7 +364,8 @@ function td_full(trace::ForceEnsembleTrace,
 
     pt = rfs.ptensor
     mass = rfs.score
-    pls = rfs.pscores
+    # pls = rfs.pscores
+    pls = log.(softmax(rfs.pscores; t = 1.0))
     nx,ne,np = size(pt)
 
     # probability that each observation
@@ -372,7 +373,7 @@ function td_full(trace::ForceEnsembleTrace,
     x_weights = fill(-Inf, nx)
     pmarg = fill(-Inf, nx, k)
     @inbounds for p = 1:np
-        pmass = pls[p] - mass
+        pmass = pls[p] # - mass
         for x = 1:nx
             if !pt[x, ne, p]
                 x_weights[x] = logsumexp(pmass, x_weights[x])

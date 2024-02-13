@@ -6,8 +6,13 @@ function get_observations(gm::InertiaGM,
     k = length(st)
     observations = Vector{Gen.ChoiceMap}(undef, k)
     for t=1:k
+
+        _, xs = observe(gm, st[t].objects)
         cm = Gen.choicemap()
-        cm[:kernel => t => :masks] = st[t].xs
+        # cm[:kernel => t => :masks] = st[t].xs
+        for (i, x) = enumerate(xs)
+            cm[:kernel => t => :masks => i] = x
+        end
         observations[t] = Gen.StaticChoiceMap(cm)
     end
     return observations
@@ -95,7 +100,7 @@ function get_init_constraints(gm::ForceEnsemble, st::ForceEState)
     end
     dis_pos = map(get_pos, st.objects[(k+1):end])
     mu_x, mu_y = mean(dis_pos)
-    sigma = norm(std(dis_pos))
+    sigma = 3.0 * norm(std(dis_pos))
     cm[:init_state => :ensemble_prior => :x] = mu_x
     cm[:init_state => :ensemble_prior => :y] = mu_y
     cm[:init_state => :ensemble_prior => :sigma] = sigma

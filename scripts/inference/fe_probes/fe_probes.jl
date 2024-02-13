@@ -12,13 +12,13 @@ exp_params = (;experiment_name = experiment_name,
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(dataset_name).json",
-              dur = 480, # number of frames to run; full = 480
+              dur = 96, # number of frames to run; full = 480
               model = "adaptive_computation",
               # SET FALSE for full experiment
-              restart = false,
-              viz = false,
-              # restart = true,
-              # viz = true,
+              # restart = false,
+              # viz = false,
+              restart = true,
+              viz = true,
               )
 
 plan_objectives = Dict(
@@ -51,7 +51,7 @@ function run_model(scene::Int, chain::Int)
                    plan = plan_obj,
                    plan_args = plan_args,
                    percept_update = tracker_kernel,
-                   percept_args = (1,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
                     exp_params.proc;
