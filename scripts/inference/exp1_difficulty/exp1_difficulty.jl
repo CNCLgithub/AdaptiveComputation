@@ -63,8 +63,8 @@ end
 
 function main()
     args = parse_commandline()
-    # args["restart"] = true
-    # args["viz"] = true
+    args["restart"] = true
+    args["viz"] = true
 
 
     # loading scene data
@@ -73,7 +73,9 @@ function main()
     scene_data = MOT.load_scene(dgp_gm,
                                 args["dataset"],
                                 args["scene"])
-    gt_states = scene_data[:gt_states][1:args["time"]]
+    # gt_states = scene_data[:gt_states][1:args["time"]]
+    init_gt_state = scene_data[:gt_states][1]
+    gt_states = scene_data[:gt_states][2:(args["time"] + 1)]
     aux_data = scene_data[:aux_data]
 
     gm = setproperties(gm, (
@@ -81,7 +83,7 @@ function main()
         vel = aux_data["vel"] * 0.55,
         ))
 
-    query = query_from_params(gm, gt_states)
+    query = query_from_params(gm, init_gt_state, gt_states)
 
     att = MOT.load(PopSensitivity,
                    att_params,
@@ -103,7 +105,7 @@ function main()
     end
 
     c = chain = args["chain"]
-    nsteps = length(gt_states) - 1
+    nsteps = length(gt_states) + 1
     logger = MemLogger(nsteps)
     chain_perf_path = joinpath(path, "$(chain)_perf.csv")
     chain_att_path = joinpath(path, "$(chain)_att.csv")

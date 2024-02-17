@@ -4,13 +4,6 @@ using ArgParse
 using Accessors
 using Gen_Compose
 
-# using Random
-# Random.seed!(1234);
-# @warn "Seed is set, remove before experiments!"
-
-# using Profile
-# using StatProfilerHTML
-
 experiment_name = "exp2_probes"
 plan = :td
 
@@ -19,13 +12,13 @@ exp_params = (;experiment_name = "exp2_probes",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
               dataset = "/spaths/datasets/$(experiment_name).json",
-              dur = 96, # number of frames to run; full = 480
+              dur = 480, # number of frames to run; full = 480
               model = "ac",
               # SET FALSE for full experiment
-              # restart = false,
-              # viz = false,
-              restart = true,
-              viz = true,
+              restart = false,
+              viz = false,
+              # restart = true,
+              # viz = true,
               )
 
 plan_objectives = Dict(
