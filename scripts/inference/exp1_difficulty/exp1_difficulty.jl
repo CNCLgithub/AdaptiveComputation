@@ -63,8 +63,8 @@ end
 
 function main()
     args = parse_commandline()
-    args["restart"] = true
-    args["viz"] = true
+    # args["restart"] = true
+    # args["viz"] = true
 
 
     # loading scene data
@@ -97,7 +97,7 @@ function main()
                     args["proc"];
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_adaptive_computation_$(att_mode)/$(args["scene"])"
+    path = "/spaths/experiments/$(experiment_name)_ac_$(att_mode)/$(args["scene"])"
     try
         isdir(path) || mkpath(path)
     catch e
