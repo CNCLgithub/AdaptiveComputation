@@ -1,6 +1,7 @@
 export gm_inertia
 
 
+gp_rfgm = RFGM(MRFS{GaussObs{2}}(), (200, 10.0))
 
 ################################################################################
 # Initial State
@@ -74,14 +75,15 @@ end
 
     # predict observations as a random finite set
     es = predict(gm, t, prev_st, new_dots)
-    xs = @trace(gpp_mrfs(es, 50, 1.0), :masks)
+    # xs = @trace(gpp_mrfs(es, 50, 1.0), :masks)
     # xs = @trace(mask_rfs(es), :masks)
+    xs = @trace(gp_rfgm(es), :masks)
 
     # store the associations for later use
     current_state::InertiaState = InertiaState(prev_st,
-                                               new_dots,
-                                               es,
-                                               xs)
+                                               new_dots)
+                                               # es,
+                                               # xs)
     return current_state
 end
 

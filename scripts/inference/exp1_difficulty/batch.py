@@ -24,7 +24,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 35,
+    parser.add_argument('--duration', type = int, default = 10,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
@@ -36,7 +36,7 @@ def main():
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
-        'mem-per-cpu' : '3GB',
+        'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(args.duration),
         'partition' : 'psych_scavenge',
         'requeue' : None,

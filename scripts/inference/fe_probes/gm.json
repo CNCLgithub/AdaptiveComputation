@@ -1,0 +1,23 @@
+{
+    "n_targets": 4,
+    "n_dots": 8,
+    "dot_radius": 20.0,
+    "area_width": 800,
+    "area_height": 800,
+    "dot_repulsion": 0.0,
+    "wall_repulsion": 30.0,
+    "distance_factor": 35.0,
+    "max_distance": 200.0,
+    "vel": 5.0,
+    "rep_inertia": 15.0,
+    "force_sd": 5.0,
+    "ens_repulsion": -100.0,
+    "ens_force_sd": 5.0,
+    "ens_sd" : 5.0,
+    "img_width": 100,
+    "img_height": 100,
+    "inner_f": 5.00,
+    "outer_f": 7.00,
+    "k_tail": 6,
+    "tail_sample_rate": 2
+}

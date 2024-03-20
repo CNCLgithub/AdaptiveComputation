@@ -20,7 +20,7 @@ function paint(p::KinPainter, d::Dot, v::Int64)
         for k = 1:t
             alpha = p.alpha * exp(-0.5 * (k - 1))
             gc::GaussianComponent{2} = d.gstate[k]
-            _draw_circle(gc.mu, 0.2 * gc.cov[1,1], c,
+            _draw_circle(gc.mu, 0.1 * gc.cov[1,1], c,
                          opacity = alpha)
         end
     end

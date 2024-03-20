@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-""" Submits sbatch array for rendering stimuli """
+""" Submits sbatch array for running model """
 import os
 import argparse
 from slurmpy import sbatch
 
 script = 'bash {0!s}/env.d/run.sh julia ' + \
-         '/project/scripts/inference/exp2_probes/exp2_probes.jl'
+         '/project/scripts/inference/fe_probes/fe_probes.jl'
 
 def att_tasks(args):
     tasks = [(t,c) for c in range(1, args.chains + 1)
@@ -23,7 +23,7 @@ def main():
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
                         help = 'number of chains')
-    parser.add_argument('--duration', type = int, default = 20,
+    parser.add_argument('--duration', type = int, default = 10,
                         help = 'job duration (min)')
 
     args = parser.parse_args()
@@ -34,7 +34,7 @@ def main():
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
-        'mem-per-cpu' : '3GB',
+        'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(args.duration),
         'partition' : 'psych_scavenge',
         'requeue' : None,

@@ -1,52 +1,53 @@
 using CSV
 using MOT
 using ArgParse
-using Accessors
 using Gen_Compose
 
-experiment_name = "exp2_probes"
-plan = :td
+experiment_name = "fe_probes"
+dataset_name = "exp2_probes"
+plan = :eu
 
-exp_params = (;experiment_name = "exp2_probes",
+exp_params = (;experiment_name = experiment_name,
               gm = "$(@__DIR__)/gm.json",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan).json",
-              dataset = "/spaths/datasets/$(experiment_name).json",
-              dur = 480, # number of frames to run; full = 480
-              model = "ac",
+              dataset = "/spaths/datasets/$(dataset_name).json",
+              dur = 96, # number of frames to run; full = 480
+              model = "adaptive_computation",
               # SET FALSE for full experiment
-              restart = false,
-              viz = false,
-              # restart = true,
-              # viz = true,
+              # restart = false,
+              # viz = false,
+              restart = true,
+              viz = true,
               )
 
 plan_objectives = Dict(
     # key => (plan object, args)
-    :td => (td_flat, (1.025,)),
-    :eu => (ensemble_uncertainty, (1.0, ))
+    :td => (td_flat, (4, 10.0)),
+    # :eu => (ensemble_uncertainty, (4, ))
+    # :eu => (eu_static, (4, ))
+    :eu => (td_full, (4, ))
+    # :eu => (MOT.td_flat_rfgm, (4, 1.0))
 )
 
 function run_model(scene::Int, chain::Int)
-    gm = dgp_gm = MOT.load(InertiaGM, exp_params.gm)
+    gm = dgp_gm = MOT.load(ForceEnsemble, exp_params.gm)
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
                                 exp_params.dataset,
                                 scene)
     init_gt_state = scene_data[:gt_states][1]
     gt_states = scene_data[:gt_states][2:(exp_params.dur + 1)]
-    # gt_states = scene_data[:gt_states][1:exp_params.dur]
     aux_data = scene_data[:aux_data]
 
-    gm = setproperties(gm,
-                       (n_dots = gm.n_targets + aux_data["n_distractors"],
-                        vel = aux_data["vel"] * 0.55))
-
+    @show length(gt_states)
+    @show length(scene_data[:gt_states])
     query = query_from_params(gm, init_gt_state, gt_states)
+    @show length(query)
 
     plan_obj, plan_args = plan_objectives[plan]
     att = MOT.load(PopSensitivity,
-                   exp_params.att,
+                   exp_params.att;
                    plan = plan_obj,
                    plan_args = plan_args,
                    percept_update = tracker_kernel,
@@ -63,7 +64,7 @@ function run_model(scene::Int, chain::Int)
         println("could not make dir $(path)")
     end
 
-    nsteps = length(gt_states) + 1
+    nsteps = length(query) + 1
     logger = MemLogger(nsteps)
     chain_perf_path = joinpath(path, "$(chain)_perf.csv")
     chain_att_path = joinpath(path, "$(chain)_att.csv")

@@ -2,7 +2,8 @@
 export correspondence,
     td_flat,
     td_full,
-    ensemble_uncertainty
+    ensemble_uncertainty,
+    eu_static
 
 function n_obs(tr::Gen.Trace)
     @>> tr begin
@@ -16,12 +17,33 @@ end
 # Objectives
 
 function td_assocs(tr::Gen.Trace)
-    @>> tr begin
-        get_args
-        first
-        t -> tr[:kernel => t]
-        td_assocs
+    t, gm = get_args(tr)
+    rfs_trace = extract_rfs_subtrace(tr, t)
+    td_assocs(rfs_trace, gm.n_targets)
+end
+
+function td_assocs(rfs::GenRFS.RFSTrace,
+        k::Int64)
+    pt = rfs.ptensor
+    mass = rfs.score
+    pls = rfs.pscores
+    nx,ne,np = size(pt)
+    
+    weights = zeros(k) # fill(-Inf, k)
+    @inbounds for p = 1:np
+        pmass = exp(pls[p] - mass)
+        for x = 1:k
+            assigned_target = false
+            for e = 1:k
+                pt[x, e, p] || continue
+                assigned_target = true
+            end
+            if assigned_target
+                weights[x] += pmass # logsumexp(pmass, weights[x])
+            end
+        end
     end
+    return weights
 end
 
 
@@ -106,4 +128,32 @@ function ensemble_uncertainty(tr::Gen.Trace, temp::Float64)
         t -> tr[:kernel => t] # state
     end
     ensemble_uncertainty(t, temp)
+end
+
+function eu_static(tr::Gen.Trace, k::Int64)
+    t, _... = get_args(tr)
+    rfs_trace = extract_rfs_subtrace(tr, t)
+    ensemble_uncertainty(rfs_trace, k)
+end
+
+
+function ensemble_uncertainty(rfs::GenRFS.RFSTrace,
+        k::Int64)
+    pt = rfs.ptensor
+    mass = rfs.score
+    pls = rfs.pscores
+    nx,ne,np = size(pt)
+    
+    # probability that each observation
+    # is explained by a target
+    x_weights = fill(-Inf, nx)
+    @inbounds for p = 1:np
+        pmass = pls[p] - mass
+        for x = 1:nx
+            if pt[x, ne, p]
+                x_weights[x] = logsumexp(pmass, x_weights[x])
+            end
+        end
+    end
+    return x_weights
 end

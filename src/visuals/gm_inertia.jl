@@ -136,21 +136,30 @@ function MOT.paint(p::Union{IDPainter,KinPainter}, st::GMState)
     return nothing
 end
 
+function MOT.paint(gm::GenerativeModel, st::GMState)
+    return nothing
+end
+
+function MOT.paint(gm::ForceEnsemble, st::ForceEState)
+    e = st.ensemble
+    _draw_circle(e.mu, e.sigma, "purple", opacity=0.5,
+                 style = :stroke)
+end
 
 function MOT.paint(p::AttentionRingsPainter,
-                   st::InertiaState,
+                   st::GMState,
                    weights::Vector{Float64})
-    ne = length(st.objects)
+    ne = min(length(weights), length(st.objects))
     for i = 1:ne
         paint(p, st.objects[i], weights[i])
     end
     return nothing
 end
-function render_scene(gm::InertiaGM,
-                      gt_states::Vector{InertiaState},
-                      pf_st::Matrix{InertiaState},
-                      attended::Matrix{Float64};
-                      base::String)
+function render_scene(gm::T,
+        gt_states::Vector{<:U},
+        pf_st::Matrix{<:U},
+        attended::Vector;
+        base::String) where {T<:GenerativeModel, U<:GMState{T}}
     @unpack area_width, area_height = gm
 
     isdir(base) && rm(base, recursive=true)
@@ -164,7 +173,7 @@ function render_scene(gm::InertiaGM,
                                     radius = 40.,
                                     linewidth = 15.0,
                                     attention_color = "red")
-    att_centroid = AttentionCentroidPainter()
+    # att_centroid = AttentionCentroidPainter()
 
     for i = 1:nt
         print("rendering scene... timestep $i / $nt \r")
@@ -196,11 +205,18 @@ function render_scene(gm::InertiaGM,
                            alpha = 0.1,
                            tail = true)
             pf_state = pf_st[j, i]
-            MOT.paint(p, pf_state)
+            for i = 1:length(pf_state.objects)
+                obj = pf_state.objects[i]
+                if target(obj) > 0
+                    MOT.paint(p, obj, i)
+                end
+            end
+            MOT.paint(gm, pf_state)
+            # MOT.paint(p, pf_state)
 
             # attention rings
-            MOT.paint(att_rings, pf_state, attended[:, i])
-            MOT.paint(att_centroid, pf_state, attended[:, i])
+            MOT.paint(att_rings, pf_state, attended[i])
+            # MOT.paint(att_centroid, pf_state, attended[:, i])
 
         end
         finish()
@@ -209,7 +225,7 @@ function render_scene(gm::InertiaGM,
 end
 
 function render_scene(gm::GenerativeModel,
-                      gt_states::Vector{T},
+                      gt_states::AbstractVector{T},
                       base::String) where {T<:GMState}
     @unpack area_width, area_height = gm
 

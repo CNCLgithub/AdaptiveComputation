@@ -51,14 +51,14 @@ function load(::Type{InertiaGM}, path::String; kwargs...)
 end
 
 
-struct InertiaState <: GMState
+struct InertiaState <: GMState{InertiaGM}
     walls::SVector{4, Wall}
     objects::Vector{Dot}
     ensemble::UniformEnsemble
-    es::RFSElements
-    xs::AbstractArray
-    pt::BitArray{3}
-    pls::Vector{Float64}
+    # es::RFSElements
+    # xs::AbstractArray
+    # pt::BitArray{3}
+    # pls::Vector{Float64}
 end
 
 struct KinematicsUpdate
@@ -152,7 +152,6 @@ function update_graphics(gm::InertiaGM, d::Dot)
 
     nt = length(d.tail)
 
-    @unpack area_width, decay_rate = gm
     @unpack inner_f, outer_f, tail_sample_rate = gm
     r = d.radius
     base_sd = r * inner_f
@@ -179,7 +178,8 @@ function predict(gm::InertiaGM,
                  st::InertiaState,
                  objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{GaussObs{2}}(undef, n + 1)
+    es = Vector{RandomFiniteElement{GaussObs{2}}}(undef, n + 1)
+    # es = RFSElements{GaussObs{2}}(undef, n + 1)
     # the trackers
     @unpack area_width, k_tail, tail_sample_rate = gm
     @inbounds for i in 1:n
@@ -202,7 +202,8 @@ end
 function observe(gm::InertiaGM,
                  objects::AbstractVector{Dot})
     n = length(objects)
-    es = RFSElements{GaussObs{2}}(undef, n)
+    # es = RFSElements{GaussObs{2}}(undef, n)
+    es = Vector{RandomFiniteElement{GaussObs{2}}}(undef, n)
     @inbounds for i in 1:n
         obj = objects[i]
         es[i] = IsoElement{GaussObs{2}}(gpp, (obj.gstate,))
@@ -212,3 +213,76 @@ end
 
 include("helpers.jl")
 include("gen.jl")
+
+gen_fn(::InertiaGM) = gm_inertia
+const InertiaIr = Gen.get_ir(gm_inertia)
+const InertiaTrace = Gen.get_trace_type(gm_inertia)
+
+function extract_rfs_subtrace(trace::InertiaTrace, t::Int64)
+    # StaticIR names and nodes
+    outer_ir = Gen.get_ir(gm_inertia)
+    kernel_node = outer_ir.call_nodes[2] # (:kernel)
+    kernel_field = Gen.get_subtrace_fieldname(kernel_node)
+    # subtrace for each time step
+    vector_trace = getproperty(trace, kernel_field)
+    sub_trace = vector_trace.subtraces[t]
+    # StaticIR for `inertia_kernel`
+    inner_ir = Gen.get_ir(inertia_kernel)
+    xs_node = inner_ir.call_nodes[2] # (:masks)
+    xs_field = Gen.get_subtrace_fieldname(xs_node)
+    # `RFSTrace` for :masks
+    getproperty(sub_trace, xs_field)
+end
+
+function td_flat(trace::InertiaTrace, temp::Float64)
+
+    t = first(get_args(trace))
+    rfs = extract_rfs_subtrace(trace, t)
+    pt = rfs.ptensor
+    # @unpack pt, pls = st
+    nx,ne,np = size(pt)
+    ne -= 1
+    # ls::Float64 = logsumexp(pls)
+    nls = log.(softmax(rfs.pscores, t=temp))
+    # probability that each observation
+    # is explained by a target
+    x_weights = Vector{Float64}(undef, nx)
+    @inbounds for x = 1:nx
+        xw = -Inf
+        @views for p = 1:np
+            if !pt[x, ne + 1, p]
+                xw = logsumexp(xw, nls[p])
+            end
+        end
+        # @views for p = 1:np, e = 1:ne
+        #     pt[x, e, p] || continue
+        #     xw = logsumexp(xw, nls[p])
+        # end
+        x_weights[x] = xw
+    end
+
+    # @show length(pls)
+    # display(sum(pt; dims = 3))
+    # @show x_weights
+    # the ratio of observations explained by each target
+    # weighted by the probability that the observation is
+    # explained by other targets
+    td_weights = fill(-Inf, ne)
+    @inbounds for i = 1:ne
+        for p = 1:np
+            ew = -Inf
+            @views for x = 1:nx
+                pt[x, i, p] || continue
+                ew = x_weights[x]
+                # assuming isomorphicity
+                # (one association per partition)
+                break
+            end
+            # P(e -> x) where x is associated with any other targets
+            prop = nls[p]
+            ew += prop
+            td_weights[i] = logsumexp(td_weights[i], ew)
+        end
+    end
+    return td_weights
+end

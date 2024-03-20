@@ -23,7 +23,7 @@ exp_params = (;
               stairsteps = 15,
               velstep = 1.25,
               basevel = 8.0,
-              model = "adaptive_computation",
+              model = "ac",
               # SET FALSE for full experiment
               restart = false,
               viz = false,
@@ -101,13 +101,14 @@ function generate_trial(inference_gm, ntargets::Int64, vel::Float64)
                                   ))
     scene_data = MOT.load_scene(inference_gm, data)
     println("converted to json format")
-    gt_states = scene_data[:gt_states]
+    init_gt_state = scene_data[:gt_states][1]
+    gt_states = scene_data[:gt_states][2:end]
     aux_data = scene_data[:aux_data]
 
 
     println("creating query...")
     # create query
-    inference_gm, gt_states, query_from_params(inference_gm, gt_states)
+    inference_gm, gt_states, query_from_params(inference_gm, init_gt_state, gt_states)
 end
 
 function load_perf(path::String)

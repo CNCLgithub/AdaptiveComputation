@@ -19,26 +19,26 @@ end
 function InertiaState(gm::InertiaGM, dots)
     walls = init_walls(gm.area_width)
     n_ens = Float64(gm.n_dots - length(dots)) + 0.01
-    InertiaState(walls, dots, UniformEnsemble(gm, n_ens),
-                 RFSElements{BitMatrix}(undef, 0),
-                 BitMatrix[],
-                 falses(0,0,0),
-                 Float64[])
+    InertiaState(walls, dots, UniformEnsemble(gm, n_ens))
+                 # RFSElements{BitMatrix}(undef, 0),
+                 # BitMatrix[],
+                 # falses(0,0,0),
+                 # Float64[])
 end
 
 "creates next state, used in `inertia_kernel`"
 function InertiaState(prev_st::InertiaState,
-                      new_dots,
-                      es::RFSElements{T},
-                      xs::Vector{T}) where {T}
-    (pls, pt) = GenRFS.massociations(es, xs, 200, 1.)
-    # (pls, pt) = GenRFS.associations(es, xs)
+                      new_dots)
+                      # es::RFSElements{T},
+                      # xs::Vector{T}) where {T}
+    # (pls, pt) = GenRFS.massociations(es, xs, 200, 1.)
     setproperties(prev_st,
-                  (objects = new_dots,
-                   es = es,
-                   xs = xs,
-                   pt = pt,
-                   pls = pls))
+                  (objects = new_dots))
+                  # (objects = new_dots,
+                  #  es = es,
+                  #  xs = xs,
+                  #  pt = pt,
+                  #  pls = pls))
 end
 
 
@@ -145,49 +145,6 @@ function ensemble_uncertainty(st::InertiaState,
     return x_weights
 end
 
-function td_flat(st::InertiaState, t::Float64)
-    @unpack pt, pls = st
-    nx,ne,np = size(pt)
-    ne -= 1
-    ls::Float64 = logsumexp(pls)
-    nls = log.(softmax(pls, t=t))
-    # probability that each observation
-    # is explained by a target
-    x_weights = Vector{Float64}(undef, nx)
-    @inbounds for x = 1:nx
-        xw = -Inf
-        @views for p = 1:np, e = 1:ne
-            pt[x, e, p] || continue
-            xw = logsumexp(xw, nls[p])
-        end
-        x_weights[x] = xw
-    end
-
-    # @show length(pls)
-    # display(sum(pt; dims = 3))
-    # @show x_weights
-    # the ratio of observations explained by each target
-    # weighted by the probability that the observation is
-    # explained by other targets
-    td_weights = fill(-Inf, ne)
-    @inbounds for i = 1:ne
-        for p = 1:np
-            ew = -Inf
-            @views for x = 1:nx
-                pt[x, i, p] || continue
-                ew = x_weights[x]
-                # assuming isomorphicity
-                # (one association per partition)
-                break
-            end
-            # P(e -> x) where x is associated with any other targets
-            prop = nls[p]
-            ew += prop
-            td_weights[i] = logsumexp(td_weights[i], ew)
-        end
-    end
-    return td_weights
-end
 
 function td_full(st::InertiaState)
     @unpack es, pt, pls = st
@@ -249,11 +206,11 @@ function state_from_positions(gm::InertiaGM, positions, targets)
             dot = sync_update(objects[i], KinematicsUpdate(new_pos, new_vel))
             new_dots[i] = update_graphics(gm, dot)
         end
-        es, xs = observe(gm, new_dots)
+        # es, xs = observe(gm, new_dots)
         states[t] = InertiaState(prev_state,
-                                 new_dots,
-                                 es,
-                                 xs)
+                                 new_dots)
+                                 # es,
+                                 # xs)
     end
     return states
 end

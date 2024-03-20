@@ -1,7 +1,7 @@
 export GenerativeModel, GMState
 
 abstract type GenerativeModel end
-abstract type GMState end
+abstract type GMState{T<:GenerativeModel} end
 
 
 ################################################################################
@@ -37,6 +37,8 @@ function predict end
 include("things.jl")
 include("inertia/inertia.jl")
 include("isr/isr.jl")
+include("force/force.jl")
+include("force_ensemble/force_ensemble.jl")
 
 ################################################################################
 # Data generating procedures

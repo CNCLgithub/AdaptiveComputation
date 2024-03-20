@@ -80,7 +80,8 @@ probed_frames = select(pdf, Cols(:scene, :frame))
 # see `scripts/aggregate_chains.jl`
 model = "td"
 # chain performance
-model_perf_csv = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_perf.csv"
+model_perf_csv = "/spaths/experiments/exp2_probes_ac_$(model)_perf.csv"
+# model_perf_csv = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_perf.csv"
 # model_perf_csv = "/spaths/experiments/exp2_probes_adaptive_computation_perf.csv"
 model_perf = DataFrame(CSV.File(model_perf_csv))
 model_perf = groupby(model_perf, Cols(:chain, :scene))
@@ -90,7 +91,8 @@ filter!(row -> row.passed, model_perf)
 passed_chains = select(model_perf, Cols(:chain, :scene))
 
 
-model_inferences = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_att.csv"
+model_inferences = "/spaths/experiments/exp2_probes_ac_$(model)_att.csv"
+# model_inferences = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_att.csv"
 # model_inferences = "/spaths/experiments/exp2_probes_adaptive_computation_att.csv"
 df = DataFrame(CSV.File(model_inferences))
 df = leftjoin(passed_chains, df, on = [:chain, :scene])
@@ -169,4 +171,4 @@ transform!(distances,
 select!(distances, Not(Cols(:pred_x, :pred_y)))
 display(distances)
 
-CSV.write("/spaths/experiments/exp2_probes_adaptive_computation_$(model)_dnd_centroid.csv", distances)
+CSV.write("/spaths/experiments/exp2_probes_ac_$(model)_dnd_centroid.csv", distances)

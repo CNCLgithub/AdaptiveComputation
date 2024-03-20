@@ -25,6 +25,10 @@ function read_json(path)
     return sym_data
 end
 
+function load(::Type{T}, path::String; kwargs...) where {T}
+    T(;read_json(path)..., kwargs...)
+end
+
 function extract_digest(f::String)
     df = DataFrame()
     jldopen(f, "r") do data

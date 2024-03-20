@@ -1,6 +1,7 @@
 export PopParticleFilter,
     rejuvenate!
 
+using GenParticleFilters
 using Gen_Compose
 using Gen_Compose: initial_args, initial_constraints,
     AuxillaryState, PFChain
@@ -11,9 +12,9 @@ using Gen_Compose: initial_args, initial_constraints,
     attention::AbstractAttentionModel
 end
 
-function load(::Type{PopParticleFilter}, path; kwargs...)
-    PopParticleFilter(;read_json(path)..., kwargs...)
-end
+# function load(::Type{PopParticleFilter}, path; kwargs...)
+#     PopParticleFilter(;read_json(path)..., kwargs...)
+# end
 
 function Gen_Compose.PFChain{Q, P}(q::Q,
                                    p::P,
@@ -29,10 +30,15 @@ end
 
 function Gen_Compose.step!(chain::PFChain{<:SequentialQuery, <:PopParticleFilter})
     @unpack query, proc, state, step = chain
+    @show step
     squery = query[step]
     @unpack args, argdiffs, observations = squery
     # Resample before moving on...
-    Gen.maybe_resample!(state, ess_threshold=proc.ess)
+    # Gen.maybe_resample!(state, ess_threshold=proc.ess)
+    if effective_sample_size(state) < proc.ess
+        # Perform residual resampling, pruning low-weight particles
+        pf_residual_resample!(state)
+    end
     # update the state of the particles
     Gen.particle_filter_step!(state, args, argdiffs,
                               observations)

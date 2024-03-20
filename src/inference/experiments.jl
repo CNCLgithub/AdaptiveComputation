@@ -6,8 +6,13 @@ function get_observations(gm::InertiaGM,
     k = length(st)
     observations = Vector{Gen.ChoiceMap}(undef, k)
     for t=1:k
+
+        _, xs = observe(gm, st[t].objects)
         cm = Gen.choicemap()
-        cm[:kernel => t => :masks] = st[t].xs
+        # cm[:kernel => t => :masks] = st[t].xs
+        for (i, x) = enumerate(xs)
+            cm[:kernel => t => :masks => i] = x
+        end
         observations[t] = Gen.StaticChoiceMap(cm)
     end
     return observations
@@ -30,6 +35,79 @@ function get_init_constraints(gm::InertiaGM, st::InertiaState)
     return Gen.StaticChoiceMap(cm)
 end
 
+"Package simulated trajecties into a vector of choicemaps"
+function get_observations(gm::ForceGM,
+                          st::Vector{ForceState})
+    k = length(st)
+    observations = Vector{Gen.ChoiceMap}(undef, k)
+    for t=1:k
+        _, xs = observe(gm, st[t].objects)
+        cm = Gen.choicemap()
+        for (i, x) = enumerate(xs)
+            cm[:kernel => t => :masks => i] = x
+        end
+        observations[t] = Gen.StaticChoiceMap(cm)
+    end
+    return observations
+end
+
+"Creates a `choicemap` for t0 (gt initial positions)"
+function get_init_constraints(gm::ForceGM, st::ForceState)
+    cm = Gen.choicemap()
+    k = gm.n_targets
+    n = length(st.objects)
+    for i=1:n
+        pos = get_pos(st.objects[i])
+        addr = :init_state => :init_kernel => i => :x
+        cm[addr] = pos[1]
+        addr = :init_state => :init_kernel => i => :y
+        cm[addr] = pos[2]
+        # by convention, the first n init_kernel are targets
+        # in the source trace
+        cm[:init_state => :init_kernel => i => :target] =
+            i <= k
+    end
+    return Gen.StaticChoiceMap(cm)
+end
+
+
+"Package simulated trajecties into a vector of choicemaps"
+function get_observations(gm::ForceEnsemble,
+                          st::Vector{ForceEState})
+    k = length(st)
+    observations = Vector{Gen.ChoiceMap}(undef, k)
+    for t=1:k
+        _, xs = observe(gm, st[t].objects)
+        cm = Gen.choicemap()
+        for (i, x) = enumerate(xs)
+            cm[:kernel => t => :masks => i] = x
+        end
+        observations[t] = Gen.StaticChoiceMap(cm)
+    end
+    return observations
+end
+
+"Creates a `choicemap` for t0 (gt initial positions)"
+function get_init_constraints(gm::ForceEnsemble, st::ForceEState)
+    cm = Gen.choicemap()
+    k = gm.n_targets
+    n = length(st.objects)
+    for i=1:k
+        pos = get_pos(st.objects[i])
+        cm[:init_state => :tracker_prior => i => :x] = pos[1]
+        cm[:init_state => :tracker_prior => i => :y] = pos[2]
+        cm[:init_state => :tracker_prior => i => :target] = true
+    end
+    dis_pos = map(get_pos, st.objects[(k+1):end])
+    mu_x, mu_y = mean(dis_pos)
+    sigma = 3.0 * norm(std(dis_pos))
+    cm[:init_state => :ensemble_prior => :x] = mu_x
+    cm[:init_state => :ensemble_prior => :y] = mu_y
+    cm[:init_state => :ensemble_prior => :sigma] = sigma
+    cm[:init_state => :ensemble_prior => :rate] = n - k
+    return Gen.StaticChoiceMap(cm)
+end
+
 
 """
     query_from_params(gm, gt_state)
@@ -41,21 +119,22 @@ and uses the parameters of `gm` to generate:
  - observations (masks)
  - initial constraints for simulation
 """
-function query_from_params(gm::InertiaGM,
-                           gt_states::Vector{InertiaState})
+function query_from_params(gm::T,
+        init_gt::U,
+        gt_states::Vector{<:U}) where {T<:GenerativeModel,
+                                       U<:GMState{T}}
 
     k = length(gt_states)
-    init_gt = gt_states[1]
-    rest_gt = gt_states[2:end]
 
-    # initialize with gt positions for t = 1
+    # initialize with gt positions for t = 0
     init_constraints = get_init_constraints(gm, init_gt)
-    # must infer trajectories for t > 1
-    observations = get_observations(gm, rest_gt)
+
+    # must infer trajectories for t > 0
+    observations = get_observations(gm, gt_states)
 
     init_args = (0, gm)
     args = [(t, gm) for t in 1:k]
-    argdiffs = [(UnknownChange(), NoChange()) for _ = 1:k]
+    argdiffs = Fill((UnknownChange(), NoChange()), k)
 
     latent_map = LatentMap(
         :auxillary => digest_auxillary,
@@ -64,7 +143,7 @@ function query_from_params(gm::InertiaGM,
     )
 
     Gen_Compose.SequentialQuery(latent_map,
-                                gm_inertia,
+                                gen_fn(gm),
                                 init_args,
                                 init_constraints,
                                 args,
@@ -74,7 +153,6 @@ end
 
 
 function chain_performance(dg)
-    # causal graphs at the end of inference
     perf = dg[end, :task_accuracy]
     df = DataFrame(tracker = 1:length(perf),
                    td_acc = perf)

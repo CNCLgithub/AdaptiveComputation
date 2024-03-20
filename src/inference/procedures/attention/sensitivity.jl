@@ -18,9 +18,9 @@ export PopSensitivity
     m::Float64 = 1.0
 end
 
-function load(::Type{PopSensitivity}, path; kwargs...)
-    PopSensitivity(;read_json(path)..., kwargs...)
-end
+# function load(::Type{PopSensitivity}, path; kwargs...)
+#     PopSensitivity(;read_json(path)..., kwargs...)
+# end
 
 function AdaptiveComputation(att::PopSensitivity)
     n = att.latents
@@ -67,8 +67,8 @@ function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
                 dPdS[i, j] = sinkhorn_div(p, p_prime;
                                               scale = att.div_scale)
                 # dP/dS
-                dS = log(abs(1.0 - exp(max(0., ls))))
-                # dS = clamp(ls, -Inf, 0.0)
+                # dS = log(abs(1.0 - exp(max(0., ls))))
+                dS = max(ls, 0.0)
                 dPdS[i, j] += dS
                 # accepted a proposal and update references
                 c +=1
@@ -76,6 +76,8 @@ function hypothesis_testing!(chain::PFChain, att::PopSensitivity)
                     accepted += 1
                     s = s_prime
                     p = p_prime
+                    # mh reweighting
+                    state.log_weights[i] += ls
                 end
             end
             state.traces[i] = s

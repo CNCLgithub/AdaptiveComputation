@@ -34,7 +34,7 @@ def main():
     interpreter = '#!/bin/bash'
     resources = {
         'cpus-per-task' : '1',
-        'mem-per-cpu' : '3GB',
+        'mem-per-cpu' : '2GB',
         'time' : '{0:d}'.format(args.duration),
         'partition' : 'psych_scavenge',
         'requeue' : None,
