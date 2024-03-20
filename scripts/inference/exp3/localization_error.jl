@@ -20,7 +20,7 @@ exp_params = (;
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan)_loc_error.json",
               dur = 120, # number of frames to run; full = 120
-              model = "adaptive_computation",
+              model = "ac",
               dataset = "/spaths/datasets/$(experiment_name).json",
               # SET FALSE for full experiment
               restart = false,
@@ -48,7 +48,8 @@ function run_model(scene::Int, chain::Int)
     scene_data = MOT.load_scene(gm,
                                 exp_params.dataset,
                                 scene)
-    gt_states = scene_data[:gt_states][1:exp_params.dur]
+    init_gt_state = scene_data[:gt_states][1]
+    gt_states = scene_data[:gt_states][2:exp_params.dur]
     aux_data = scene_data[:aux_data]
 
     gm = setproperties(gm,
@@ -57,7 +58,7 @@ function run_model(scene::Int, chain::Int)
                         target_p = ntargets / nobjects,
                         vel = aux_data["vel"] * 0.55))
 
-    query = query_from_params(gm, gt_states)
+    query = query_from_params(gm, init_gt_state, gt_states)
 
     # attention module and particle filter
     att = MOT.load(PopSensitivity,
