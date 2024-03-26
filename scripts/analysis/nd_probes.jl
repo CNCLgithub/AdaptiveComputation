@@ -1,3 +1,15 @@
+"""
+Computes the nearest distractor distances.
+
+It is required to use the ground-truth distractor positions
+since the `Inertia` generative model does not directly represent
+distractor positions.
+
+Will produce two files:
+1. `exp_probes_dnd.csv` : raw distance to nearest distractor for each target
+2. `exp_probes_dnd_centroid.csv` : computes a centroid distance metric
+"""
+
 using CSV
 using JSON
 using DataFrames
@@ -78,11 +90,9 @@ filter!(row -> row.scene <= 40, pdf)
 probed_frames = select(pdf, Cols(:scene, :frame))
 
 # see `scripts/aggregate_chains.jl`
-model = "td"
+model = "ac_td"
 # chain performance
-model_perf_csv = "/spaths/experiments/exp2_probes_ac_$(model)_perf.csv"
-# model_perf_csv = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_perf.csv"
-# model_perf_csv = "/spaths/experiments/exp2_probes_adaptive_computation_perf.csv"
+model_perf_csv = "/spaths/experiments/exp_probes_$(model)_perf.csv"
 model_perf = DataFrame(CSV.File(model_perf_csv))
 model_perf = groupby(model_perf, Cols(:chain, :scene))
 model_perf = combine(model_perf, Cols(:td_acc) => mean => :avg_acc)
@@ -91,9 +101,7 @@ filter!(row -> row.passed, model_perf)
 passed_chains = select(model_perf, Cols(:chain, :scene))
 
 
-model_inferences = "/spaths/experiments/exp2_probes_ac_$(model)_att.csv"
-# model_inferences = "/spaths/experiments/exp2_probes_adaptive_computation_$(model)_att.csv"
-# model_inferences = "/spaths/experiments/exp2_probes_adaptive_computation_att.csv"
+model_inferences = "/spaths/experiments/exp_probes_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))
 df = leftjoin(passed_chains, df, on = [:chain, :scene])
 df = select(df, Cols(:chain, :scene, :frame, :tracker, :pred_x, :pred_y))
@@ -102,7 +110,7 @@ df = leftjoin(probed_frames, df, on = [:scene, :frame])
 
 
 # distance to the nearest distractor for each frame x tracker
-gt_positions = load_gt_positions("/spaths/datasets/exp2_probes.json")
+gt_positions = load_gt_positions("/spaths/datasets/exp_probes.json")
 
 grouped_gt_positions = groupby(gt_positions, Cols(:scene, :frame, :object))
 loc_error_f = ByRow((s, f, t, x, y) -> localization_error(s,f,t,x,y,grouped_gt_positions))
@@ -119,7 +127,7 @@ transform!(df,
 gdf = groupby(df, Cols(:scene, :frame, :tracker))
 gdf = combine(gdf, Cols(:pred_x, :pred_y, :loc_error, :nn_dist) .=> [mean std])
 
-CSV.write("/spaths/experiments/exp2_probes_adaptive_computation_$(model)_dnd.csv",
+CSV.write("/spaths/experiments/exp_probes_$(model)_dnd.csv",
           gdf)
 
 df = select(gdf, Not(r"std"))
@@ -171,4 +179,4 @@ transform!(distances,
 select!(distances, Not(Cols(:pred_x, :pred_y)))
 display(distances)
 
-CSV.write("/spaths/experiments/exp2_probes_ac_$(model)_dnd_centroid.csv", distances)
+CSV.write("/spaths/experiments/exp_probes_$(model)_dnd_centroid.csv", distances)

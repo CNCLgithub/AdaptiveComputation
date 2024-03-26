@@ -1,1 +1,0 @@
-# const SparseMBool = SparseMatrixCSC{Bool}

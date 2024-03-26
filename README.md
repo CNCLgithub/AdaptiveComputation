@@ -15,6 +15,18 @@ If you wish to have different values than `default.conf`, simply:
 cp default.conf user.conf
 vi user.conf # edit to your liking without adding new elements
 ```
+
+
+## Replication details
+
+The project is organized into core routines (under `src`) and user scripts (under `scripts`).
+In order to run the adaptive computation model from scratch:
+1. Run the relevant scripts under `scripts/experiments` (batch scripts are provided for SLURM)
+2. Aggregrate model traces using `scripts/analysis/aggregate_chains.jl`
+3. Export the produces "csv" files to the [analysis repo](https://github.com/CNCLgithub/mot-analysis)
+
+More details can be found in the README for each section.
+
 ### Mac and Window users
 
 In order to use singularity you must have a virtual machine running. 
