@@ -83,7 +83,7 @@ end
 
 
 # probe timing for experiment
-probe_timings = "/spaths/datasets/exp2_probe_map_random.csv"
+probe_timings = "/spaths/datasets/random_probe_timings.csv"
 pdf = DataFrame(CSV.File(probe_timings))
 filter!(row -> row.scene <= 40, pdf)
 # probe frames

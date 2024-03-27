@@ -140,12 +140,6 @@ function MOT.paint(gm::GenerativeModel, st::GMState)
     return nothing
 end
 
-function MOT.paint(gm::ForceEnsemble, st::ForceEState)
-    e = st.ensemble
-    _draw_circle(e.mu, e.sigma, "purple", opacity=0.5,
-                 style = :stroke)
-end
-
 function MOT.paint(p::AttentionRingsPainter,
                    st::GMState,
                    weights::Vector{Float64})
