@@ -16,8 +16,8 @@
 
     "img_width": 100,
     "img_height": 100,
-    "inner_f": 12.0,
-    "outer_f": 18.0,
+    "inner_f": 17.5,
+    "outer_f": 30.0,
     "k_tail": 6,
     "tail_sample_rate": 2
 }
