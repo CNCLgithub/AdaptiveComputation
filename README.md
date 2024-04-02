@@ -1,11 +1,11 @@
 # mot
-Multiple object tracking repository in Julia
+Implementation of adaptive computation and a case study on multiple object tracking (Pylyshyn & Storm 1988).
 
 ## Setup and running
 1. Clone repository `git clone https://github.com/CNCLgithub/mot` and `cd mot`
-2. Get deps using `git submodule update --init --recursive`
 2. Run `./env.d/setup.sh cont_pull python julia` to build the container and setup python and Julia.
 3. Enter `./env.d/run.sh julia` to get into Julia REPL
+3. Run `./env.d/setup.sh datasets` to download the datasets used for the experiments.
 
 This project has automatic configuration!! This configuration is defined in `default.conf`.
 You should always prepend `./run.sh` before any command (including running programs like `julia`) to ensure consistency. 
