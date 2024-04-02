@@ -12,10 +12,6 @@ using Gen_Compose: initial_args, initial_constraints,
     attention::AbstractAttentionModel
 end
 
-# function load(::Type{PopParticleFilter}, path; kwargs...)
-#     PopParticleFilter(;read_json(path)..., kwargs...)
-# end
-
 function Gen_Compose.PFChain{Q, P}(q::Q,
                                    p::P,
                                    n::Int,

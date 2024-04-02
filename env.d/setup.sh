@@ -77,16 +77,5 @@ cont_dest="${SENV[envd]}/${SENV[cont]}"
 [[ "${@}" =~ "all" ]] || [[ "${@}" =~ "datasets" ]] && \
     [[ "${@}" =~ "all" ]] || [[ "${@}" =~ "datasets" ]] && \
     echo "pulling datasets" && \
-    # wget "https://yale.box.com/shared/static/y064orseciieeada3jbsb73zrwr7qeqj.jld2" \
-    # -O "${SPATHS[datasets]}/exp1_difficulty.jld2" && \
-    wget "https://yale.box.com/shared/static/a8lnpspo2bt6fj6dcd006bl67ftzulsh.json" \
-    -O "${SPATHS[datasets]}/exp1_difficulty.json" && \
-    wget "https://yale.box.com/shared/static/cvk1wlh429kapdaclngrdel8z6ec6dip.json" \
-    -O "${SPATHS[datasets]}/exp2_probes.json"
-
-[[ "${@}" =~ "checkpoints" ]] || [[ "${@}" =~ "checkpoints" ]] || \
-    echo "Not touching checkpoints"
-[[ "${@}" =~ "all" ]] || [[ "${@}" =~ "checkpoints" ]] && echo "none yet"
-# [[ "${@}" =~ "all" ]] || [[ "${@}" =~ "checkpoints" ]] && \
-# echo "pulling checkpoints" && \
-# # fill in here
+    ./env.d/run.sh "wget https://yale.box.com/shared/static/bfuqv2eh4fac5cbu3x7srxd05znikjaj.gz -O /spaths/datasets/datasets.tar.gz" && \
+    ./env.d/run.sh "tar -xzf /spaths/datasets/datasets.tar.gz -C /spaths"

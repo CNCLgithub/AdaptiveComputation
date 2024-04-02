@@ -1,11 +1,11 @@
 # mot
-Multiple object tracking repository in Julia
+Implementation of adaptive computation and a case study on multiple object tracking (Pylyshyn & Storm 1988).
 
 ## Setup and running
 1. Clone repository `git clone https://github.com/CNCLgithub/mot` and `cd mot`
-2. Get deps using `git submodule update --init --recursive`
 2. Run `./env.d/setup.sh cont_pull python julia` to build the container and setup python and Julia.
 3. Enter `./env.d/run.sh julia` to get into Julia REPL
+3. Run `./env.d/setup.sh datasets` to download the datasets used for the experiments.
 
 This project has automatic configuration!! This configuration is defined in `default.conf`.
 You should always prepend `./run.sh` before any command (including running programs like `julia`) to ensure consistency. 
@@ -15,6 +15,18 @@ If you wish to have different values than `default.conf`, simply:
 cp default.conf user.conf
 vi user.conf # edit to your liking without adding new elements
 ```
+
+
+## Replication details
+
+The project is organized into core routines (under `src`) and user scripts (under `scripts`).
+In order to run the adaptive computation model from scratch:
+1. Run the relevant scripts under `scripts/experiments` (batch scripts are provided for SLURM)
+2. Aggregrate model traces using `scripts/analysis/aggregate_chains.jl`
+3. Export the produces "csv" files to the [analysis repo](https://github.com/CNCLgithub/mot-analysis)
+
+More details can be found in the README for each section.
+
 ### Mac and Window users
 
 In order to use singularity you must have a virtual machine running. 

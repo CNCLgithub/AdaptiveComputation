@@ -1,3 +1,11 @@
+"""
+This fixes an issue with the original archive of the
+motions used in the probes experiment.
+
+Generates: `datasets/exp_probes.csv`
+
+"""
+
 using Lazy: @>>
 using JSON
 
@@ -20,7 +28,7 @@ function repair_isr_480()
     aux_data = (targets = Bool[1, 1, 1, 1, 0, 0, 0, 0],
                 vel = 10.0,
                 n_distractors = 4)
-    dataset = JSON.parsefile("/spaths/datasets/exp1_isr_480_pos.json")
+    dataset = JSON.parsefile("/spaths/datasets/exp_probes_raw.json")
     data = []
     for i=1:n_scenes
         scene = Dict()
@@ -28,7 +36,7 @@ function repair_isr_480()
         scene[:aux_data] = aux_data
         push!(data, scene)
     end
-    open("/spaths/datasets/exp2_probes.json", "w") do f
+    open("/spaths/datasets/exp_probes.json", "w") do f
         write(f, json(data))
     end
 end

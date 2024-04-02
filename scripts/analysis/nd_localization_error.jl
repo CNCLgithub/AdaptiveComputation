@@ -1,3 +1,12 @@
+"""
+Computes the distance to nearest neighbors for
+localization error analysis.
+
+Generates: `exp_localization_error_ac_td_dnd.csv`
+
+"""
+
+
 using CSV
 using JSON
 using DataFrames
@@ -60,11 +69,10 @@ function l2_distance(cx, cy, x, y)
 end
 
 
-# see `scripts/aggregate_chains.jl`
+# see `scripts/aggregate_chains.jl` in the mot-analsusi repo
 model = "ac_td"
-# model = "fixed_resources"
 
-model_inferences = "/spaths/experiments/exp3_localization_error_$(model)_att.csv"
+model_inferences = "/spaths/experiments/exp_localization_error_$(model)_att.csv"
 df = DataFrame(CSV.File(model_inferences))
 min_frame = 24 # skip the first second
 filter!(row -> row.frame >  min_frame, df)
@@ -72,7 +80,7 @@ select!(df, Cols(:chain, :scene, :frame, :tracker, :pred_x, :pred_y))
 # filter!(row -> row.scene == 1, df) # TODO: remove after debugging
 
 # distance to the nearest distractor for each frame x tracker
-gt_positions = load_gt_positions("/spaths/datasets/exp3_localization_error.json")
+gt_positions = load_gt_positions("/spaths/datasets/exp_localization_error.json")
 filter!(row -> row.frame >  min_frame, gt_positions)
 
 grouped_gt_positions = groupby(gt_positions, Cols(:scene, :frame, :object))
@@ -87,6 +95,6 @@ transform!(df,
            [:scene, :frame, :pred_x, :pred_y] => nd_dist_f => :nn_dist)
 
 
-CSV.write("/spaths/experiments/exp3_localization_error_$(model)_dnd.csv",
+CSV.write("/spaths/experiments/exp_localization_error_$(model)_dnd.csv",
           df)
 
