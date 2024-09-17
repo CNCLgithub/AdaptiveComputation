@@ -29,7 +29,6 @@ exp_params = (;experiment_name = experiment_name,
 plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
-    :eu => (ensemble_uncertainty, (1.0, ))
 )
 
 function run_model(scene::Int, chain::Int, gs_step::Int,
@@ -106,17 +105,17 @@ function pargs()
         "gs_step"
         help = "Grid-search step"
         arg_type = Int64
-        default = 1
+        default = 16
 
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 1
+        default = 32
 
         "chains"
         help = "Number of chains"
         arg_type = Int64
-        default = 1
+        default = 10
     end
 
     return parse_args(s)
@@ -127,6 +126,7 @@ function main()
     x0, m = grid_search_steps[args["gs_step"]]
     for ci = 1:args["chains"]
         run_model(args["scene"], ci, args["gs_step"], x0, m);
+        GC.gc() # memory leak?
     end
 end
 
