@@ -1,10 +1,9 @@
 using CSV
 using Gen
 using MOT
-using DataFrames
 using ArgParse
 using Accessors
-using Statistics
+using DataFrames
 using Gen_Compose
 
 ################################################################################
@@ -12,17 +11,17 @@ using Gen_Compose
 ################################################################################
 
 experiment_name = "exp_staircase"
-nobjects = 12
+nobjects = 16
 plan = :td
 
 exp_params = (;
               gm = "$(@__DIR__)/gm_staircase.json",
               proc = "$(@__DIR__)/proc.json",
               att = "$(@__DIR__)/$(plan)_staircase.json",
-              dur = 72, # number of frames to run; full = 240
-              stairsteps = 15,
-              velstep = 1.25,
-              basevel = 8.0,
+              dur = 120, # number of frames (24 fps)
+              stairsteps = 20,
+              velstep = 1.0,
+              basevel = 4.0,
               model = "ac",
               # SET FALSE for full experiment
               restart = false,
@@ -32,23 +31,21 @@ exp_params = (;
               )
 
 plan_objectives = Dict(
-    # key => (plan object, args)
-    :td => (td_flat, (1.025,)),
-    :eu => (ensemble_uncertainty, (1.0, ))
+    :td => (td_flat, (1.25,)),
 )
 
 plan_obj, plan_args = plan_objectives[plan]
 
 
 default_gm = ISRGM(;
-                   dot_repulsion = 50.0,
+                   dot_repulsion = 40.0,
                    wall_repulsion = 50.0,
                    distance_factor = 100.0,
-                   rep_inertia = 0.25,
-                   max_distance = 150.0,
+                   rep_inertia = 0.20,
+                   max_distance = 100.0,
                    dot_radius = 20.0,
-                   area_width = 800.0,
-                   area_height = 800.0)
+                   area_width = 960.0,
+                   area_height = 960.0)
 
 ################################################################################
 # Helper functions
@@ -63,20 +60,21 @@ function trial_constraints(gm::ISRGM)
     return cm
 end
 
-function trial_data(tr::Gen.Trace)
-    steps, gm = get_args(tr)
+function trial_data(dgp_gm::ISRGM, dur::Int64)
+
+    cm = trial_constraints(dgp_gm)
+    tr, _ = generate(gm_isr, (dur + 5, dgp_gm), cm)
     init_state, states = get_retval(tr)
     positions = []
-    push!(positions, map(get_pos, init_state.objects))
-    for t in 1:steps
+    for t in 5:(dur+5)
         objects = states[t].objects
         push!(positions, map(get_pos, objects))
     end
     trial = Dict(
         "positions" => positions,
-        "aux_data" => Dict("targets" => Bool.([i <= gm.n_targets for i = 1:gm.n_dots]),
-                           "vel" => gm.vel,
-                           "n_distractors" => gm.n_dots - gm.n_targets)
+        "aux_data" => Dict("targets" => Bool.([i <= dgp_gm.n_targets for i = 1:dgp_gm.n_dots]),
+                           "vel" => dgp_gm.vel,
+                           "n_distractors" => dgp_gm.n_dots - dgp_gm.n_targets)
     )
 end
 
@@ -86,10 +84,8 @@ function generate_trial(inference_gm, ntargets::Int64, vel::Float64)
                            (n_dots = nobjects,
                             n_targets = ntargets,
                             vel = vel))
-    cm = trial_constraints(dgp_gm)
-    trace, _ = generate(gm_isr, (exp_params.dur, dgp_gm), cm)
     println("scene sampled")
-    data = trial_data(trace)
+    data = trial_data(dgp_gm, exp_params.dur)
 
     # configure inference generative model
     inference_gm = setproperties(inference_gm,
@@ -193,12 +189,13 @@ function run_model(ntargets::Int, chain::Int)
         # store results
         CSV.write(perf_path, perf_df)
         CSV.write(att_path, att_df)
-        exp_params.viz && visualize_inference(smc_chain, dg, gt_states, gm,
-                                              joinpath(path, "$(chain)_$(step)"))
 
         # determine if performance is above chance
-        step_perf = sum(perf_df.td_acc)
-        if step_perf < ntargets
+        step_perf = sum(perf_df.td_acc) / ntargets
+        if step_perf < 0.95 || step == exp_params.stairsteps
+            exp_params.viz &&
+                visualize_inference(smc_chain, dg, gt_states, gm,
+                                    joinpath(path, "$(chain)_$(step)"))
             break
         end
     end
@@ -213,7 +210,7 @@ function pargs()
         "ntargets"
         help = "How many targets to track"
         arg_type = Int64
-        default = 1
+        default = 4
 
         "chain"
         help = "chain id"
