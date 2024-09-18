@@ -1,7 +1,7 @@
-using Gen_Compose
 using CSV
 using MOT
 using Accessors
+using Gen_Compose
 
 
 
@@ -40,7 +40,7 @@ function get_states(gm, t)
         push!(positions, [pos1, pos2, pos3])
     end
 
-    MOT.state_from_positions(gm, positions, nothing)
+    MOT.state_from_positions(gm, positions, [true, true, false])
 end
 
 
@@ -59,7 +59,9 @@ function main()
 
     gm_params = MOT.load(InertiaGM, args["gm"])
     gt_states = get_states(gm_params, args["time"])
-    query = query_from_params(gm_params, gt_states)
+    gt_init = first(gt_states)
+    gt_states = gt_states[2:end]
+    query = query_from_params(gm_params, gt_init, gt_states)
 
     att_mode = "target_designation"
     att = MOT.load(PopSensitivity, args[att_mode]["params"],
