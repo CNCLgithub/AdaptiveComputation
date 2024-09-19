@@ -5,29 +5,15 @@ using Accessors
 using Gen_Compose
 
 experiment_name = "exp_probes"
-plan = :td
-
-exp_params = (;experiment_name = experiment_name,
-              gm = "$(@__DIR__)/gm.json",
-              proc = "$(@__DIR__)/proc.json",
-              att = "$(@__DIR__)/$(plan).json",
-              dataset = "/spaths/datasets/$(experiment_name).json",
-              dur = 480, # number of frames to run; full = 480
-              model = "ac",
-              # SET FALSE for full experiment
-              restart = false,
-              viz = false,
-              # restart = true,
-              # viz = true,
-              )
 
 plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
-    :eu => (ensemble_uncertainty, (1.0, ))
+    :na => ((_...) -> 1.0, ()),
 )
 
-function run_model(scene::Int, chain::Int)
+function run_model(exp_params::NamedTuple,
+                   scene::Int, chain::Int)
     gm = dgp_gm = MOT.load(InertiaGM, exp_params.gm)
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
@@ -44,7 +30,7 @@ function run_model(scene::Int, chain::Int)
 
     query = query_from_params(gm, init_gt_state, gt_states)
 
-    plan_obj, plan_args = plan_objectives[plan]
+    plan_obj, plan_args = plan_objectives[exp_params.plan]
     att = MOT.load(PopSensitivity,
                    exp_params.att,
                    plan = plan_obj,
@@ -56,7 +42,7 @@ function run_model(scene::Int, chain::Int)
                     exp_params.proc;
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_$(exp_params.model)_$(plan)/$(scene)"
+    path = "/spaths/experiments/$(experiment_name)_$(exp_params.plan)/$(scene)"
     try
         isdir(path) || mkpath(path)
     catch e
@@ -103,6 +89,12 @@ function pargs()
         help = "chain id"
         arg_type = Int64
         default = 1
+
+        "plan"
+        help = "which decision objective to use"
+        arg_type = Symbol
+        default = :td
+
     end
 
     return parse_args(s)
@@ -112,7 +104,25 @@ function main()
     args = pargs()
     i = args["scene"]
     c = args["chain"]
-    run_model(i, c);
+    plan = args["plan"]
+
+    exp_params = (;experiment_name = experiment_name,
+                  plan = plan,
+                  gm = "$(@__DIR__)/gm.json",
+                  proc = "$(@__DIR__)/proc.json",
+                  att = "$(@__DIR__)/$(plan).json",
+                  dataset = "/spaths/datasets/$(experiment_name).json",
+                  dur = 480, # number of frames to run; full = 480
+                  model = "ac",
+                  # SET FALSE for full experiment
+                  restart = false,
+                  viz = false,
+                  # restart = true,
+                  # viz = true,
+                  )
+
+
+    run_model(exp_params, i, c);
 end
 
 
