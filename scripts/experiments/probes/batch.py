@@ -9,7 +9,7 @@ script = 'bash {0!s}/env.d/run.sh julia ' + \
          '/project/scripts/experiments/probes/exp_probes.jl'
 
 def att_tasks(args):
-    tasks = [(t,c) for c in range(1, args.chains + 1)
+    tasks = [(t,c, args.plan) for c in range(1, args.chains + 1)
              for t in range(1, args.scenes+1)]
     return (tasks, [], [])
     
@@ -19,6 +19,9 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
+    parser.add_argument('--plan', type = str, default = 'ac',
+                        options = ['ac', 'na'],
+                        help = 'Plan objective to use')
     parser.add_argument('--scenes', type = int, default = 40,
                         help = 'number of scenes')
     parser.add_argument('--chains', type = int, default = 20,
