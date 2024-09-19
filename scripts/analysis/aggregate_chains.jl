@@ -7,9 +7,9 @@ using MOT: merge_experiment
 model = "ac_td" # adaptive computation with target designation goal
 
 experiments = [
-    "exp_effort",
-    "exp_probes",
-    "exp_localization_error",
+    # "exp_effort",
+    # "exp_probes",
+    # "exp_localization_error",
     "exp_staircase"
 ]
 
