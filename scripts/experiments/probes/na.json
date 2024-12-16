@@ -1,4 +1,5 @@
 {
     "latents": 4,
-    "max_arrousal": 0
+    "max_arrousal": 0,
+    "min_samples": 10
 }

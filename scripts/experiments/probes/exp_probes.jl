@@ -8,7 +8,7 @@ experiment_name = "exp_probes"
 
 plan_objectives = Dict(
     # key => (plan object, args)
-    :td => (td_flat, (2.0,)),
+    :td => (td_flat, (1.025,)),
     :na => ((_...) -> 1.0, ()),
 )
 
@@ -36,7 +36,7 @@ function run_model(exp_params::NamedTuple,
                    plan = plan_obj,
                    plan_args = plan_args,
                    percept_update = tracker_kernel,
-                   percept_args = (2,) # look back steps
+                   percept_args = (3,) # look back steps
                    )
     proc = MOT.load(PopParticleFilter,
                     exp_params.proc;

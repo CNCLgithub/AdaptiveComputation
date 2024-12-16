@@ -19,8 +19,8 @@ def main():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('--plan', type = str, default = 'ac',
-                        options = ['ac', 'na'],
+    parser.add_argument('--plan', type = str, default = 'td',
+                        choices = ['td', 'na'],
                         help = 'Plan objective to use')
     parser.add_argument('--scenes', type = int, default = 40,
                         help = 'number of scenes')
