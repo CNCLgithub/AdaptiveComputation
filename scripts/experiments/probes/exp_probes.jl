@@ -10,6 +10,7 @@ plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
     :na => ((_...) -> 1.0, ()),
+    :id => (id_flat, (3.0,)),
 )
 
 function run_model(exp_params::NamedTuple,
@@ -83,7 +84,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 38
+        default = 5
 
         "chain"
         help = "chain id"
@@ -93,7 +94,7 @@ function pargs()
         "plan"
         help = "which decision objective to use"
         arg_type = Symbol
-        default = :td
+        default = :id
 
     end
 
@@ -112,13 +113,13 @@ function main()
                   proc = "$(@__DIR__)/proc.json",
                   att = "$(@__DIR__)/$(plan).json",
                   dataset = "/spaths/datasets/$(experiment_name).json",
-                  dur = 480, # number of frames to run; full = 480
+                  dur = 80, # number of frames to run; full = 480
                   model = "ac",
                   # SET FALSE for full experiment
-                  restart = false,
-                  viz = false,
-                  # restart = true,
-                  # viz = true,
+                  # restart = false,
+                  # viz = false,
+                  restart = true,
+                  viz = true,
                   )
 
 
