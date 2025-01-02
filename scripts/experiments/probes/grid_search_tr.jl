@@ -118,7 +118,7 @@ function main()
     args = pargs()
     t_pi, t_im = grid_search_steps[args["gs_step"]]
     for ci = 1:args["chains"]
-        run_model(args["scene"], ci, args["gs_step"], x0, m);
+        run_model(args["scene"], ci, args["gs_step"], t_pi, t_im);
         GC.gc() # memory leak?
     end
 end

@@ -10,7 +10,7 @@ plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
     :na => ((_...) -> 1.0, ()),
-    :id => (id_flat, (3.0,)),
+    :id => (id_flat, (1.025,)),
 )
 
 function run_model(exp_params::NamedTuple,
