@@ -10,7 +10,7 @@ plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
     :na => ((_...) -> 1.0, ()),
-    :id => (id_flat, (1.025,)),
+    :id => (id_flat, (3.025,)),
 )
 
 function run_model(exp_params::NamedTuple,
@@ -84,7 +84,7 @@ function pargs()
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 5
+        default = 24 # figure 3
 
         "chain"
         help = "chain id"
@@ -113,7 +113,7 @@ function main()
                   proc = "$(@__DIR__)/proc.json",
                   att = "$(@__DIR__)/$(plan).json",
                   dataset = "/spaths/datasets/$(experiment_name).json",
-                  dur = 80, # number of frames to run; full = 480
+                  dur = 480, # number of frames to run; full = 480
                   model = "ac",
                   # SET FALSE for full experiment
                   # restart = false,
@@ -122,7 +122,10 @@ function main()
                   viz = true,
                   )
 
-
+    # uncomment to running multiple chains
+    # for chain = 1:10
+    #     run_model(exp_params, i, chain);
+    # end
     run_model(exp_params, i, c);
 end
 

@@ -3,8 +3,7 @@ using MOT
 using Accessors
 using Gen_Compose
 using UnicodePlots
-
-
+using DataFrames
 
 function get_states(gm, t)
 
@@ -38,7 +37,7 @@ function main()
                  "proc" => "$(@__DIR__)/proc.json",
                  "scene" => 1,
                  "chain" => 1,
-                 "time" => 81,
+                 "time" => 60,
                  "restart" => true,
                  "viz" => true,
                  "step_size" => 61])
@@ -56,8 +55,8 @@ function main()
         wall_rep_m = 0.1,
         wall_rep_a = 0.1,
         wall_rep_x0 = 80.0,
-        inner_f = 15.0,
-        outer_f = 20.0,
+        inner_f = 10.0,
+        outer_f = 10.0,
         k_tail = 1,
         tail_sample_rate = 1,
     )
@@ -86,36 +85,50 @@ function main()
         attention = att,
     )
 
-    base_path = "/spaths/experiments/$(experiment_name)_$(att_mode)"
+    base_path = "/spaths/test/$(experiment_name)_$(att_mode)"
     scene = args["scene"]
     path = joinpath(base_path, "$(scene)")
+
     try
         isdir(base_path) || mkpath(base_path)
         isdir(path) || mkpath(path)
     catch e
         println("could not make dir $(path)")
     end
-    nsteps = length(gt_states) - 1
-    logger = MemLogger(nsteps)
-    chain = run_chain(proc, query, nsteps, logger)
-    dg = extract_digest(logger)
-    visualize_inference(chain, dg, gt_states, gm_params, path)
+
+    df = DataFrame(
+        chain = Int64[],
+        t = Int64[],
+        nabla = Float64[],
+    )
+
+    for ci = 1:5
+        nsteps = length(gt_states) - 1
+        logger = MemLogger(nsteps)
+        chain = run_chain(proc, query, nsteps, logger)
+        dg = extract_digest(logger)
+        # visualize_inference(chain, dg, gt_states, gm_params, path)
 
 
-    aux_state = dg[:, :auxillary]
-    k = length(aux_state)
-    task_relevance = Vector{Float64}(undef, k)
-    for t=1:k
-        task_relevance[t] = aux_state[t].sensitivities[1]
+
+        aux_state = dg[:, :auxillary]
+        k = length(aux_state)
+        task_relevance = Vector{Float64}(undef, k)
+        for t=1:k
+            task_relevance[t] = aux_state[t].sensitivities[1]
+        end
+
+        fig = scatterplot(1:k, task_relevance,
+                        title="Task relevance")
+
+        ylim = collect(extrema(filter(!isinf, task_relevance)))
+        vline!(fig, 27, ylim)
+        display(fig)
+
+        append!(df, DataFrame(chain = ci, t = 1:k, nabla = task_relevance))
     end
 
-    fig = scatterplot(1:k, task_relevance,
-                      title="Task relevance")
-
-    ylim = collect(extrema(filter(!isinf, task_relevance)))
-    vline!(fig, 27, ylim)
-    display(fig)
-
+    CSV.write("/spaths/test/$(experiment_name).csv", df)
 
     return nothing
 end

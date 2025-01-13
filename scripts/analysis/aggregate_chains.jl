@@ -6,11 +6,12 @@ using MOT: merge_experiment
 
 # model = "td" # adaptive computation with target designation goal
 # model = "na_perf" # no attention - matched for performance
-model = "na_load" # no attention - matched for load
+# model = "na_load" # no attention - matched for load
+model = "id" # identity tracking, for qualitative comparison
 
 experiments = [
-    "exp_effort",
-    # "exp_probes",
+    # "exp_effort",
+    "exp_probes",
     # "exp_localization_error",
     # "exp_staircase",
 ]
