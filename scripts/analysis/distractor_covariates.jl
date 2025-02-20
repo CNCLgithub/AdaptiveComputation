@@ -44,7 +44,7 @@ function load_gt_positions(path::String)
     return df
 end
 
-function nearest_distractor_pos(scene, frame, tx, ty, gt_gd)
+function nearest_distractor_pos(row)
     g = gt_gd[(scene = scene, frame = frame)]
     l2d = (x,y) -> l2_distance(tx,ty,x,y)
     transform!(g,
@@ -70,92 +70,40 @@ end
 
 
 # probe timing for experiment
-probe_timings = "/spaths/datasets/random_probe_timings.csv"
+probe_timings = "/spaths/datasets/exp2_probe_map_random.csv"
 pdf = DataFrame(CSV.File(probe_timings))
 filter!(row -> row.scene <= 40, pdf)
 # probe frames
-probed_frames = select(pdf, Cols(:scene, :frame))
-
-# see `scripts/aggregate_chains.jl`
-model = "ac_td"
-# chain performance
-model_perf_csv = "/spaths/experiments/exp_probes_$(model)_perf.csv"
-model_perf = DataFrame(CSV.File(model_perf_csv))
-model_perf = groupby(model_perf, Cols(:chain, :scene))
-model_perf = combine(model_perf, Cols(:td_acc) => mean => :avg_acc)
-passed_chains = select(model_perf, Cols(:chain, :scene))
-
-
-model_inferences = "/spaths/experiments/exp_probes_$(model)_att.csv"
-df = DataFrame(CSV.File(model_inferences))
-df = select(df, Cols(:chain, :scene, :frame, :tracker, :pred_x, :pred_y))
-df = leftjoin(probed_frames, df, on = [:scene, :frame])
-# filter!(row -> row.scene == 1, df) # TODO: remove after debugging
-
+probed_frames = select(pdf, Cols(:scene, :frame, :tracker))
 
 # distance to the nearest distractor for each frame x tracker
 gt_positions = load_gt_positions("/spaths/datasets/exp_probes.json")
+gt_positions = leftjoin(probed_frames, gt_positions, on = [:scene, :frame])
+
+gt_probe_pos = filter(row -> row.tracker == row.object, gt_positions)
+rename!(gt_probe_pos,
+        :x => :probe_x,
+        :y => :probe_y)
+select!(gt_probe_pos, [:scene, :frame, :probe_x, :probe_y])
+display(gt_probe_pos)
+
+leftjoin!(gt_positions, gt_probe_pos, on = [:scene, :frame])
 
 distractor_positions = filter(row -> row.object > 4, gt_positions)
 grouped_dis_positions = groupby(distractor_positions, Cols(:scene, :frame))
-nd_dist_f = ByRow((s, f, x, y) -> nearest_distractor_distance(s,f,x,y,grouped_dis_positions))
-transform!(df,
-           [:scene, :frame, :pred_x, :pred_y] => nd_dist_f => :nn_dist)
+distractor_center = combine(grouped_dis_positions, [:x, :y] .=> mean .=> [:dcx, :dcy])
 
-
-gdf = groupby(df, Cols(:scene, :frame, :tracker))
-gdf = combine(gdf, Cols(:pred_x, :pred_y, :loc_error, :nn_dist) .=> [mean std])
-
-CSV.write("/spaths/experiments/exp_probes_$(model)_dnd.csv",
-          gdf)
-
-df = select(gdf, Not(r"std"))
-rename!(df,
-        :pred_x_mean => :pred_x,
-        :pred_y_mean => :pred_y,
-        :nn_dist_mean => :nn_dist
+transform!(distractor_positions,
+           [:x, :y, :probe_x, :probe_y] => l2_distance => :l2d)
+grouped_dis_positions = groupby(distractor_positions, Cols(:scene, :frame))
+subset!(grouped_dis_positions,
+        :l2d => x -> x .== minimum(x)
         )
+rename!(distractor_positions,
+        :x => :dx,
+        :y => :dy)
+select!(distractor_positions, Cols(:scene, :frame, :dx, :dy))
+leftjoin!(distractor_positions, distractor_center, on = [:scene, :frame])
 
-# normalize each tracker's nearest distactor distance
-# by the the aggregate across trackers
-sf = groupby(df, Cols(:scene, :frame))
-total_distance = combine(sf,
-                          :nn_dist => sum)
-leftjoin!(df, total_distance,
-          on = [:scene, :frame])
-transform!(df,
-           [:nn_dist, :nn_dist_sum] => ByRow((x, s) ->  x / s) => :weight)
-
-# compute the weighted centroid according to proportion of nearest
-# neighbor "mass"
-sf = groupby(df, Cols(:scene, :frame))
-# aggregate x and y across trackers
-# scene    frame   icx  icy
-ic = combine(sf,
-     [:tracker, :weight, :pred_x, :pred_y] => weighted_centroid =>
-         AsTable)
-
-s1 = filter(x -> x.scene == 1, ic)
-display(s1)
-
-# extract frames with probe present
-# format: scene chain frame icx icy probe
-label_probe_f = ByRow((x,y) -> label_probe(x,y,pdf))
-transform!(ic, [:scene, :frame] => label_probe_f => :probe)
-filter!(:probe => x -> x > 0, ic)
-
-# compute the distances of the centroid to each probe
-distances = select(df, Not(:weight))
-# format: scene chain frame tracker pred_x pred_y icx icy probe
-distances = innerjoin(ic, distances, on = [:scene, :frame])
-distances = distances[distances.tracker .== distances.probe, All()]
-# format: scene chain frame pred_x pred_y icx  icy
-select!(distances, Not(Cols(:tracker, :probe)))
-# scene   chain   frame   pred_x   pred_y   icx  icy   d_ic
-transform!(distances,
-           [:ic_x, :ic_y, :pred_x, :pred_y] => l2_distance => :d_ic)
-# scene   chain   frame   ic_x  ic_y   d_ic
-select!(distances, Not(Cols(:pred_x, :pred_y)))
-display(distances)
-
-CSV.write("/spaths/experiments/exp_probes_$(model)_dnd_centroid.csv", distances)
+CSV.write("/spaths/experiments/exp_probes_dis_cov.csv",
+          distractor_positions)
