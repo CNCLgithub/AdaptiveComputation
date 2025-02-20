@@ -3,18 +3,36 @@ using MOT
 using ArgParse
 using Accessors
 using Gen_Compose
+using Base.Iterators: product
 
 experiment_name = "exp_probes"
+plan = :td
+
+x0_steps = range(20.0, 80.0, 4)
+m_steps = range(0.2, 0.8, 4)
+grid_search_steps = collect(product(x0_steps, m_steps));
+
+exp_params = (;experiment_name = experiment_name,
+              gm = "$(@__DIR__)/gm.json",
+              proc = "$(@__DIR__)/proc.json",
+              att = "$(@__DIR__)/$(plan).json",
+              dataset = "/spaths/datasets/$(experiment_name).json",
+              dur = 480, # number of frames to run; full = 480
+              model = "ac",
+              # SET FALSE for full experiment
+              restart = false,
+              viz = false,
+              # restart = true,
+              # viz = true,
+              )
 
 plan_objectives = Dict(
     # key => (plan object, args)
     :td => (td_flat, (1.025,)),
-    :na => ((_...) -> 1.0, ()),
-    :id => (id_flat, (3.025,)),
 )
 
-function run_model(exp_params::NamedTuple,
-                   scene::Int, chain::Int)
+function run_model(scene::Int, chain::Int, gs_step::Int,
+                   x0::Float64, m::Float64)
     gm = dgp_gm = MOT.load(InertiaGM, exp_params.gm)
     # loading scene data
     scene_data = MOT.load_scene(dgp_gm,
@@ -22,7 +40,6 @@ function run_model(exp_params::NamedTuple,
                                 scene)
     init_gt_state = scene_data[:gt_states][1]
     gt_states = scene_data[:gt_states][2:(exp_params.dur + 1)]
-    # gt_states = scene_data[:gt_states][1:exp_params.dur]
     aux_data = scene_data[:aux_data]
 
     gm = setproperties(gm,
@@ -31,19 +48,22 @@ function run_model(exp_params::NamedTuple,
 
     query = query_from_params(gm, init_gt_state, gt_states)
 
-    plan_obj, plan_args = plan_objectives[exp_params.plan]
+    plan_obj, plan_args = plan_objectives[plan]
     att = MOT.load(PopSensitivity,
                    exp_params.att,
                    plan = plan_obj,
                    plan_args = plan_args,
                    percept_update = tracker_kernel,
-                   percept_args = (3,) # look back steps
+                   percept_args = (3,), # look back steps
+                   x0 = x0,
+                   m = m
                    )
     proc = MOT.load(PopParticleFilter,
                     exp_params.proc;
                     attention = att)
 
-    path = "/spaths/experiments/$(experiment_name)_$(exp_params.plan)/$(scene)"
+    base_path = "/spaths/experiments/$(experiment_name)_$(exp_params.model)_$(plan)"
+    path = "$(base_path)/grid_search-$(gs_step)/$(scene)"
     try
         isdir(path) || mkpath(path)
     catch e
@@ -81,21 +101,21 @@ function pargs()
     s = ArgParseSettings()
 
     @add_arg_table! s begin
+
+        "gs_step"
+        help = "Grid-search step"
+        arg_type = Int64
+        default = 16
+
         "scene"
         help = "Which scene to run"
         arg_type = Int64
-        default = 24 # figure 3
+        default = 32
 
-        "chain"
-        help = "chain id"
+        "chains"
+        help = "Number of chains"
         arg_type = Int64
-        default = 1
-
-        "plan"
-        help = "which decision objective to use"
-        arg_type = Symbol
-        default = :id
-
+        default = 10
     end
 
     return parse_args(s)
@@ -103,30 +123,11 @@ end
 
 function main()
     args = pargs()
-    i = args["scene"]
-    c = args["chain"]
-    plan = args["plan"]
-
-    exp_params = (;experiment_name = experiment_name,
-                  plan = plan,
-                  gm = "$(@__DIR__)/gm.json",
-                  proc = "$(@__DIR__)/proc.json",
-                  att = "$(@__DIR__)/$(plan).json",
-                  dataset = "/spaths/datasets/$(experiment_name).json",
-                  dur = 480, # number of frames to run; full = 480
-                  model = "ac",
-                  # SET FALSE for full experiment
-                  # restart = false,
-                  # viz = false,
-                  restart = true,
-                  viz = true,
-                  )
-
-    # uncomment to running multiple chains
-    # for chain = 1:10
-    #     run_model(exp_params, i, chain);
-    # end
-    run_model(exp_params, i, c);
+    x0, m = grid_search_steps[args["gs_step"]]
+    for ci = 1:args["chains"]
+        run_model(args["scene"], ci, args["gs_step"], x0, m);
+        GC.gc() # memory leak?
+    end
 end
 
 

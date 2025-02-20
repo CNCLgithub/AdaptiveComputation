@@ -6,9 +6,14 @@ using Accessors
 
 
 experiment_name = "exp_effort"
-att_mode = "td"
-att_params = "$(@__DIR__)/td.json"
-objective = td_flat
+
+plan_objectives = Dict(
+    # key => (plan object, args)
+    :td => (td_flat, (1.025,)),
+    :na_perf => ((_...) -> 1.0, ()),
+    :na_load => ((_...) -> 1.0, ()),
+    # :id => (id_flat, (3.0,)),
+)
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -23,6 +28,11 @@ function parse_commandline()
         help = "Inference procedure params"
         arg_type = String
         default = "$(@__DIR__)/proc.json"
+
+        "--plan"
+        help = "which decision objective to use"
+        arg_type = Symbol
+        default = :td
 
         "--dataset"
         help = "jld2 dataset path"
@@ -66,6 +76,9 @@ function main()
     # args["restart"] = true
     # args["viz"] = true
 
+    att_mode = args["plan"]
+    att_params = "$(@__DIR__)/$(att_mode).json"
+    plan, plan_args = plan_objectives[att_mode]
 
     # loading scene data
     gm = MOT.load(InertiaGM, args["gm"])
@@ -87,8 +100,8 @@ function main()
 
     att = MOT.load(PopSensitivity,
                    att_params,
-                   plan = td_flat,
-                   plan_args = (1.025,),
+                   plan = plan,
+                   plan_args = plan_args,
                    percept_update = tracker_kernel,
                    percept_args = (3,) # look back steps
                    )

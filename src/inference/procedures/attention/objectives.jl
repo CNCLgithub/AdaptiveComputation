@@ -1,5 +1,6 @@
 
 export correspondence,
+    id_flat,
     td_flat,
     td_full,
     ensemble_uncertainty,

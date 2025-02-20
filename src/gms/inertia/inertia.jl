@@ -254,16 +254,9 @@ function td_flat(trace::InertiaTrace, temp::Float64)
                 xw = logsumexp(xw, nls[p])
             end
         end
-        # @views for p = 1:np, e = 1:ne
-        #     pt[x, e, p] || continue
-        #     xw = logsumexp(xw, nls[p])
-        # end
         x_weights[x] = xw
     end
 
-    # @show length(pls)
-    # display(sum(pt; dims = 3))
-    # @show x_weights
     # the ratio of observations explained by each target
     # weighted by the probability that the observation is
     # explained by other targets
@@ -285,4 +278,37 @@ function td_flat(trace::InertiaTrace, temp::Float64)
         end
     end
     return td_weights
+end
+
+function scan_ptensor(pt, e::Int, p::Int, nx::Int)
+    idx = 0
+    @views for x = 1:nx
+        if pt[x, e, p]
+            idx = x
+            break
+        end
+    end
+    return idx
+end
+
+function id_flat(trace::InertiaTrace, temp::Float64)
+
+    t = first(get_args(trace))
+    rfs = extract_rfs_subtrace(trace, t)
+    pt = rfs.ptensor
+    nx,ne,np = size(pt)
+    ne -= 1
+    ls = softmax(rfs.pscores, t=temp)
+    # identity confidence
+    ws = Vector{Float64}(undef, ne)
+    hs = Vector{Float64}(undef, nx)
+    @inbounds for e = 1:ne
+        fill!(hs, -Inf)
+        for p = 1:np
+            x = scan_ptensor(pt, e, p, nx)
+            hs[x] = logsumexp(hs[x], ls[p])
+        end
+        ws[e] = maximum(hs)
+    end
+    return ws
 end
