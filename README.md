@@ -1,5 +1,15 @@
-# mot
-Implementation of adaptive computation and a case study on multiple object tracking (Pylyshyn & Storm 1988).
+# Adaptive Computation
+
+Implementation of the adaptive computation architecture in "Adaptive computation as a new mechanism of dynamic human attention"
+
+```bib
+@article{Belledonne_Butkus_Scholl_Yildirim,
+title={Adaptive computation as a new mechanism of dynamic human attention},
+author={Belledonne, Mario and Butkus, Eivinas and Scholl, Brian J. and Yildirim, Ilker},
+journal={Psychological Review},
+year={2025}
+} 
+```
 
 ## Setup and running
 1. Clone repository `git clone https://github.com/CNCLgithub/mot` and `cd mot`
